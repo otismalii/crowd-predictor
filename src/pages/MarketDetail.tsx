@@ -109,7 +109,6 @@ const MarketDetail = () => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [relatedMarkets, setRelatedMarkets] = useState<RelatedMarket[]>([]);
   const [walletBalance, setWalletBalance] = useState(0);
-  const [walletBalance, setWalletBalance] = useState(0);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
