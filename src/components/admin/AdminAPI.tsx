@@ -2,7 +2,6 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { RefreshCw, Brain, Zap, Globe, Clock, Timer, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -25,21 +24,17 @@ const AdminAPI = ({ matches, onRefresh }: AdminAPIProps) => {
   const [syncing, setSyncing] = useState(false);
   const [generating, setGenerating] = useState<string | null>(null);
   const [lastSync, setLastSync] = useState<string | null>(null);
-  const [roundId, setRoundId] = useState("");
 
   const handleSync = async () => {
     setSyncing(true);
     try {
-      const body: any = {};
-      if (roundId.trim()) body.round_id = roundId.trim();
-
-      const { data, error } = await supabase.functions.invoke("sync-matches", { body });
+      const { data, error } = await supabase.functions.invoke("sync-matches");
       if (error) throw error;
-      toast({ title: "✅ Matches synced!", description: `Synced ${data?.synced || 0} of ${data?.total || 0} fixtures.` });
+      toast({ title: "✅ Matches synced!", description: `Synced ${data?.synced || 0} of ${data?.total || 0} fixtures from TheSportsDB.` });
       setLastSync(new Date().toLocaleTimeString());
       onRefresh();
     } catch (e: any) {
-      toast({ title: "Sync failed", description: e.message || "Check API key in Supabase secrets", variant: "destructive" });
+      toast({ title: "Sync failed", description: e.message, variant: "destructive" });
     }
     setSyncing(false);
   };
@@ -57,17 +52,18 @@ const AdminAPI = ({ matches, onRefresh }: AdminAPIProps) => {
   };
 
   const handleGenerateAll = async () => {
-    const upcomingWithoutInsight = matches.filter((m) => m.status === "upcoming");
-    if (upcomingWithoutInsight.length === 0) {
+    const up = matches.filter((m) => m.status === "upcoming");
+    if (up.length === 0) {
       toast({ title: "No matches", description: "No upcoming matches to generate insights for." });
       return;
     }
-    for (const m of upcomingWithoutInsight.slice(0, 5)) {
+    for (const m of up.slice(0, 5)) {
       await handleInsight(m.id);
     }
   };
 
   const upcoming = matches.filter((m) => m.status === "upcoming");
+  const leagues = [...new Set(matches.map((m) => m.league))];
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -81,28 +77,20 @@ const AdminAPI = ({ matches, onRefresh }: AdminAPIProps) => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Automation status */}
-          <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3 space-y-1">
+          <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3 space-y-2">
             <div className="flex items-center gap-2 text-sm font-medium text-emerald-400">
               <Timer className="h-4 w-4" /> Automated Sync Active
             </div>
             <p className="text-xs text-muted-foreground">
-              Matches auto-sync every <strong>30 minutes</strong> via cron. Livescores, scheduled fixtures & scores update automatically from SportMonks.
+              Auto-syncs every <strong>30 min</strong> via TheSportsDB — covers <strong>{leagues.length || "11+"} leagues</strong> including Premier League, La Liga, Serie A, Bundesliga, Champions League & more. No API key required.
             </p>
           </div>
 
-          <p className="text-sm text-muted-foreground">
-            You can also trigger a manual sync or include a specific round ID for fixtures with odds data.
-          </p>
-
-          <div className="space-y-2">
-            <label className="text-xs text-muted-foreground">Round ID (optional)</label>
-            <Input
-              placeholder="e.g. 372146"
-              value={roundId}
-              onChange={(e) => setRoundId(e.target.value)}
-              className="h-9"
-            />
+          <div className="flex flex-wrap gap-1.5">
+            {leagues.slice(0, 8).map((l) => (
+              <Badge key={l} variant="secondary" className="text-xs">{l}</Badge>
+            ))}
+            {leagues.length > 8 && <Badge variant="secondary" className="text-xs">+{leagues.length - 8} more</Badge>}
           </div>
 
           {lastSync && (
@@ -126,7 +114,7 @@ const AdminAPI = ({ matches, onRefresh }: AdminAPIProps) => {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Generate Gemini-powered analysis for upcoming matches using community prediction data.
+            Generate Gemini-powered match analysis using community prediction data.
           </p>
 
           {upcoming.length > 0 && (
