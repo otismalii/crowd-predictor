@@ -2,18 +2,20 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { LogOut, Trophy, User, Zap, Menu, X, Home, Shield, Swords } from "lucide-react";
+import { LogOut, Trophy, User, Zap, Menu, X, Home, Shield, Swords, Wallet } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import NotificationBell from "@/components/NotificationBell";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Magnet from "@/components/reactbits/Magnet";
 import GradientText from "@/components/reactbits/GradientText";
+import WalletBalance from "@/components/WalletBalance";
 
 const navLinks = [
   { to: "/", label: "Feed", icon: Home },
   { to: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { to: "/challenges", label: "Challenges", icon: Swords },
+  { to: "/wallet", label: "Wallet", icon: Wallet },
 ];
 
 const Navbar = () => {
@@ -94,6 +96,7 @@ const Navbar = () => {
             </Link>
           ))}
 
+          <WalletBalance />
           <NotificationBell />
           <ThemeToggle />
           <div className="h-6 w-px bg-border" />

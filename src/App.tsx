@@ -15,6 +15,7 @@ import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import Challenges from "./pages/Challenges";
+import Wallet from "./pages/Wallet";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,7 @@ const App = () => (
               <Route path="/leaderboard" element={<Leaderboard />} />
               <Route path="/profile/:id" element={<Profile />} />
               <Route path="/challenges" element={<Challenges />} />
+              <Route path="/wallet" element={<Wallet />} />
               <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
