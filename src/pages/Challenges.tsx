@@ -64,7 +64,7 @@ const Challenges = () => {
 
     if (data) {
       // Fetch profiles for challengers and opponents
-      const userIds = [...new Set(data.flatMap((b: any) => [b.challenger_id, b.opponent_id]))];
+      const userIds: string[] = [...new Set(data.flatMap((b: any) => [b.challenger_id, b.opponent_id]) as string[])];
       const { data: profiles } = await supabase
         .from("profiles").select("id, username, avatar_url").in("id", userIds);
       
