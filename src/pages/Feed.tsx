@@ -60,7 +60,7 @@ const Feed = () => {
   const [tab, setTab] = useState<"matches" | "predictions">("matches");
 
   useEffect(() => {
-    Promise.all([fetchMatches(), fetchPredictions(), fetchInsights()]).then(() => setLoading(false));
+    Promise.all([fetchMatches(), fetchPredictions(), fetchInsights(), fetchFollowing()]).then(() => setLoading(false));
 
     const channel = supabase
       .channel("feed-realtime")
