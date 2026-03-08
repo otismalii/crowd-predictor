@@ -54,6 +54,8 @@ const Feed = () => {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [insights, setInsights] = useState<Record<string, string>>({});
   const [leagueFilter, setLeagueFilter] = useState("");
+  const [followingIds, setFollowingIds] = useState<string[]>([]);
+  const [feedFilter, setFeedFilter] = useState<"all" | "following">("all");
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"matches" | "predictions">("matches");
 
