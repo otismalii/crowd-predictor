@@ -46,6 +46,39 @@ export type Database = {
           },
         ]
       }
+      badges: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          icon: string
+          id: string
+          name: string
+          slug: string
+          threshold: number
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description: string
+          icon?: string
+          id?: string
+          name: string
+          slug: string
+          threshold?: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          name?: string
+          slug?: string
+          threshold?: number
+        }
+        Relationships: []
+      }
       follows: {
         Row: {
           created_at: string
@@ -138,6 +171,65 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      p2p_bets: {
+        Row: {
+          challenger_id: string
+          challenger_prediction_away: number
+          challenger_prediction_home: number
+          created_at: string
+          house_cut_percent: number
+          id: string
+          match_id: string
+          opponent_id: string
+          opponent_prediction_away: number | null
+          opponent_prediction_home: number | null
+          resolved_at: string | null
+          stake_amount: number
+          status: Database["public"]["Enums"]["bet_status"]
+          winner_id: string | null
+        }
+        Insert: {
+          challenger_id: string
+          challenger_prediction_away: number
+          challenger_prediction_home: number
+          created_at?: string
+          house_cut_percent?: number
+          id?: string
+          match_id: string
+          opponent_id: string
+          opponent_prediction_away?: number | null
+          opponent_prediction_home?: number | null
+          resolved_at?: string | null
+          stake_amount?: number
+          status?: Database["public"]["Enums"]["bet_status"]
+          winner_id?: string | null
+        }
+        Update: {
+          challenger_id?: string
+          challenger_prediction_away?: number
+          challenger_prediction_home?: number
+          created_at?: string
+          house_cut_percent?: number
+          id?: string
+          match_id?: string
+          opponent_id?: string
+          opponent_prediction_away?: number | null
+          opponent_prediction_home?: number | null
+          resolved_at?: string | null
+          stake_amount?: number
+          status?: Database["public"]["Enums"]["bet_status"]
+          winner_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "p2p_bets_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       predictions: {
         Row: {
@@ -235,6 +327,35 @@ export type Database = {
         }
         Relationships: []
       }
+      user_badges: {
+        Row: {
+          badge_id: string
+          id: string
+          unlocked_at: string
+          user_id: string
+        }
+        Insert: {
+          badge_id: string
+          id?: string
+          unlocked_at?: string
+          user_id: string
+        }
+        Update: {
+          badge_id?: string
+          id?: string
+          unlocked_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_badges_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "badges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -307,6 +428,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      bet_status: "pending" | "accepted" | "declined" | "resolved" | "cancelled"
       match_status: "upcoming" | "live" | "finished" | "postponed" | "cancelled"
       prediction_status: "pending" | "correct" | "incorrect"
       subscription_plan: "free" | "weekly" | "monthly" | "quarterly"
@@ -439,6 +561,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      bet_status: ["pending", "accepted", "declined", "resolved", "cancelled"],
       match_status: ["upcoming", "live", "finished", "postponed", "cancelled"],
       prediction_status: ["pending", "correct", "incorrect"],
       subscription_plan: ["free", "weekly", "monthly", "quarterly"],
