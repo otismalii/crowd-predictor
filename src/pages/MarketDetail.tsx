@@ -359,6 +359,14 @@ const MarketDetail = () => {
               })}
             </div>
 
+            {/* Price chart */}
+            <PriceChart
+              trades={trades}
+              outcomes={outcomes}
+              liquidityParam={b}
+              marketCreatedAt={market.created_at}
+            />
+
             {/* AI Insight */}
             {insight && (
               <div className="rounded-xl border border-accent/20 bg-accent/5 p-4">
