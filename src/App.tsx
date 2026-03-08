@@ -2,10 +2,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import ProtectedRoute from "@/components/layout/ProtectedRoute";
+import { AnimatePresence, motion } from "framer-motion";
 import Feed from "./pages/Feed";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
@@ -19,6 +20,50 @@ import MarketDetail from "./pages/MarketDetail";
 
 const queryClient = new QueryClient();
 
+const pageVariants = {
+  initial: { opacity: 0, y: 8 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -8 },
+};
+
+const pageTransition = {
+  duration: 0.2,
+  ease: [0.25, 0.46, 0.45, 0.94],
+};
+
+const AnimatedPage = ({ children }: { children: React.ReactNode }) => (
+  <motion.div
+    variants={pageVariants}
+    initial="initial"
+    animate="animate"
+    exit="exit"
+    transition={pageTransition}
+  >
+    {children}
+  </motion.div>
+);
+
+const AnimatedRoutes = () => {
+  const location = useLocation();
+
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<AnimatedPage><Feed /></AnimatedPage>} />
+        <Route path="/auth" element={<AnimatedPage><Auth /></AnimatedPage>} />
+        <Route path="/reset-password" element={<AnimatedPage><ResetPassword /></AnimatedPage>} />
+        <Route path="/market/:id" element={<AnimatedPage><MarketDetail /></AnimatedPage>} />
+        <Route path="/leaderboard" element={<AnimatedPage><Leaderboard /></AnimatedPage>} />
+        <Route path="/profile/:id" element={<AnimatedPage><Profile /></AnimatedPage>} />
+        <Route path="/challenges" element={<AnimatedPage><Challenges /></AnimatedPage>} />
+        <Route path="/wallet" element={<AnimatedPage><Wallet /></AnimatedPage>} />
+        <Route path="/admin" element={<AnimatedPage><ProtectedRoute><Admin /></ProtectedRoute></AnimatedPage>} />
+        <Route path="*" element={<AnimatedPage><NotFound /></AnimatedPage>} />
+      </Routes>
+    </AnimatePresence>
+  );
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
@@ -27,18 +72,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
-            <Routes>
-              <Route path="/" element={<Feed />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/market/:id" element={<MarketDetail />} />
-              <Route path="/leaderboard" element={<Leaderboard />} />
-              <Route path="/profile/:id" element={<Profile />} />
-              <Route path="/challenges" element={<Challenges />} />
-              <Route path="/wallet" element={<Wallet />} />
-              <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <AnimatedRoutes />
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
