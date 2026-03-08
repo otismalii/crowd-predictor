@@ -1,16 +1,28 @@
 import { Zap } from "lucide-react";
+import { motion } from "framer-motion";
+import GradientText from "@/components/reactbits/GradientText";
 
 const Footer = () => (
-  <footer className="border-t border-border/50 bg-background/50 py-8">
-    <div className="container flex flex-col items-center gap-4 text-center">
-      <div className="flex items-center gap-2">
+  <footer className="border-t border-border/50 bg-background/50 py-10">
+    <div className="container flex flex-col items-center gap-5 text-center">
+      <motion.div
+        className="flex items-center gap-2"
+        whileHover={{ scale: 1.05 }}
+        transition={{ type: "spring", stiffness: 300 }}
+      >
         <Zap className="h-5 w-5 text-primary" />
-        <span className="font-display text-lg font-bold tracking-wider text-primary">PAGAZABETZ</span>
+        <GradientText
+          className="font-display text-lg font-bold tracking-wider"
+          animationSpeed={8}
+        >
+          PAGAZABETZ
+        </GradientText>
+      </motion.div>
+      <div className="flex items-center gap-6 text-xs text-muted-foreground">
+        <span>Built by <span className="text-accent font-semibold">LionByte Studios</span></span>
+        <span className="h-3 w-px bg-border" />
+        <span>© {new Date().getFullYear()}</span>
       </div>
-      <p className="text-xs text-muted-foreground">
-        Built by <span className="text-accent font-semibold">LionByte Studios</span>
-      </p>
-      <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} PagazaBetz. All rights reserved.</p>
     </div>
   </footer>
 );
