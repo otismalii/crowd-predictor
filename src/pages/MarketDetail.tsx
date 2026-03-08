@@ -21,6 +21,7 @@ import SpotlightCard from "@/components/reactbits/SpotlightCard";
 import GradientText from "@/components/reactbits/GradientText";
 import TeamBadge from "@/components/TeamBadge";
 import { lmsrPrice } from "@/components/MarketCard";
+import PriceChart from "@/components/PriceChart";
 
 interface MarketOutcome {
   id: string;
@@ -357,6 +358,14 @@ const MarketDetail = () => {
                 );
               })}
             </div>
+
+            {/* Price chart */}
+            <PriceChart
+              trades={trades}
+              outcomes={outcomes}
+              liquidityParam={b}
+              marketCreatedAt={market.created_at}
+            />
 
             {/* AI Insight */}
             {insight && (
