@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { CardContent } from "@/components/ui/card";
-import { Trophy, Medal, Star, TrendingUp, Target } from "lucide-react";
+import { Trophy, Medal, Star, TrendingUp, Target, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Navbar from "@/components/layout/Navbar";
@@ -12,6 +12,8 @@ import GradientText from "@/components/reactbits/GradientText";
 import AnimatedCounter from "@/components/reactbits/AnimatedCounter";
 import SplitText from "@/components/reactbits/SplitText";
 import { motion } from "framer-motion";
+
+const PAGE_SIZE = 30;
 
 interface Profile {
   id: string;
@@ -25,21 +27,59 @@ interface Profile {
 const Leaderboard = () => {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [tab, setTab] = useState<"reputation" | "accuracy">("reputation");
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const totalFetched = useRef(0);
 
   useEffect(() => {
+    totalFetched.current = 0;
+    setProfiles([]);
+    setHasMore(true);
     setLoading(true);
+    fetchProfiles(0).then(() => setLoading(false));
+  }, [tab]);
+
+  const fetchProfiles = async (offset: number) => {
     const col = tab === "reputation" ? "reputation_score" : "accuracy_rate";
-    supabase
+    const { data } = await supabase
       .from("profiles")
       .select("id, username, reputation_score, accuracy_rate, avatar_url, followers_count")
       .order(col, { ascending: false })
-      .limit(50)
-      .then(({ data }) => {
-        if (data) setProfiles(data as Profile[]);
-        setLoading(false);
+      .range(offset, offset + PAGE_SIZE - 1);
+
+    if (!data) return;
+    if (data.length < PAGE_SIZE) setHasMore(false);
+    totalFetched.current = offset + data.length;
+
+    if (offset === 0) {
+      setProfiles(data as Profile[]);
+    } else {
+      setProfiles(prev => {
+        const existingIds = new Set(prev.map(p => p.id));
+        const unique = (data as Profile[]).filter(p => !existingIds.has(p.id));
+        return [...prev, ...unique];
       });
-  }, [tab]);
+    }
+  };
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    await fetchProfiles(totalFetched.current);
+    setLoadingMore(false);
+  }, [loadingMore, hasMore, tab]);
+
+  const lastRowRef = useCallback((node: HTMLDivElement | null) => {
+    if (observerRef.current) observerRef.current.disconnect();
+    observerRef.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore && !loadingMore) {
+        loadMore();
+      }
+    }, { rootMargin: "200px" });
+    if (node) observerRef.current.observe(node);
+  }, [hasMore, loadingMore, loadMore]);
 
   const getRankDisplay = (i: number) => {
     if (i === 0)
@@ -142,9 +182,10 @@ const Leaderboard = () => {
                 {profiles.map((p, i) => (
                   <motion.div
                     key={p.id}
+                    ref={i === profiles.length - 1 ? lastRowRef : undefined}
                     initial={{ opacity: 0, x: -16 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.04, ease: [0.25, 0.46, 0.45, 0.94] }}
+                    transition={{ delay: Math.min(i * 0.04, 0.5), ease: [0.25, 0.46, 0.45, 0.94] }}
                   >
                     <Link
                       to={`/profile/${p.id}`}
@@ -180,6 +221,14 @@ const Leaderboard = () => {
                     </Link>
                   </motion.div>
                 ))}
+                {loadingMore && (
+                  <div className="flex justify-center py-4">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  </div>
+                )}
+                {!hasMore && profiles.length > PAGE_SIZE && (
+                  <p className="text-center text-xs text-muted-foreground py-4">All users loaded</p>
+                )}
               </div>
             )}
           </CardContent>
