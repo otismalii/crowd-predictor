@@ -231,6 +231,7 @@ const Feed = () => {
           {/* Tab switcher */}
           <div className="flex gap-1 mt-8 p-1 bg-muted/50 rounded-xl w-fit backdrop-blur-sm border border-border/30">
             {[
+              { key: "markets" as const, label: "📊 Markets", icon: BarChart3 },
               { key: "matches" as const, label: "⚽ Matches", icon: null },
               { key: "predictions" as const, label: "Community Feed", icon: TrendingUp },
             ].map(({ key, label, icon: Icon }) => (
