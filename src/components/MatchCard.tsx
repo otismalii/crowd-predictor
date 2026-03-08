@@ -133,6 +133,19 @@ const MatchCard = ({ match, userId, insightPreview, onNavigateAuth, onPrediction
             </div>
           </Link>
 
+          {/* AI Insight preview */}
+          {insightPreview && (
+            <div className="mx-4 mb-3 rounded-lg bg-accent/5 border border-accent/15 px-3 py-2">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Brain className="h-3 w-3 text-accent" />
+                <span className="text-[10px] font-semibold text-accent uppercase tracking-wider">AI Insight</span>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+                {insightPreview}
+              </p>
+            </div>
+          )}
+
           {/* Predict button */}
           {isUpcoming && (
             <div className="px-4 pb-3">
