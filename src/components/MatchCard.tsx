@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import TeamBadge from "@/components/TeamBadge";
-import { Calendar, ChevronDown, ChevronUp, Send, Clock } from "lucide-react";
+import { Calendar, ChevronDown, ChevronUp, Send, Clock, Brain } from "lucide-react";
 import { format, isPast, isFuture, isToday } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 
