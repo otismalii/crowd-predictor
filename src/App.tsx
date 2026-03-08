@@ -14,6 +14,7 @@ import Leaderboard from "./pages/Leaderboard";
 import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
+import Challenges from "./pages/Challenges";
 
 const queryClient = new QueryClient();
 
