@@ -2,12 +2,13 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { LogOut, Trophy, User, Zap, Menu, X, Home, Shield, Swords, Wallet } from "lucide-react";
+import { LogOut, Trophy, User, Menu, X, Home, Shield, Swords, Wallet } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import NotificationBell from "@/components/NotificationBell";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import WalletBalance from "@/components/WalletBalance";
+import logoImg from "@/assets/logo.png";
 
 const navLinks = [
   { to: "/", label: "Markets", icon: Home },
@@ -55,7 +56,13 @@ const Navbar = () => {
     >
       <div className="container flex h-14 items-center justify-between">
         <Link to="/" className="flex items-center gap-2 group">
-          <Zap className="h-5 w-5 text-primary" />
+          <motion.img
+            src={logoImg}
+            alt="PagazaBetz"
+            className="h-7 w-7 object-contain"
+            whileHover={{ rotate: 10, scale: 1.1 }}
+            transition={{ type: "spring", stiffness: 300 }}
+          />
           <span className="font-display text-lg font-bold tracking-wider text-foreground">
             PAGAZA<span className="text-primary">BETZ</span>
           </span>
@@ -75,6 +82,13 @@ const Navbar = () => {
             >
               <link.icon className="h-4 w-4" />
               {link.label}
+              {isActive(link.to) && (
+                <motion.div
+                  layoutId="nav-indicator"
+                  className="absolute bottom-0 left-2 right-2 h-0.5 bg-primary rounded-full"
+                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                />
+              )}
             </Link>
           ))}
 
@@ -108,6 +122,7 @@ const Navbar = () => {
 
         {/* Mobile toggle */}
         <div className="flex items-center gap-1 md:hidden">
+          <WalletBalance />
           <NotificationBell />
           <button
             className="text-foreground p-2"

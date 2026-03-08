@@ -222,7 +222,7 @@ const MarketDetail = () => {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       toast({
-        title: side === "buy" ? "📈 Shares bought!" : "📉 Shares sold!",
+        title: side === "buy" ? "Shares bought!" : "Shares sold!",
         description: `${numShares} shares at KES ${data.price_per_share?.toFixed(2)} each`,
       });
       setShares("");
@@ -397,7 +397,7 @@ const MarketDetail = () => {
                       />
                       <div className="relative z-10 flex items-center gap-2">
                         <span className={`font-display text-sm font-bold ${isWinner ? "text-primary" : ""}`}>
-                          {outcome.label} {isWinner && "✓"}
+                          {outcome.label} {isWinner && <CheckCircle2 className="inline h-3.5 w-3.5 ml-1 text-primary" />}
                         </span>
                         {pos && pos.shares > 0 && (
                           <motion.span
@@ -966,7 +966,7 @@ const MarketDetail = () => {
                         animate={{ scale: 1 }}
                         transition={{ type: "spring" }}
                       >
-                        ✓ {o.label}
+                        <CheckCircle2 className="inline h-4 w-4 mr-1" /> {o.label}
                       </motion.p>
                     ))}
                     {market.matches && market.matches.home_score !== null && (
