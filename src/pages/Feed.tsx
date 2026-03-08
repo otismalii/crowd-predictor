@@ -47,12 +47,13 @@ const Feed = () => {
   const navigate = useNavigate();
   const [matches, setMatches] = useState<Match[]>([]);
   const [predictions, setPredictions] = useState<Prediction[]>([]);
+  const [insights, setInsights] = useState<Record<string, string>>({});
   const [leagueFilter, setLeagueFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"matches" | "predictions">("matches");
 
   useEffect(() => {
-    Promise.all([fetchMatches(), fetchPredictions()]).then(() => setLoading(false));
+    Promise.all([fetchMatches(), fetchPredictions(), fetchInsights()]).then(() => setLoading(false));
 
     const channel = supabase
       .channel("feed-realtime")
