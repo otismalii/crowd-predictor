@@ -2,6 +2,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { RefreshCw, Brain, Zap, Globe, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -23,11 +24,15 @@ const AdminAPI = ({ matches, onRefresh }: AdminAPIProps) => {
   const [syncing, setSyncing] = useState(false);
   const [generating, setGenerating] = useState<string | null>(null);
   const [lastSync, setLastSync] = useState<string | null>(null);
+  const [roundId, setRoundId] = useState("");
 
   const handleSync = async () => {
     setSyncing(true);
     try {
-      const { data, error } = await supabase.functions.invoke("sync-matches");
+      const body: any = {};
+      if (roundId.trim()) body.round_id = roundId.trim();
+
+      const { data, error } = await supabase.functions.invoke("sync-matches", { body });
       if (error) throw error;
       toast({ title: "✅ Matches synced!", description: `Synced ${data?.synced || 0} of ${data?.total || 0} fixtures.` });
       setLastSync(new Date().toLocaleTimeString());
@@ -62,8 +67,17 @@ const AdminAPI = ({ matches, onRefresh }: AdminAPIProps) => {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Fetch today's fixtures from SportMonks (single API call) and bulk upsert into database. Requires <code className="text-primary text-xs">SPORTMONKS_API_KEY</code> secret.
+            Fetch livescores + round fixtures from SportMonks (single sync). Requires <code className="text-primary text-xs">SPORTMONKS_API_KEY</code> secret.
           </p>
+          <div className="space-y-2">
+            <label className="text-xs text-muted-foreground">Round ID (optional — for upcoming fixtures with odds)</label>
+            <Input
+              placeholder="e.g. 372146"
+              value={roundId}
+              onChange={(e) => setRoundId(e.target.value)}
+              className="h-9"
+            />
+          </div>
           {lastSync && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Clock className="h-3 w-3" /> Last synced at {lastSync}
@@ -83,7 +97,7 @@ const AdminAPI = ({ matches, onRefresh }: AdminAPIProps) => {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Generate AI analysis for upcoming matches using community prediction data.
+            Generate AI analysis for upcoming matches using Gemini + community prediction data.
           </p>
           <div className="max-h-64 overflow-y-auto space-y-2">
             {upcoming.slice(0, 15).map((m) => (
