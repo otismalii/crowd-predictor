@@ -222,7 +222,7 @@ const MarketDetail = () => {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       toast({
-        title: side === "buy" ? "📈 Shares bought!" : "📉 Shares sold!",
+        title: side === "buy" ? "Shares bought!" : "Shares sold!",
         description: `${numShares} shares at KES ${data.price_per_share?.toFixed(2)} each`,
       });
       setShares("");
