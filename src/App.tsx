@@ -5,10 +5,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/layout/ProtectedRoute";
-import Index from "./pages/Index";
+import Feed from "./pages/Feed";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
-import Feed from "./pages/Feed";
 import Match from "./pages/Match";
 import Leaderboard from "./pages/Leaderboard";
 import Profile from "./pages/Profile";
@@ -25,11 +24,10 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
-            <Route path="/" element={<Index />} />
+            <Route path="/" element={<Feed />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/feed" element={<ProtectedRoute><Feed /></ProtectedRoute>} />
-            <Route path="/match/:id" element={<ProtectedRoute><Match /></ProtectedRoute>} />
+            <Route path="/match/:id" element={<Match />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/profile/:id" element={<Profile />} />
             <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />

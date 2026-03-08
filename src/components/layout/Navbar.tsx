@@ -1,12 +1,19 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { LogOut, Trophy, User, Zap, Menu, X } from "lucide-react";
+import { LogOut, Trophy, User, Zap, Menu, X, Home } from "lucide-react";
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+
+const navLinks = [
+  { to: "/", label: "Feed", icon: Home },
+  { to: "/leaderboard", label: "Leaderboard", icon: Trophy },
+];
 
 const Navbar = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleSignOut = async () => {
@@ -14,61 +21,123 @@ const Navbar = () => {
     navigate("/");
   };
 
+  const isActive = (path: string) => location.pathname === path;
+
   return (
-    <nav className="sticky top-0 z-50 border-b border-border/50 bg-background/90 backdrop-blur-md">
+    <nav className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
       <div className="container flex h-16 items-center justify-between">
-        <Link to="/" className="flex items-center gap-2">
-          <Zap className="h-6 w-6 text-primary" />
+        <Link to="/" className="flex items-center gap-2 group">
+          <Zap className="h-6 w-6 text-primary transition-transform group-hover:scale-110" />
           <span className="font-display text-xl font-bold tracking-wider text-primary neon-text">
             PAGAZABETZ
           </span>
         </Link>
 
         {/* Desktop nav */}
-        <div className="hidden items-center gap-6 md:flex">
+        <div className="hidden items-center gap-1 md:flex">
+          {navLinks.map((link) => (
+            <Link
+              key={link.to}
+              to={link.to}
+              className={`relative flex items-center gap-1.5 px-4 py-2 text-sm font-medium transition-colors rounded-lg ${
+                isActive(link.to)
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              }`}
+            >
+              <link.icon className="h-4 w-4" />
+              {link.label}
+              {isActive(link.to) && (
+                <motion.div
+                  layoutId="nav-indicator"
+                  className="absolute bottom-0 left-2 right-2 h-0.5 bg-primary rounded-full"
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                />
+              )}
+            </Link>
+          ))}
+
+          <div className="ml-4 h-6 w-px bg-border" />
+
           {user ? (
-            <>
-              <Link to="/feed" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
-                Feed
+            <div className="flex items-center gap-1 ml-2">
+              <Link
+                to={`/profile/${user.id}`}
+                className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  location.pathname.startsWith("/profile")
+                    ? "text-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                }`}
+              >
+                <User className="h-4 w-4" />
+                Profile
               </Link>
-              <Link to="/leaderboard" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
-                <Trophy className="inline-block mr-1 h-4 w-4" />Leaderboard
-              </Link>
-              <Link to={`/profile/${user.id}`} className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
-                <User className="inline-block mr-1 h-4 w-4" />Profile
-              </Link>
-              <Button variant="ghost" size="sm" onClick={handleSignOut}>
+              <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-muted-foreground hover:text-destructive">
                 <LogOut className="h-4 w-4" />
               </Button>
-            </>
+            </div>
           ) : (
-            <Button onClick={() => navigate("/auth")} className="neon-glow">
-              Get Started
+            <Button onClick={() => navigate("/auth")} size="sm" className="ml-2 neon-glow">
+              Sign In
             </Button>
           )}
         </div>
 
         {/* Mobile toggle */}
-        <button className="md:hidden text-foreground" onClick={() => setMobileOpen(!mobileOpen)}>
-          {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        <button className="md:hidden text-foreground p-2" onClick={() => setMobileOpen(!mobileOpen)}>
+          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </div>
 
       {/* Mobile menu */}
-      {mobileOpen && (
-        <div className="border-t border-border/50 bg-background p-4 md:hidden">
-          {user ? (
-            <div className="flex flex-col gap-3">
-              <Link to="/feed" className="text-sm text-muted-foreground hover:text-primary" onClick={() => setMobileOpen(false)}>Feed</Link>
-              <Link to="/leaderboard" className="text-sm text-muted-foreground hover:text-primary" onClick={() => setMobileOpen(false)}>Leaderboard</Link>
-              <Link to={`/profile/${user.id}`} className="text-sm text-muted-foreground hover:text-primary" onClick={() => setMobileOpen(false)}>Profile</Link>
-              <Button variant="ghost" size="sm" onClick={handleSignOut}>Sign Out</Button>
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden border-t border-border/50 bg-background md:hidden"
+          >
+            <div className="flex flex-col gap-1 p-4">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  onClick={() => setMobileOpen(false)}
+                  className={`flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                    isActive(link.to) ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/50"
+                  }`}
+                >
+                  <link.icon className="h-4 w-4" />
+                  {link.label}
+                </Link>
+              ))}
+              {user ? (
+                <>
+                  <Link
+                    to={`/profile/${user.id}`}
+                    onClick={() => setMobileOpen(false)}
+                    className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted/50"
+                  >
+                    <User className="h-4 w-4" />Profile
+                  </Link>
+                  <button
+                    onClick={() => { handleSignOut(); setMobileOpen(false); }}
+                    className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm text-destructive hover:bg-destructive/10"
+                  >
+                    <LogOut className="h-4 w-4" />Sign Out
+                  </button>
+                </>
+              ) : (
+                <Button onClick={() => { navigate("/auth"); setMobileOpen(false); }} className="mt-2 neon-glow">
+                  Sign In
+                </Button>
+              )}
             </div>
-          ) : (
-            <Button onClick={() => { navigate("/auth"); setMobileOpen(false); }} className="w-full neon-glow">Get Started</Button>
-          )}
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </nav>
   );
 };
