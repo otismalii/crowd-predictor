@@ -30,7 +30,7 @@ const AdminAPI = ({ matches, onRefresh }: AdminAPIProps) => {
     try {
       const { data, error } = await supabase.functions.invoke("sync-matches");
       if (error) throw error;
-      toast({ title: "✅ Matches synced!", description: `Synced ${data?.synced || 0} of ${data?.total || 0} fixtures from TheSportsDB.` });
+      toast({ title: "✅ Matches synced!", description: `Synced ${data?.synced || 0} matches, generated ${data?.insights_generated || 0} AI insights.` });
       setLastSync(new Date().toLocaleTimeString());
       onRefresh();
     } catch (e: any) {
