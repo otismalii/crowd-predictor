@@ -17,6 +17,7 @@ import NotFound from "./pages/NotFound";
 import Challenges from "./pages/Challenges";
 import Wallet from "./pages/Wallet";
 import MarketDetail from "./pages/MarketDetail";
+import Portfolio from "./pages/Portfolio";
 
 const queryClient = new QueryClient();
 
