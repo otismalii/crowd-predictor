@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { LogOut, Trophy, User, Zap, Menu, X, Home, Shield } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import NotificationBell from "@/components/NotificationBell";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Magnet from "@/components/reactbits/Magnet";
@@ -54,10 +55,7 @@ const Navbar = () => {
       <div className="container flex h-16 items-center justify-between">
         <Magnet padding={40} magnetStrength={4}>
           <Link to="/" className="flex items-center gap-2 group">
-            <motion.div
-              whileHover={{ rotate: 180 }}
-              transition={{ duration: 0.4 }}
-            >
+            <motion.div whileHover={{ rotate: 180 }} transition={{ duration: 0.4 }}>
               <Zap className="h-6 w-6 text-primary" />
             </motion.div>
             <GradientText
@@ -95,6 +93,7 @@ const Navbar = () => {
             </Link>
           ))}
 
+          <NotificationBell />
           <ThemeToggle />
           <div className="h-6 w-px bg-border" />
 
@@ -127,13 +126,16 @@ const Navbar = () => {
         </div>
 
         {/* Mobile toggle */}
-        <motion.button
-          className="md:hidden text-foreground p-2"
-          onClick={() => setMobileOpen(!mobileOpen)}
-          whileTap={{ scale: 0.9 }}
-        >
-          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </motion.button>
+        <div className="flex items-center gap-1 md:hidden">
+          <NotificationBell />
+          <motion.button
+            className="text-foreground p-2"
+            onClick={() => setMobileOpen(!mobileOpen)}
+            whileTap={{ scale: 0.9 }}
+          >
+            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </motion.button>
+        </div>
       </div>
 
       {/* Mobile menu */}
