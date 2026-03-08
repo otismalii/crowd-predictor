@@ -46,6 +46,27 @@ export type Database = {
           },
         ]
       }
+      follows: {
+        Row: {
+          created_at: string
+          follower_id: string
+          following_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          following_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          following_id?: string
+          id?: string
+        }
+        Relationships: []
+      }
       matches: {
         Row: {
           away_score: number | null
@@ -82,6 +103,39 @@ export type Database = {
           kickoff?: string
           league?: string
           status?: Database["public"]["Enums"]["match_status"]
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          link: string | null
+          message: string
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link?: string | null
+          message?: string
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link?: string | null
+          message?: string
+          title?: string
+          type?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -140,7 +194,10 @@ export type Database = {
         Row: {
           accuracy_rate: number
           avatar_url: string | null
+          best_streak: number
+          bio: string | null
           created_at: string
+          current_streak: number
           email: string | null
           followers_count: number
           id: string
@@ -151,7 +208,10 @@ export type Database = {
         Insert: {
           accuracy_rate?: number
           avatar_url?: string | null
+          best_streak?: number
+          bio?: string | null
           created_at?: string
+          current_streak?: number
           email?: string | null
           followers_count?: number
           id: string
@@ -162,7 +222,10 @@ export type Database = {
         Update: {
           accuracy_rate?: number
           avatar_url?: string | null
+          best_streak?: number
+          bio?: string | null
           created_at?: string
+          current_streak?: number
           email?: string | null
           followers_count?: number
           id?: string

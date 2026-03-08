@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { CardContent } from "@/components/ui/card";
-import { User, Target, TrendingUp, Users, Calendar, Zap } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { User, Target, TrendingUp, Users, Calendar, Zap, Pencil } from "lucide-react";
 import { format } from "date-fns";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import SpotlightCard from "@/components/reactbits/SpotlightCard";
@@ -13,18 +15,26 @@ import AnimatedCounter from "@/components/reactbits/AnimatedCounter";
 import SplitText from "@/components/reactbits/SplitText";
 import Aurora from "@/components/reactbits/Aurora";
 import TeamBadge from "@/components/TeamBadge";
+import FollowButton from "@/components/FollowButton";
+import StreakBadge from "@/components/StreakBadge";
+import ProfileEdit from "@/components/ProfileEdit";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const Profile = () => {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [predictions, setPredictions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+
+  const isOwnProfile = user?.id === id;
 
   useEffect(() => {
     if (!id) return;
     setLoading(true);
+    setEditing(false);
     Promise.all([
       supabase.from("profiles").select("*").eq("id", id).single(),
       supabase.from("predictions").select("*, matches(home_team, away_team, league)").eq("user_id", id).order("created_at", { ascending: false }).limit(20),
@@ -34,6 +44,13 @@ const Profile = () => {
       setLoading(false);
     });
   }, [id]);
+
+  const refreshProfile = () => {
+    if (!id) return;
+    supabase.from("profiles").select("*").eq("id", id).single().then(({ data }) => {
+      if (data) setProfile(data);
+    });
+  };
 
   if (loading) return (
     <div className="min-h-screen bg-background">
@@ -69,84 +86,137 @@ const Profile = () => {
       <Navbar />
 
       <div className="container py-8 max-w-2xl">
-        {/* Profile header card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <SpotlightCard className="mb-8 overflow-hidden" spotlightColor="rgba(120, 255, 120, 0.1)">
-            {/* Banner gradient */}
-            <div className="relative h-28 overflow-hidden">
-              <Aurora className="opacity-50" />
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-card" />
-            </div>
+        <AnimatePresence mode="wait">
+          {editing ? (
+            <ProfileEdit
+              key="edit"
+              profile={profile}
+              onClose={() => setEditing(false)}
+              onSaved={(updated) => {
+                setProfile(updated);
+                setEditing(false);
+              }}
+            />
+          ) : (
+            <motion.div
+              key="view"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.4 }}
+            >
+              <SpotlightCard className="mb-8 overflow-hidden" spotlightColor="rgba(120, 255, 120, 0.1)">
+                {/* Banner */}
+                <div className="relative h-28 overflow-hidden">
+                  <Aurora className="opacity-50" />
+                  <div className="absolute inset-0 bg-gradient-to-b from-transparent to-card" />
+                </div>
 
-            <CardContent className="relative -mt-12 flex flex-col items-center pb-8 text-center">
-              <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-              >
-                <Avatar className="h-24 w-24 ring-4 ring-card shadow-xl">
-                  <AvatarImage src={profile.avatar_url || undefined} />
-                  <AvatarFallback className="text-2xl bg-primary/10 text-primary font-display font-bold">
-                    {(profile.username || "?")[0]?.toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-              </motion.div>
-
-              <h1 className="mt-4 font-display text-3xl font-bold tracking-wider">
-                <GradientText animationSpeed={6}>
-                  @{profile.username || "anon"}
-                </GradientText>
-              </h1>
-
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
-                className="text-sm text-muted-foreground mt-1"
-              >
-                {profile.email}
-              </motion.p>
-
-              <motion.span
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.4 }}
-                className="mt-3 text-xs px-4 py-1.5 rounded-full bg-accent/10 text-accent font-semibold border border-accent/20"
-              >
-                {profile.subscription_plan} plan
-              </motion.span>
-
-              {/* Stats row */}
-              <div className="mt-8 grid grid-cols-3 gap-6 w-full max-w-sm">
-                {stats.map((s, i) => (
+                <CardContent className="relative -mt-12 flex flex-col items-center pb-8 text-center">
                   <motion.div
-                    key={s.label}
-                    initial={{ opacity: 0, y: 16 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 + i * 0.1 }}
-                    className="text-center group"
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
                   >
-                    <div className="mx-auto mb-2 h-10 w-10 rounded-xl bg-muted/50 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                      <s.icon className={`h-5 w-5 ${s.color}`} />
-                    </div>
-                    <AnimatedCounter
-                      value={s.value}
-                      fontSize={22}
-                      className={`font-display font-bold ${s.color}`}
-                      suffix={s.suffix}
-                      duration={1.2}
-                    />
-                    <p className="text-[11px] text-muted-foreground mt-0.5">{s.label}</p>
+                    <Avatar className="h-24 w-24 ring-4 ring-card shadow-xl">
+                      <AvatarImage src={profile.avatar_url || undefined} />
+                      <AvatarFallback className="text-2xl bg-primary/10 text-primary font-display font-bold">
+                        {(profile.username || "?")[0]?.toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
                   </motion.div>
-                ))}
-              </div>
-            </CardContent>
-          </SpotlightCard>
-        </motion.div>
+
+                  <h1 className="mt-4 font-display text-3xl font-bold tracking-wider">
+                    <GradientText animationSpeed={6}>
+                      @{profile.username || "anon"}
+                    </GradientText>
+                  </h1>
+
+                  {profile.bio && (
+                    <motion.p
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.25 }}
+                      className="text-sm text-muted-foreground mt-2 max-w-xs"
+                    >
+                      {profile.bio}
+                    </motion.p>
+                  )}
+
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="flex items-center gap-3 mt-3"
+                  >
+                    <span className="text-xs px-4 py-1.5 rounded-full bg-accent/10 text-accent font-semibold border border-accent/20">
+                      {profile.subscription_plan} plan
+                    </span>
+                    <StreakBadge currentStreak={profile.current_streak} bestStreak={profile.best_streak} compact />
+                  </motion.div>
+
+                  {/* Actions */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.35 }}
+                    className="mt-4 flex items-center gap-2"
+                  >
+                    {isOwnProfile ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setEditing(true)}
+                        className="border-primary/30 text-primary"
+                      >
+                        <Pencil className="h-3.5 w-3.5 mr-1.5" /> Edit Profile
+                      </Button>
+                    ) : (
+                      <FollowButton targetUserId={id!} onFollowChange={refreshProfile} />
+                    )}
+                  </motion.div>
+
+                  {/* Streak display */}
+                  {(profile.current_streak > 0 || profile.best_streak > 0) && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.4 }}
+                      className="mt-4"
+                    >
+                      <StreakBadge currentStreak={profile.current_streak} bestStreak={profile.best_streak} />
+                    </motion.div>
+                  )}
+
+                  {/* Stats */}
+                  <div className="mt-6 grid grid-cols-3 gap-6 w-full max-w-sm">
+                    {stats.map((s, i) => (
+                      <motion.div
+                        key={s.label}
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 + i * 0.1 }}
+                        className="text-center group"
+                      >
+                        <div className="mx-auto mb-2 h-10 w-10 rounded-xl bg-muted/50 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                          <s.icon className={`h-5 w-5 ${s.color}`} />
+                        </div>
+                        <AnimatedCounter
+                          value={s.value}
+                          fontSize={22}
+                          className={`font-display font-bold ${s.color}`}
+                          suffix={s.suffix}
+                          duration={1.2}
+                        />
+                        <p className="text-[11px] text-muted-foreground mt-0.5">{s.label}</p>
+                      </motion.div>
+                    ))}
+                  </div>
+                </CardContent>
+              </SpotlightCard>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Prediction history */}
         <motion.div
