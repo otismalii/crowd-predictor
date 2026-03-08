@@ -13,9 +13,9 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
   ArrowUpRight, ArrowDownLeft, BarChart3, Clock, TrendingUp,
-  Wallet, MessageCircle, Send, Brain, Trash2, Calendar,
-  Info, Layers, Share2, Copy, CheckCircle2, AlertCircle,
-  Users, ExternalLink, ChevronRight, Sparkles,
+  Wallet, MessageCircle, Send, Trash2, Calendar,
+  Info, Layers, Share2, CheckCircle2, AlertCircle,
+  Users, ChevronRight,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
