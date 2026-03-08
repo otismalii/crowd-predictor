@@ -63,8 +63,8 @@ const MarketCard = ({ market, matchTeams }: MarketCardProps) => {
               <div className="flex items-center gap-2">
                 {matchTeams && (
                   <>
-                    <TeamBadge teamName={matchTeams.home_team} size="xs" />
-                    <TeamBadge teamName={matchTeams.away_team} size="xs" />
+                    <TeamBadge teamName={matchTeams.home_team} size="sm" />
+                    <TeamBadge teamName={matchTeams.away_team} size="sm" />
                   </>
                 )}
                 <span className="text-xs font-semibold text-accent uppercase tracking-wider">
