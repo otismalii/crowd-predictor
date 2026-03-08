@@ -20,6 +20,8 @@ import SplitText from "@/components/reactbits/SplitText";
 import Aurora from "@/components/reactbits/Aurora";
 import AnimatedCounter from "@/components/reactbits/AnimatedCounter";
 import ShimmerButton from "@/components/reactbits/ShimmerButton";
+import MarketCard from "@/components/MarketCard";
+import type { Market, MarketOutcome } from "@/components/MarketCard";
 
 interface Match {
   id: string;
