@@ -31,7 +31,7 @@ interface MatchCardProps {
   onPredictionSubmitted: () => void;
 }
 
-const MatchCard = ({ match, userId, onNavigateAuth, onPredictionSubmitted }: MatchCardProps) => {
+const MatchCard = ({ match, userId, insightPreview, onNavigateAuth, onPredictionSubmitted }: MatchCardProps) => {
   const { toast } = useToast();
   const [expanded, setExpanded] = useState(false);
   const [homeScore, setHomeScore] = useState(0);

@@ -255,6 +255,7 @@ const Feed = () => {
                         key={m.id}
                         match={m}
                         userId={user?.id || null}
+                        insightPreview={insights[m.id] || null}
                         onNavigateAuth={() => navigate("/auth")}
                         onPredictionSubmitted={fetchPredictions}
                       />
