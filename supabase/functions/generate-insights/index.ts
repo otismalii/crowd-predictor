@@ -13,77 +13,58 @@ serve(async (req) => {
     const { match_id } = await req.json();
     if (!match_id) throw new Error("match_id required");
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY not configured");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch match data
-    const { data: match, error: matchError } = await supabase
-      .from("matches")
-      .select("*")
-      .eq("id", match_id)
-      .single();
-    if (matchError || !match) throw new Error("Match not found");
+    // Fetch match + predictions in parallel
+    const [matchRes, predsRes] = await Promise.all([
+      supabase.from("matches").select("*").eq("id", match_id).single(),
+      supabase.from("predictions").select("predicted_home_score, predicted_away_score, confidence, analysis").eq("match_id", match_id),
+    ]);
 
-    // Fetch community predictions for this match
-    const { data: predictions } = await supabase
-      .from("predictions")
-      .select("predicted_home_score, predicted_away_score, confidence, analysis")
-      .eq("match_id", match_id);
+    const match = matchRes.data;
+    if (matchRes.error || !match) throw new Error("Match not found");
 
-    const predSummary = predictions && predictions.length > 0
+    const predictions = predsRes.data || [];
+    const predSummary = predictions.length > 0
       ? predictions.map((p: any) => `${p.predicted_home_score}-${p.predicted_away_score} (conf: ${p.confidence})`).join(", ")
       : "No community predictions yet";
 
-    const avgHome = predictions && predictions.length > 0
+    const avgHome = predictions.length > 0
       ? (predictions.reduce((s: number, p: any) => s + p.predicted_home_score, 0) / predictions.length).toFixed(1)
       : "N/A";
-    const avgAway = predictions && predictions.length > 0
+    const avgAway = predictions.length > 0
       ? (predictions.reduce((s: number, p: any) => s + p.predicted_away_score, 0) / predictions.length).toFixed(1)
       : "N/A";
 
-    // Generate AI insight
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          {
-            role: "system",
-            content: "You are a football match analyst for PagazaBetz. Provide concise, insightful match analysis in 2-3 paragraphs. Include prediction, key factors, and confidence level.",
-          },
-          {
-            role: "user",
-            content: `Analyze this match:\n${match.home_team} vs ${match.away_team}\nLeague: ${match.league}\nKickoff: ${match.kickoff}\n\nCommunity predictions: ${predSummary}\nAverage community prediction: ${avgHome} - ${avgAway}\n\nProvide your analysis and prediction.`,
-          },
-        ],
-      }),
-    });
+    // Call Gemini API directly
+    const geminiResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: `You are a football match analyst for PagazaBetz. Provide concise, insightful match analysis in 2-3 paragraphs. Include prediction, key factors, and confidence level.\n\nAnalyze this match:\n${match.home_team} vs ${match.away_team}\nLeague: ${match.league}\nKickoff: ${match.kickoff}\n\nCommunity predictions: ${predSummary}\nAverage community prediction: ${avgHome} - ${avgAway}\n\nProvide your analysis and prediction.`
+            }]
+          }],
+        }),
+      }
+    );
 
-    if (!aiResponse.ok) {
-      const status = aiResponse.status;
-      if (status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limited, try again later" }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted" }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      throw new Error("AI gateway error: " + status);
+    if (!geminiResponse.ok) {
+      const errText = await geminiResponse.text();
+      console.error("Gemini error:", geminiResponse.status, errText);
+      throw new Error("Gemini API error: " + geminiResponse.status);
     }
 
-    const aiData = await aiResponse.json();
-    const aiSummary = aiData.choices?.[0]?.message?.content || "No insight generated";
+    const geminiData = await geminiResponse.json();
+    const aiSummary = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "No insight generated";
 
     // Store insight
     const { error: insertError } = await supabase.from("ai_insights").insert({
@@ -96,13 +77,13 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ success: true, insight: aiSummary }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
     console.error("generate-insights error:", e);
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 });
