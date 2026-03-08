@@ -14,16 +14,240 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      ai_insights: {
+        Row: {
+          ai_summary: string
+          community_prediction: string | null
+          created_at: string
+          id: string
+          match_id: string
+        }
+        Insert: {
+          ai_summary: string
+          community_prediction?: string | null
+          created_at?: string
+          id?: string
+          match_id: string
+        }
+        Update: {
+          ai_summary?: string
+          community_prediction?: string | null
+          created_at?: string
+          id?: string
+          match_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_insights_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      matches: {
+        Row: {
+          away_score: number | null
+          away_team: string
+          created_at: string
+          external_match_id: string | null
+          home_score: number | null
+          home_team: string
+          id: string
+          kickoff: string
+          league: string
+          status: Database["public"]["Enums"]["match_status"]
+        }
+        Insert: {
+          away_score?: number | null
+          away_team: string
+          created_at?: string
+          external_match_id?: string | null
+          home_score?: number | null
+          home_team: string
+          id?: string
+          kickoff: string
+          league: string
+          status?: Database["public"]["Enums"]["match_status"]
+        }
+        Update: {
+          away_score?: number | null
+          away_team?: string
+          created_at?: string
+          external_match_id?: string | null
+          home_score?: number | null
+          home_team?: string
+          id?: string
+          kickoff?: string
+          league?: string
+          status?: Database["public"]["Enums"]["match_status"]
+        }
+        Relationships: []
+      }
+      predictions: {
+        Row: {
+          analysis: string | null
+          confidence: number
+          created_at: string
+          id: string
+          match_id: string
+          predicted_away_score: number
+          predicted_home_score: number
+          status: Database["public"]["Enums"]["prediction_status"]
+          user_id: string
+        }
+        Insert: {
+          analysis?: string | null
+          confidence?: number
+          created_at?: string
+          id?: string
+          match_id: string
+          predicted_away_score: number
+          predicted_home_score: number
+          status?: Database["public"]["Enums"]["prediction_status"]
+          user_id: string
+        }
+        Update: {
+          analysis?: string | null
+          confidence?: number
+          created_at?: string
+          id?: string
+          match_id?: string
+          predicted_away_score?: number
+          predicted_home_score?: number
+          status?: Database["public"]["Enums"]["prediction_status"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "predictions_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "predictions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          accuracy_rate: number
+          avatar_url: string | null
+          created_at: string
+          email: string | null
+          followers_count: number
+          id: string
+          reputation_score: number
+          subscription_plan: Database["public"]["Enums"]["subscription_plan"]
+          username: string | null
+        }
+        Insert: {
+          accuracy_rate?: number
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          followers_count?: number
+          id: string
+          reputation_score?: number
+          subscription_plan?: Database["public"]["Enums"]["subscription_plan"]
+          username?: string | null
+        }
+        Update: {
+          accuracy_rate?: number
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          followers_count?: number
+          id?: string
+          reputation_score?: number
+          subscription_plan?: Database["public"]["Enums"]["subscription_plan"]
+          username?: string | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      votes: {
+        Row: {
+          created_at: string
+          id: string
+          prediction_id: string
+          user_id: string
+          vote_type: Database["public"]["Enums"]["vote_type"]
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          prediction_id: string
+          user_id: string
+          vote_type: Database["public"]["Enums"]["vote_type"]
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          prediction_id?: string
+          user_id?: string
+          vote_type?: Database["public"]["Enums"]["vote_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "votes_prediction_id_fkey"
+            columns: ["prediction_id"]
+            isOneToOne: false
+            referencedRelation: "predictions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "votes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
+      match_status: "upcoming" | "live" | "finished" | "postponed" | "cancelled"
+      prediction_status: "pending" | "correct" | "incorrect"
+      subscription_plan: "free" | "weekly" | "monthly" | "quarterly"
+      vote_type: "up" | "down"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +374,12 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+      match_status: ["upcoming", "live", "finished", "postponed", "cancelled"],
+      prediction_status: ["pending", "correct", "incorrect"],
+      subscription_plan: ["free", "weekly", "monthly", "quarterly"],
+      vote_type: ["up", "down"],
+    },
   },
 } as const
