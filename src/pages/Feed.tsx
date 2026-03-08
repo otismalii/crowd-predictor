@@ -122,6 +122,32 @@ const Feed = () => {
     }
   };
 
+  const fetchMarkets = async () => {
+    const { data: marketsData } = await supabase
+      .from("markets")
+      .select("*")
+      .in("status", ["open", "closed"])
+      .order("created_at", { ascending: false })
+      .limit(30) as any;
+
+    if (marketsData) {
+      const marketIds = marketsData.map((m: any) => m.id);
+      const { data: outcomesData } = await supabase
+        .from("market_outcomes")
+        .select("*")
+        .in("market_id", marketIds)
+        .order("sort_order") as any;
+
+      const outcomesByMarket: Record<string, MarketOutcome[]> = {};
+      for (const o of (outcomesData || [])) {
+        if (!outcomesByMarket[o.market_id]) outcomesByMarket[o.market_id] = [];
+        outcomesByMarket[o.market_id].push(o);
+      }
+
+      setMarketsData(marketsData.map((m: any) => ({ ...m, outcomes: outcomesByMarket[m.id] || [] })));
+    }
+  };
+
   const handleVote = async (predictionId: string, voteType: "up" | "down") => {
     if (!user) {
       toast({ title: "Sign in to vote", variant: "destructive" });
