@@ -99,6 +99,20 @@ const Feed = () => {
     if (data) setPredictions(data as unknown as Prediction[]);
   };
 
+  const fetchInsights = async () => {
+    const { data } = await supabase
+      .from("ai_insights")
+      .select("match_id, ai_summary")
+      .order("created_at", { ascending: false });
+    if (data) {
+      const map: Record<string, string> = {};
+      for (const i of data) {
+        if (!map[i.match_id]) map[i.match_id] = i.ai_summary;
+      }
+      setInsights(map);
+    }
+  };
+
   const handleVote = async (predictionId: string, voteType: "up" | "down") => {
     if (!user) {
       toast({ title: "Sign in to vote", variant: "destructive" });
