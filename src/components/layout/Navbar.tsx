@@ -9,6 +9,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Magnet from "@/components/reactbits/Magnet";
 import GradientText from "@/components/reactbits/GradientText";
+import WalletBalance from "@/components/WalletBalance";
 
 const navLinks = [
   { to: "/", label: "Feed", icon: Home },
