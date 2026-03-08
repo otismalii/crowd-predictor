@@ -108,7 +108,7 @@ const MarketDetail = () => {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
   const [relatedMarkets, setRelatedMarkets] = useState<RelatedMarket[]>([]);
-  const [insight, setInsight] = useState<string | null>(null);
+  const [walletBalance, setWalletBalance] = useState(0);
   const [walletBalance, setWalletBalance] = useState(0);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
