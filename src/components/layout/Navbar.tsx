@@ -13,6 +13,7 @@ import GradientText from "@/components/reactbits/GradientText";
 const navLinks = [
   { to: "/", label: "Feed", icon: Home },
   { to: "/leaderboard", label: "Leaderboard", icon: Trophy },
+  { to: "/challenges", label: "Challenges", icon: Swords },
 ];
 
 const Navbar = () => {

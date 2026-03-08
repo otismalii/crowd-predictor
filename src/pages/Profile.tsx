@@ -220,6 +220,11 @@ const Profile = () => {
                   </div>
                 </CardContent>
               </SpotlightCard>
+
+              {/* Achievement Badges */}
+              <div className="mt-6">
+                <AchievementBadges userId={id!} />
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
