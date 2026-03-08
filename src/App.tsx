@@ -9,7 +9,6 @@ import ProtectedRoute from "@/components/layout/ProtectedRoute";
 import Feed from "./pages/Feed";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
-import Match from "./pages/Match";
 import Leaderboard from "./pages/Leaderboard";
 import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
@@ -32,7 +31,6 @@ const App = () => (
               <Route path="/" element={<Feed />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/match/:id" element={<Match />} />
               <Route path="/market/:id" element={<MarketDetail />} />
               <Route path="/leaderboard" element={<Leaderboard />} />
               <Route path="/profile/:id" element={<Profile />} />
