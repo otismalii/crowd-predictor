@@ -100,6 +100,48 @@ export type Database = {
         }
         Relationships: []
       }
+      market_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          market_id: string
+          parent_id: string | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          market_id: string
+          parent_id?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          market_id?: string
+          parent_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_comments_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "market_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "market_comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       market_outcomes: {
         Row: {
           created_at: string

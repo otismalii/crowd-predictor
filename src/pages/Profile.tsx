@@ -261,7 +261,7 @@ const Profile = () => {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.5 + i * 0.04 }}
                 >
-                  <Link to={`/match/${p.match_id}`}>
+                  <Link to={`/market/${p.match_id}`}>
                     <SpotlightCard
                       className="hover:border-primary/20 transition-all group cursor-pointer"
                       spotlightColor={
