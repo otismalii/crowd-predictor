@@ -16,6 +16,7 @@ import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import Challenges from "./pages/Challenges";
 import Wallet from "./pages/Wallet";
+import MarketDetail from "./pages/MarketDetail";
 
 const queryClient = new QueryClient();
 
