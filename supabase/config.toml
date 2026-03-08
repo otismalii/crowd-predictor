@@ -17,3 +17,9 @@ verify_jwt = false
 
 [functions.mpesa-callback]
 verify_jwt = false
+
+[functions.execute-trade]
+verify_jwt = false
+
+[functions.manage-markets]
+verify_jwt = false
