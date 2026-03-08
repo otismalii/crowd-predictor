@@ -3,9 +3,6 @@ project_id = "nshxgolruvisdzptcxew"
 [functions.sync-matches]
 verify_jwt = false
 
-[functions.generate-insights]
-verify_jwt = false
-
 [functions.resolve-bets]
 verify_jwt = false
 
