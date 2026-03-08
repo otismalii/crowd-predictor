@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { LogOut, Trophy, User, Zap, Menu, X, Home, Shield } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -68,7 +69,8 @@ const Navbar = () => {
             </Link>
           ))}
 
-          <div className="ml-4 h-6 w-px bg-border" />
+          <ThemeToggle />
+          <div className="h-6 w-px bg-border" />
 
           {user ? (
             <div className="flex items-center gap-1 ml-2">
