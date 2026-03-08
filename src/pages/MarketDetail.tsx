@@ -397,7 +397,7 @@ const MarketDetail = () => {
                       />
                       <div className="relative z-10 flex items-center gap-2">
                         <span className={`font-display text-sm font-bold ${isWinner ? "text-primary" : ""}`}>
-                          {outcome.label} {isWinner && "✓"}
+                          {outcome.label} {isWinner && <CheckCircle2 className="inline h-3.5 w-3.5 ml-1 text-primary" />}
                         </span>
                         {pos && pos.shares > 0 && (
                           <motion.span
