@@ -55,9 +55,17 @@ const Feed = () => {
     Promise.all([fetchMatches(), fetchPredictions()]).then(() => setLoading(false));
 
     const channel = supabase
-      .channel("predictions-realtime")
+      .channel("feed-realtime")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "predictions" }, () => {
         fetchPredictions();
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "matches" }, (payload) => {
+        setMatches((prev) =>
+          prev.map((m) => (m.id === payload.new.id ? { ...m, ...payload.new } as Match : m))
+        );
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "matches" }, () => {
+        fetchMatches();
       })
       .subscribe();
 

@@ -19,6 +19,18 @@ const Match = () => {
     supabase.from("matches").select("*").eq("id", id).single().then(({ data }) => setMatch(data));
     supabase.from("predictions").select("*, profiles(username)").eq("match_id", id).order("created_at", { ascending: false }).then(({ data }) => setPredictions(data || []));
     supabase.from("ai_insights").select("*").eq("match_id", id).order("created_at", { ascending: false }).limit(1).single().then(({ data }) => setInsight(data));
+
+    const channel = supabase
+      .channel(`match-${id}`)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "matches", filter: `id=eq.${id}` }, (payload) => {
+        setMatch((prev: any) => prev ? { ...prev, ...payload.new } : prev);
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "predictions", filter: `match_id=eq.${id}` }, () => {
+        supabase.from("predictions").select("*, profiles(username)").eq("match_id", id).order("created_at", { ascending: false }).then(({ data }) => setPredictions(data || []));
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [id]);
 
   if (!match) return (
