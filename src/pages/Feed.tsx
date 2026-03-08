@@ -289,7 +289,49 @@ const Feed = () => {
 
       <div className="container py-6">
         <AnimatePresence mode="wait">
-          {tab === "matches" ? (
+          {tab === "markets" ? (
+            <motion.div
+              key="markets"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-4 max-w-3xl mx-auto"
+            >
+              {loading ? (
+                <div className="space-y-4">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <Skeleton key={i} className="h-40 w-full rounded-xl" />
+                  ))}
+                </div>
+              ) : markets.length === 0 ? (
+                <Card className="glass-card p-12 text-center">
+                  <BarChart3 className="mx-auto mb-4 h-12 w-12 text-primary/30" />
+                  <p className="text-lg font-display text-muted-foreground">No markets yet</p>
+                  <p className="text-sm text-muted-foreground mt-1">Markets are auto-created from upcoming matches.</p>
+                </Card>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-2">
+                  {markets.map((market, i) => {
+                    const matchForMarket = matches.find(m => m.id === market.match_id);
+                    return (
+                      <motion.div
+                        key={market.id}
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.04 }}
+                      >
+                        <MarketCard
+                          market={market}
+                          matchTeams={matchForMarket ? { home_team: matchForMarket.home_team, away_team: matchForMarket.away_team } : null}
+                        />
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
+            </motion.div>
+          ) : tab === "matches" ? (
             <motion.div
               key="matches"
               initial={{ opacity: 0, y: 12 }}
