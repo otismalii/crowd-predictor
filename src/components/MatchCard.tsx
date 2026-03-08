@@ -26,6 +26,7 @@ interface Match {
 interface MatchCardProps {
   match: Match;
   userId: string | null;
+  insightPreview?: string | null;
   onNavigateAuth: () => void;
   onPredictionSubmitted: () => void;
 }
