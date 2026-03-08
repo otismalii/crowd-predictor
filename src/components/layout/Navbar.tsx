@@ -2,7 +2,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { LogOut, Trophy, User, Zap, Menu, X, Home, Shield } from "lucide-react";
+import { LogOut, Trophy, User, Zap, Menu, X, Home, Shield, Swords } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import NotificationBell from "@/components/NotificationBell";
 import { useState, useEffect } from "react";
@@ -13,6 +13,7 @@ import GradientText from "@/components/reactbits/GradientText";
 const navLinks = [
   { to: "/", label: "Feed", icon: Home },
   { to: "/leaderboard", label: "Leaderboard", icon: Trophy },
+  { to: "/challenges", label: "Challenges", icon: Swords },
 ];
 
 const Navbar = () => {

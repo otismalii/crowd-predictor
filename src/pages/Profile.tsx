@@ -18,6 +18,8 @@ import TeamBadge from "@/components/TeamBadge";
 import FollowButton from "@/components/FollowButton";
 import StreakBadge from "@/components/StreakBadge";
 import ProfileEdit from "@/components/ProfileEdit";
+import AchievementBadges from "@/components/AchievementBadges";
+import CreateBetDialog from "@/components/CreateBetDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -153,6 +155,7 @@ const Profile = () => {
                       {profile.subscription_plan} plan
                     </span>
                     <StreakBadge currentStreak={profile.current_streak} bestStreak={profile.best_streak} compact />
+                    <AchievementBadges userId={id!} compact />
                   </motion.div>
 
                   {/* Actions */}
@@ -172,7 +175,10 @@ const Profile = () => {
                         <Pencil className="h-3.5 w-3.5 mr-1.5" /> Edit Profile
                       </Button>
                     ) : (
-                      <FollowButton targetUserId={id!} onFollowChange={refreshProfile} />
+                      <>
+                        <FollowButton targetUserId={id!} onFollowChange={refreshProfile} />
+                        <CreateBetDialog opponentId={id!} />
+                      </>
                     )}
                   </motion.div>
 
@@ -214,6 +220,11 @@ const Profile = () => {
                   </div>
                 </CardContent>
               </SpotlightCard>
+
+              {/* Achievement Badges */}
+              <div className="mt-6">
+                <AchievementBadges userId={id!} />
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
