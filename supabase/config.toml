@@ -8,3 +8,12 @@ verify_jwt = false
 
 [functions.resolve-bets]
 verify_jwt = false
+
+[functions.mpesa-deposit]
+verify_jwt = false
+
+[functions.mpesa-withdraw]
+verify_jwt = false
+
+[functions.mpesa-callback]
+verify_jwt = false
