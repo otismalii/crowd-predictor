@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ThumbsUp, ThumbsDown, LogIn, Zap, Trophy, TrendingUp, Filter, Sparkles } from "lucide-react";
+import { ThumbsUp, ThumbsDown, LogIn, Zap, Trophy, TrendingUp, Filter, Sparkles, BarChart3 } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import MatchCard from "@/components/MatchCard";
