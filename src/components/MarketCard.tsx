@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import SpotlightCard from "@/components/reactbits/SpotlightCard";
 import { CardContent } from "@/components/ui/card";
 import TeamBadge from "@/components/TeamBadge";
-import { TrendingUp, Users, BarChart3 } from "lucide-react";
+import { TrendingUp, Users, BarChart3, CheckCircle2 } from "lucide-react";
 
 interface MarketOutcome {
   id: string;
