@@ -1,18 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Slider } from "@/components/ui/slider";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ThumbsUp, ThumbsDown, LogIn, Zap } from "lucide-react";
+import { ThumbsUp, ThumbsDown, LogIn, Zap, Trophy, TrendingUp, Filter } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import MatchCard from "@/components/MatchCard";
+import TeamBadge from "@/components/TeamBadge";
+import { prefetchTeamBadges } from "@/hooks/useTeamBadge";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -23,6 +23,8 @@ interface Match {
   away_team: string;
   kickoff: string;
   status: string;
+  home_score: number | null;
+  away_score: number | null;
 }
 
 interface Prediction {
@@ -39,36 +41,15 @@ interface Prediction {
   matches: { home_team: string; away_team: string; league: string; kickoff: string } | null;
 }
 
-const PredictionSkeleton = () => (
-  <Card className="glass-card">
-    <CardContent className="p-5 space-y-3">
-      <div className="flex items-center gap-2">
-        <Skeleton className="h-4 w-20" />
-        <Skeleton className="h-3 w-16" />
-      </div>
-      <Skeleton className="h-5 w-3/4" />
-      <div className="flex gap-2">
-        <Skeleton className="h-5 w-24 rounded-full" />
-        <Skeleton className="h-5 w-16 rounded-full" />
-      </div>
-    </CardContent>
-  </Card>
-);
-
 const Feed = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [matches, setMatches] = useState<Match[]>([]);
   const [predictions, setPredictions] = useState<Prediction[]>([]);
-  const [selectedMatch, setSelectedMatch] = useState<string>("");
-  const [homeScore, setHomeScore] = useState(0);
-  const [awayScore, setAwayScore] = useState(0);
-  const [confidence, setConfidence] = useState([3]);
-  const [analysis, setAnalysis] = useState("");
-  const [submitting, setSubmitting] = useState(false);
   const [leagueFilter, setLeagueFilter] = useState("");
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<"matches" | "predictions">("matches");
 
   useEffect(() => {
     Promise.all([fetchMatches(), fetchPredictions()]).then(() => setLoading(false));
@@ -77,12 +58,19 @@ const Feed = () => {
       .channel("predictions-realtime")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "predictions" }, () => {
         fetchPredictions();
-        toast({ title: "⚡ New prediction!", description: "Someone just dropped a prediction." });
       })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
   }, []);
+
+  // Prefetch team badges when matches load
+  useEffect(() => {
+    if (matches.length > 0) {
+      const teamNames = [...new Set(matches.flatMap((m) => [m.home_team, m.away_team]))];
+      prefetchTeamBadges(teamNames.slice(0, 30)); // first 30 to stay within rate limits
+    }
+  }, [matches]);
 
   const fetchMatches = async () => {
     const { data } = await supabase
@@ -102,41 +90,9 @@ const Feed = () => {
     if (data) setPredictions(data as unknown as Prediction[]);
   };
 
-  const handleSubmitPrediction = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) {
-      navigate("/auth");
-      return;
-    }
-    if (!selectedMatch) return;
-    setSubmitting(true);
-
-    const { error } = await supabase.from("predictions").insert({
-      user_id: user.id,
-      match_id: selectedMatch,
-      predicted_home_score: homeScore,
-      predicted_away_score: awayScore,
-      confidence: confidence[0],
-      analysis: analysis || null,
-    });
-
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "🎯 Prediction submitted!" });
-      setAnalysis("");
-      setHomeScore(0);
-      setAwayScore(0);
-      setConfidence([3]);
-      setSelectedMatch("");
-      fetchPredictions();
-    }
-    setSubmitting(false);
-  };
-
   const handleVote = async (predictionId: string, voteType: "up" | "down") => {
     if (!user) {
-      toast({ title: "Sign in to vote", description: "Create an account to interact.", variant: "destructive" });
+      toast({ title: "Sign in to vote", variant: "destructive" });
       return;
     }
     const { error } = await supabase.from("votes").upsert(
@@ -147,118 +103,157 @@ const Feed = () => {
     else toast({ title: voteType === "up" ? "👍 Upvoted" : "👎 Downvoted" });
   };
 
-  const leagues = [...new Set(matches.map((m) => m.league))];
+  const leagues = useMemo(() => [...new Set(matches.map((m) => m.league))], [matches]);
   const filteredMatches = leagueFilter ? matches.filter((m) => m.league === leagueFilter) : matches;
+
+  // Group matches by date
+  const groupedMatches = useMemo(() => {
+    const groups: Record<string, Match[]> = {};
+    for (const m of filteredMatches) {
+      const day = format(new Date(m.kickoff), "yyyy-MM-dd");
+      if (!groups[day]) groups[day] = [];
+      groups[day].push(m);
+    }
+    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+  }, [filteredMatches]);
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <div className="container py-8">
-        <div className="mb-8 flex items-center justify-between">
-          <h1 className="font-display text-3xl font-bold tracking-wider">
-            <Zap className="inline-block mr-2 h-7 w-7 text-primary" />
-            Prediction <span className="text-primary">Feed</span>
-          </h1>
-          {!user && (
-            <Button onClick={() => navigate("/auth")} variant="outline" className="border-primary/50 text-primary hover:bg-primary/10">
-              <LogIn className="mr-2 h-4 w-4" /> Sign In to Predict
-            </Button>
-          )}
-        </div>
 
-        <div className="grid gap-8 lg:grid-cols-3">
-          {/* Prediction form */}
-          <div className="lg:col-span-1 order-2 lg:order-1">
-            <Card className="glass-card sticky top-20">
-              <CardHeader>
-                <CardTitle className="font-display text-lg">
-                  {user ? "Make a Prediction" : "🔒 Sign In to Predict"}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {!user ? (
-                  <div className="space-y-4 text-center py-4">
-                    <p className="text-sm text-muted-foreground">Create an account to post predictions and vote.</p>
-                    <Button onClick={() => navigate("/auth")} className="neon-glow w-full">
-                      <LogIn className="mr-2 h-4 w-4" /> Get Started
-                    </Button>
-                  </div>
-                ) : (
-                  <form onSubmit={handleSubmitPrediction} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label>Match</Label>
-                      <select
-                        value={selectedMatch}
-                        onChange={(e) => setSelectedMatch(e.target.value)}
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        required
-                      >
-                        <option value="">Select a match</option>
-                        {filteredMatches.map((m) => (
-                          <option key={m.id} value={m.id}>
-                            {m.home_team} vs {m.away_team} — {m.league}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {leagues.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        <button type="button" onClick={() => setLeagueFilter("")}
-                          className={`text-xs px-3 py-1 rounded-full border transition-all ${!leagueFilter ? "border-primary text-primary bg-primary/10 neon-glow" : "border-border text-muted-foreground hover:border-muted-foreground"}`}>
-                          All
-                        </button>
-                        {leagues.map((l) => (
-                          <button key={l} type="button" onClick={() => setLeagueFilter(l)}
-                            className={`text-xs px-3 py-1 rounded-full border transition-all ${leagueFilter === l ? "border-primary text-primary bg-primary/10 neon-glow" : "border-border text-muted-foreground hover:border-muted-foreground"}`}>
-                            {l}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Home</Label>
-                        <Input type="number" min={0} value={homeScore} onChange={(e) => setHomeScore(parseInt(e.target.value) || 0)} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Away</Label>
-                        <Input type="number" min={0} value={awayScore} onChange={(e) => setAwayScore(parseInt(e.target.value) || 0)} />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Confidence: <span className="text-primary font-bold">{confidence[0]}/5</span></Label>
-                      <Slider value={confidence} onValueChange={setConfidence} min={1} max={5} step={1} />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Analysis (optional)</Label>
-                      <Textarea value={analysis} onChange={(e) => setAnalysis(e.target.value)} placeholder="Why do you think this?" rows={3} />
-                    </div>
-
-                    <Button type="submit" className="w-full neon-glow" disabled={submitting}>
-                      {submitting ? "Submitting..." : "⚡ Submit Prediction"}
-                    </Button>
-                  </form>
-                )}
-              </CardContent>
-            </Card>
+      {/* Hero */}
+      <div className="border-b border-border/30 bg-gradient-to-b from-muted/20 to-transparent">
+        <div className="container py-8">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-wider">
+                <Zap className="inline-block mr-2 h-8 w-8 text-primary" />
+                Match <span className="text-primary neon-text">Center</span>
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                {matches.length} matches across {leagues.length} leagues
+              </p>
+            </div>
+            <div className="flex gap-2">
+              {!user && (
+                <Button onClick={() => navigate("/auth")} variant="outline" className="border-primary/50 text-primary hover:bg-primary/10">
+                  <LogIn className="mr-2 h-4 w-4" /> Sign In
+                </Button>
+              )}
+              <Button onClick={() => navigate("/leaderboard")} variant="ghost" className="text-accent hover:text-accent">
+                <Trophy className="mr-2 h-4 w-4" /> Leaderboard
+              </Button>
+            </div>
           </div>
 
-          {/* Predictions list */}
-          <div className="lg:col-span-2 space-y-4 order-1 lg:order-2">
+          {/* Tab switcher */}
+          <div className="flex gap-2 mt-6">
+            <button
+              onClick={() => setTab("matches")}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                tab === "matches"
+                  ? "bg-primary text-primary-foreground neon-glow"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              ⚽ Matches
+            </button>
+            <button
+              onClick={() => setTab("predictions")}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                tab === "predictions"
+                  ? "bg-primary text-primary-foreground neon-glow"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <TrendingUp className="inline h-4 w-4 mr-1" /> Community Feed
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="container py-6">
+        {tab === "matches" ? (
+          <div className="space-y-6">
+            {/* League filters */}
+            {leagues.length > 0 && (
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+                <Filter className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <button
+                  onClick={() => setLeagueFilter("")}
+                  className={`flex-shrink-0 text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
+                    !leagueFilter ? "border-primary text-primary bg-primary/10" : "border-border text-muted-foreground hover:border-muted-foreground"
+                  }`}
+                >
+                  All ({matches.length})
+                </button>
+                {leagues.map((l) => (
+                  <button
+                    key={l}
+                    onClick={() => setLeagueFilter(l === leagueFilter ? "" : l)}
+                    className={`flex-shrink-0 text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
+                      leagueFilter === l ? "border-primary text-primary bg-primary/10" : "border-border text-muted-foreground hover:border-muted-foreground"
+                    }`}
+                  >
+                    {l}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Match groups by date */}
             {loading ? (
-              Array.from({ length: 4 }).map((_, i) => <PredictionSkeleton key={i} />)
+              <div className="space-y-4">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Skeleton key={i} className="h-28 w-full rounded-xl" />
+                ))}
+              </div>
+            ) : groupedMatches.length === 0 ? (
+              <Card className="glass-card p-12 text-center">
+                <Zap className="mx-auto mb-4 h-12 w-12 text-primary/30" />
+                <p className="text-lg font-display text-muted-foreground">No matches found</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {leagueFilter ? "Try removing the league filter." : "Matches will appear after the next auto-sync."}
+                </p>
+              </Card>
+            ) : (
+              groupedMatches.map(([day, dayMatches]) => (
+                <div key={day} className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <h2 className="font-display text-sm font-bold text-muted-foreground uppercase tracking-widest">
+                      {format(new Date(day), "EEEE, MMMM d")}
+                    </h2>
+                    <div className="flex-1 h-px bg-border/50" />
+                    <Badge variant="secondary" className="text-xs">{dayMatches.length} matches</Badge>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-1 lg:grid-cols-2">
+                    {dayMatches.map((m) => (
+                      <MatchCard
+                        key={m.id}
+                        match={m}
+                        userId={user?.id || null}
+                        onNavigateAuth={() => navigate("/auth")}
+                        onPredictionSubmitted={fetchPredictions}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        ) : (
+          /* Predictions feed */
+          <div className="max-w-2xl mx-auto space-y-4">
+            {loading ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-32 w-full rounded-xl" />
+              ))
             ) : predictions.length === 0 ? (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                <Card className="glass-card p-12 text-center">
-                  <Zap className="mx-auto mb-4 h-12 w-12 text-primary/30" />
-                  <p className="text-lg font-display text-muted-foreground">No predictions yet</p>
-                  <p className="text-sm text-muted-foreground mt-1">Be the first to make a prediction!</p>
-                </Card>
-              </motion.div>
+              <Card className="glass-card p-12 text-center">
+                <Zap className="mx-auto mb-4 h-12 w-12 text-primary/30" />
+                <p className="text-lg font-display text-muted-foreground">No predictions yet</p>
+                <p className="text-sm text-muted-foreground mt-1">Be the first — pick a match above and make your call!</p>
+              </Card>
             ) : (
               <AnimatePresence mode="popLayout">
                 {predictions.map((p, i) => (
@@ -266,13 +261,13 @@ const Feed = () => {
                     key={p.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
+                    exit={{ opacity: 0 }}
                     transition={{ delay: i * 0.03 }}
                   >
-                    <Card className="glass-card transition-all duration-300 hover:border-primary/30 hover:shadow-[0_0_15px_hsl(120_100%_55%/0.1)]">
+                    <Card className="glass-card hover:border-primary/20 transition-all">
                       <CardContent className="p-5">
                         <div className="flex items-start justify-between">
-                          <div className="flex-1">
+                          <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-2">
                               <Link to={`/profile/${p.user_id}`} className="text-sm font-semibold text-primary hover:underline">
                                 @{p.profiles?.username || "anon"}
@@ -284,9 +279,15 @@ const Feed = () => {
                             {p.matches && (
                               <Link to={`/match/${p.match_id}`} className="group block">
                                 <p className="text-xs text-accent font-semibold mb-1">{p.matches.league}</p>
-                                <p className="font-display text-lg font-bold group-hover:text-primary transition-colors">
-                                  {p.matches.home_team} <span className="text-primary">{p.predicted_home_score}</span> - <span className="text-primary">{p.predicted_away_score}</span> {p.matches.away_team}
-                                </p>
+                                <div className="flex items-center gap-2">
+                                  <TeamBadge teamName={p.matches.home_team} size="sm" />
+                                  <span className="font-display text-base font-bold group-hover:text-primary transition-colors">
+                                    {p.matches.home_team} <span className="text-primary">{p.predicted_home_score}</span>
+                                    <span className="text-muted-foreground mx-1">-</span>
+                                    <span className="text-primary">{p.predicted_away_score}</span> {p.matches.away_team}
+                                  </span>
+                                  <TeamBadge teamName={p.matches.away_team} size="sm" />
+                                </div>
                               </Link>
                             )}
                             <div className="mt-2 flex items-center gap-2 flex-wrap">
@@ -329,7 +330,7 @@ const Feed = () => {
               </AnimatePresence>
             )}
           </div>
-        </div>
+        )}
       </div>
       <Footer />
     </div>
