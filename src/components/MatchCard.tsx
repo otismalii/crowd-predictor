@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import TeamBadge from "@/components/TeamBadge";
-import { Calendar, ChevronDown, ChevronUp, Send, Clock } from "lucide-react";
+import { Calendar, ChevronDown, ChevronUp, Send, Clock, Brain } from "lucide-react";
 import { format, isPast, isFuture, isToday } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -26,11 +26,12 @@ interface Match {
 interface MatchCardProps {
   match: Match;
   userId: string | null;
+  insightPreview?: string | null;
   onNavigateAuth: () => void;
   onPredictionSubmitted: () => void;
 }
 
-const MatchCard = ({ match, userId, onNavigateAuth, onPredictionSubmitted }: MatchCardProps) => {
+const MatchCard = ({ match, userId, insightPreview, onNavigateAuth, onPredictionSubmitted }: MatchCardProps) => {
   const { toast } = useToast();
   const [expanded, setExpanded] = useState(false);
   const [homeScore, setHomeScore] = useState(0);
@@ -131,6 +132,19 @@ const MatchCard = ({ match, userId, onNavigateAuth, onPredictionSubmitted }: Mat
               </div>
             </div>
           </Link>
+
+          {/* AI Insight preview */}
+          {insightPreview && (
+            <div className="mx-4 mb-3 rounded-lg bg-accent/5 border border-accent/15 px-3 py-2">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Brain className="h-3 w-3 text-accent" />
+                <span className="text-[10px] font-semibold text-accent uppercase tracking-wider">AI Insight</span>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+                {insightPreview}
+              </p>
+            </div>
+          )}
 
           {/* Predict button */}
           {isUpcoming && (
