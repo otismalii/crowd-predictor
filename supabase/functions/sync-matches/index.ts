@@ -33,8 +33,12 @@ serve(async (req) => {
       });
     }
 
-    const data = await response.json();
+    const rawText = await response.text();
+    console.log("SportMonks raw response (first 500 chars):", rawText.slice(0, 500));
+    
+    const data = JSON.parse(rawText);
     const fixtures = data.data || [];
+    console.log("Fixtures count:", fixtures.length);
 
     // Build batch of rows for a single upsert
     const rows = fixtures.map((fix: any) => {
