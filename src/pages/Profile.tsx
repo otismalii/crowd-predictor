@@ -175,7 +175,10 @@ const Profile = () => {
                         <Pencil className="h-3.5 w-3.5 mr-1.5" /> Edit Profile
                       </Button>
                     ) : (
-                      <FollowButton targetUserId={id!} onFollowChange={refreshProfile} />
+                      <>
+                        <FollowButton targetUserId={id!} onFollowChange={refreshProfile} />
+                        <CreateBetDialog opponentId={id!} />
+                      </>
                     )}
                   </motion.div>
 
