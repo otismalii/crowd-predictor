@@ -63,7 +63,7 @@ const Feed = () => {
   const [markets, setMarketsData] = useState<Market[]>([]);
 
   useEffect(() => {
-    Promise.all([fetchMatches(), fetchPredictions(), fetchInsights(), fetchFollowing()]).then(() => setLoading(false));
+    Promise.all([fetchMatches(), fetchPredictions(), fetchInsights(), fetchFollowing(), fetchMarkets()]).then(() => setLoading(false));
 
     const channel = supabase
       .channel("feed-realtime")
