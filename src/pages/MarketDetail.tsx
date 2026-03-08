@@ -448,23 +448,8 @@ const MarketDetail = () => {
               />
             </motion.div>
 
-            {/* AI Insight */}
-            {insight && (
-              <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.15 }}
-                className="rounded-xl border border-accent/20 bg-accent/5 p-4"
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <Sparkles className="h-4 w-4 text-accent" />
-                  <span className="text-xs font-semibold text-accent uppercase tracking-wider">AI Analysis</span>
-                </div>
-                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line line-clamp-6">
-                  {insight}
-                </p>
-              </motion.div>
-            )}
+
+
 
             {/* Enhanced Tabs */}
             <motion.div

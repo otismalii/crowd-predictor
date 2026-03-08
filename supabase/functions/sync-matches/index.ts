@@ -141,7 +141,7 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, synced: upsertCount, total: rows.length, insights_generated: insightsGenerated, markets_created: marketsCreated, markets_resolved: marketsResolved }),
+      JSON.stringify({ success: true, synced: upsertCount, total: rows.length, markets_created: marketsCreated, markets_resolved: marketsResolved }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
