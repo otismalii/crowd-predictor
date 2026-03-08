@@ -966,7 +966,7 @@ const MarketDetail = () => {
                         animate={{ scale: 1 }}
                         transition={{ type: "spring" }}
                       >
-                        ✓ {o.label}
+                        <CheckCircle2 className="inline h-4 w-4 mr-1" /> {o.label}
                       </motion.p>
                     ))}
                     {market.matches && market.matches.home_score !== null && (

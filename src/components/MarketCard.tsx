@@ -122,7 +122,7 @@ const MarketCard = ({ market, matchTeams }: MarketCardProps) => {
                       />
                       <span className={`relative text-xs font-semibold z-10 ${isWinner ? "text-primary" : ""}`}>
                         {outcome.label}
-                        {isWinner && " ✓"}
+                        {isWinner && <CheckCircle2 className="inline h-3 w-3 ml-1" />}
                       </span>
                       <span className={`relative text-sm font-display font-bold z-10 ${
                         isWinner ? "text-primary" : pct > 50 ? "text-primary" : "text-muted-foreground"
