@@ -145,11 +145,7 @@ const MarketDetail = () => {
     if (mRes.data) {
       setMarket(mRes.data);
       if (mRes.data.match_id) {
-        const [insightRes, relatedRes] = await Promise.all([
-          supabase.from("ai_insights").select("ai_summary").eq("match_id", mRes.data.match_id).order("created_at", { ascending: false }).limit(1).single(),
-          supabase.from("markets").select("id, title, status, total_volume, category").eq("match_id", mRes.data.match_id).neq("id", id!).limit(10) as any,
-        ]);
-        if (insightRes.data) setInsight((insightRes.data as any).ai_summary);
+        const relatedRes = await supabase.from("markets").select("id, title, status, total_volume, category").eq("match_id", mRes.data.match_id).neq("id", id!).limit(10) as any;
         if (relatedRes.data) setRelatedMarkets(relatedRes.data);
       }
     }
