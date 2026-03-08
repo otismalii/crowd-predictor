@@ -96,6 +96,7 @@ const Navbar = () => {
             </Link>
           ))}
 
+          <WalletBalance />
           <NotificationBell />
           <ThemeToggle />
           <div className="h-6 w-px bg-border" />

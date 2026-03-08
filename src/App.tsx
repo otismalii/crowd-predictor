@@ -35,6 +35,7 @@ const App = () => (
               <Route path="/leaderboard" element={<Leaderboard />} />
               <Route path="/profile/:id" element={<Profile />} />
               <Route path="/challenges" element={<Challenges />} />
+              <Route path="/wallet" element={<Wallet />} />
               <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
