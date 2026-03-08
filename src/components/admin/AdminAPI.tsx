@@ -62,7 +62,7 @@ const AdminAPI = ({ matches, onRefresh }: AdminAPIProps) => {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Fetch today's fixtures from API-Football and upsert into database. Requires <code className="text-primary text-xs">API_FOOTBALL_KEY</code> secret.
+            Fetch today's fixtures from SportMonks (single API call) and bulk upsert into database. Requires <code className="text-primary text-xs">SPORTMONKS_API_KEY</code> secret.
           </p>
           {lastSync && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
