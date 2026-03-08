@@ -15,6 +15,7 @@ const navLinks = [
   { to: "/", label: "Feed", icon: Home },
   { to: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { to: "/challenges", label: "Challenges", icon: Swords },
+  { to: "/wallet", label: "Wallet", icon: Wallet },
 ];
 
 const Navbar = () => {
