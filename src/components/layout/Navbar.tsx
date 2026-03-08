@@ -1,8 +1,9 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { LogOut, Trophy, User, Zap, Menu, X, Home } from "lucide-react";
-import { useState } from "react";
+import { LogOut, Trophy, User, Zap, Menu, X, Home, Shield } from "lucide-react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const navLinks = [
@@ -15,6 +16,14 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (!user) { setIsAdmin(false); return; }
+    supabase.rpc("has_role", { _user_id: user.id, _role: "admin" }).then(({ data }) => {
+      setIsAdmin(data === true);
+    });
+  }, [user]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -22,6 +31,8 @@ const Navbar = () => {
   };
 
   const isActive = (path: string) => location.pathname === path;
+
+  const allLinks = isAdmin ? [...navLinks, { to: "/admin", label: "Admin", icon: Shield }] : navLinks;
 
   return (
     <nav className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
@@ -35,7 +46,7 @@ const Navbar = () => {
 
         {/* Desktop nav */}
         <div className="hidden items-center gap-1 md:flex">
-          {navLinks.map((link) => (
+          {allLinks.map((link) => (
             <Link
               key={link.to}
               to={link.to}
@@ -100,7 +111,7 @@ const Navbar = () => {
             className="overflow-hidden border-t border-border/50 bg-background md:hidden"
           >
             <div className="flex flex-col gap-1 p-4">
-              {navLinks.map((link) => (
+              {allLinks.map((link) => (
                 <Link
                   key={link.to}
                   to={link.to}
