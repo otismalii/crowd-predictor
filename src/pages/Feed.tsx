@@ -132,9 +132,21 @@ const Feed = () => {
     else toast({ title: voteType === "up" ? "👍 Upvoted" : "👎 Downvoted" });
   };
 
+  const fetchFollowing = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("follows")
+      .select("following_id")
+      .eq("follower_id", user.id);
+    if (data) setFollowingIds(data.map(f => f.following_id));
+  };
+
   const leagues = useMemo(() => [...new Set(matches.map((m) => m.league))], [matches]);
   const filteredMatches = leagueFilter ? matches.filter((m) => m.league === leagueFilter) : matches;
   const liveMatches = matches.filter((m) => m.status === "live");
+  const filteredPredictions = feedFilter === "following" && followingIds.length > 0
+    ? predictions.filter(p => followingIds.includes(p.user_id))
+    : predictions;
 
   const groupedMatches = useMemo(() => {
     const groups: Record<string, Match[]> = {};
