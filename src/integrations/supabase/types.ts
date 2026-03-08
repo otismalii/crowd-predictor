@@ -100,6 +100,97 @@ export type Database = {
         }
         Relationships: []
       }
+      market_outcomes: {
+        Row: {
+          created_at: string
+          id: string
+          is_winner: boolean | null
+          label: string
+          market_id: string
+          pool_shares: number
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_winner?: boolean | null
+          label: string
+          market_id: string
+          pool_shares?: number
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_winner?: boolean | null
+          label?: string
+          market_id?: string
+          pool_shares?: number
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_outcomes_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      markets: {
+        Row: {
+          category: string
+          closes_at: string | null
+          created_at: string
+          description: string | null
+          id: string
+          liquidity_param: number
+          match_id: string | null
+          resolution_source: string | null
+          resolved_at: string | null
+          status: Database["public"]["Enums"]["market_status"]
+          title: string
+          total_volume: number
+        }
+        Insert: {
+          category?: string
+          closes_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          liquidity_param?: number
+          match_id?: string | null
+          resolution_source?: string | null
+          resolved_at?: string | null
+          status?: Database["public"]["Enums"]["market_status"]
+          title: string
+          total_volume?: number
+        }
+        Update: {
+          category?: string
+          closes_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          liquidity_param?: number
+          match_id?: string | null
+          resolution_source?: string | null
+          resolved_at?: string | null
+          status?: Database["public"]["Enums"]["market_status"]
+          title?: string
+          total_volume?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "markets_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       matches: {
         Row: {
           away_score: number | null
@@ -231,6 +322,57 @@ export type Database = {
           },
         ]
       }
+      positions: {
+        Row: {
+          avg_price: number
+          created_at: string
+          id: string
+          market_id: string
+          outcome_id: string
+          shares: number
+          total_cost: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avg_price?: number
+          created_at?: string
+          id?: string
+          market_id: string
+          outcome_id: string
+          shares?: number
+          total_cost?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avg_price?: number
+          created_at?: string
+          id?: string
+          market_id?: string
+          outcome_id?: string
+          shares?: number
+          total_cost?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "positions_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "positions_outcome_id_fkey"
+            columns: ["outcome_id"]
+            isOneToOne: false
+            referencedRelation: "market_outcomes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       predictions: {
         Row: {
           analysis: string | null
@@ -326,6 +468,57 @@ export type Database = {
           username?: string | null
         }
         Relationships: []
+      }
+      trades: {
+        Row: {
+          created_at: string
+          id: string
+          market_id: string
+          outcome_id: string
+          price_per_share: number
+          shares: number
+          side: string
+          total_cost: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          market_id: string
+          outcome_id: string
+          price_per_share: number
+          shares: number
+          side: string
+          total_cost: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          market_id?: string
+          outcome_id?: string
+          price_per_share?: number
+          shares?: number
+          side?: string
+          total_cost?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trades_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trades_outcome_id_fkey"
+            columns: ["outcome_id"]
+            isOneToOne: false
+            referencedRelation: "market_outcomes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       transactions: {
         Row: {
@@ -512,6 +705,7 @@ export type Database = {
     Enums: {
       app_role: "admin" | "moderator" | "user"
       bet_status: "pending" | "accepted" | "declined" | "resolved" | "cancelled"
+      market_status: "open" | "closed" | "resolved" | "cancelled"
       match_status: "upcoming" | "live" | "finished" | "postponed" | "cancelled"
       prediction_status: "pending" | "correct" | "incorrect"
       subscription_plan: "free" | "weekly" | "monthly" | "quarterly"
@@ -653,6 +847,7 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "moderator", "user"],
       bet_status: ["pending", "accepted", "declined", "resolved", "cancelled"],
+      market_status: ["open", "closed", "resolved", "cancelled"],
       match_status: ["upcoming", "live", "finished", "postponed", "cancelled"],
       prediction_status: ["pending", "correct", "incorrect"],
       subscription_plan: ["free", "weekly", "monthly", "quarterly"],

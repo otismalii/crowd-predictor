@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ThumbsUp, ThumbsDown, LogIn, Zap, Trophy, TrendingUp, Filter, Sparkles } from "lucide-react";
+import { ThumbsUp, ThumbsDown, LogIn, Zap, Trophy, TrendingUp, Filter, Sparkles, BarChart3 } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import MatchCard from "@/components/MatchCard";
@@ -20,6 +20,8 @@ import SplitText from "@/components/reactbits/SplitText";
 import Aurora from "@/components/reactbits/Aurora";
 import AnimatedCounter from "@/components/reactbits/AnimatedCounter";
 import ShimmerButton from "@/components/reactbits/ShimmerButton";
+import MarketCard from "@/components/MarketCard";
+import type { Market, MarketOutcome } from "@/components/MarketCard";
 
 interface Match {
   id: string;
@@ -57,10 +59,11 @@ const Feed = () => {
   const [followingIds, setFollowingIds] = useState<string[]>([]);
   const [feedFilter, setFeedFilter] = useState<"all" | "following">("all");
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"matches" | "predictions">("matches");
+  const [tab, setTab] = useState<"matches" | "markets" | "predictions">("markets");
+  const [markets, setMarketsData] = useState<Market[]>([]);
 
   useEffect(() => {
-    Promise.all([fetchMatches(), fetchPredictions(), fetchInsights(), fetchFollowing()]).then(() => setLoading(false));
+    Promise.all([fetchMatches(), fetchPredictions(), fetchInsights(), fetchFollowing(), fetchMarkets()]).then(() => setLoading(false));
 
     const channel = supabase
       .channel("feed-realtime")
@@ -116,6 +119,32 @@ const Feed = () => {
         if (!map[i.match_id]) map[i.match_id] = i.ai_summary;
       }
       setInsights(map);
+    }
+  };
+
+  const fetchMarkets = async () => {
+    const { data: marketsData } = await supabase
+      .from("markets")
+      .select("*")
+      .in("status", ["open", "closed"])
+      .order("created_at", { ascending: false })
+      .limit(30) as any;
+
+    if (marketsData) {
+      const marketIds = marketsData.map((m: any) => m.id);
+      const { data: outcomesData } = await supabase
+        .from("market_outcomes")
+        .select("*")
+        .in("market_id", marketIds)
+        .order("sort_order") as any;
+
+      const outcomesByMarket: Record<string, MarketOutcome[]> = {};
+      for (const o of (outcomesData || [])) {
+        if (!outcomesByMarket[o.market_id]) outcomesByMarket[o.market_id] = [];
+        outcomesByMarket[o.market_id].push(o);
+      }
+
+      setMarketsData(marketsData.map((m: any) => ({ ...m, outcomes: outcomesByMarket[m.id] || [] })));
     }
   };
 
@@ -228,6 +257,7 @@ const Feed = () => {
           {/* Tab switcher */}
           <div className="flex gap-1 mt-8 p-1 bg-muted/50 rounded-xl w-fit backdrop-blur-sm border border-border/30">
             {[
+              { key: "markets" as const, label: "📊 Markets", icon: BarChart3 },
               { key: "matches" as const, label: "⚽ Matches", icon: null },
               { key: "predictions" as const, label: "Community Feed", icon: TrendingUp },
             ].map(({ key, label, icon: Icon }) => (
@@ -259,7 +289,49 @@ const Feed = () => {
 
       <div className="container py-6">
         <AnimatePresence mode="wait">
-          {tab === "matches" ? (
+          {tab === "markets" ? (
+            <motion.div
+              key="markets"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-4 max-w-3xl mx-auto"
+            >
+              {loading ? (
+                <div className="space-y-4">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <Skeleton key={i} className="h-40 w-full rounded-xl" />
+                  ))}
+                </div>
+              ) : markets.length === 0 ? (
+                <Card className="glass-card p-12 text-center">
+                  <BarChart3 className="mx-auto mb-4 h-12 w-12 text-primary/30" />
+                  <p className="text-lg font-display text-muted-foreground">No markets yet</p>
+                  <p className="text-sm text-muted-foreground mt-1">Markets are auto-created from upcoming matches.</p>
+                </Card>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-2">
+                  {markets.map((market, i) => {
+                    const matchForMarket = matches.find(m => m.id === market.match_id);
+                    return (
+                      <motion.div
+                        key={market.id}
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.04 }}
+                      >
+                        <MarketCard
+                          market={market}
+                          matchTeams={matchForMarket ? { home_team: matchForMarket.home_team, away_team: matchForMarket.away_team } : null}
+                        />
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
+            </motion.div>
+          ) : tab === "matches" ? (
             <motion.div
               key="matches"
               initial={{ opacity: 0, y: 12 }}

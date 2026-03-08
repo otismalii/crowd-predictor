@@ -16,6 +16,7 @@ import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import Challenges from "./pages/Challenges";
 import Wallet from "./pages/Wallet";
+import MarketDetail from "./pages/MarketDetail";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,7 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/match/:id" element={<Match />} />
+              <Route path="/market/:id" element={<MarketDetail />} />
               <Route path="/leaderboard" element={<Leaderboard />} />
               <Route path="/profile/:id" element={<Profile />} />
               <Route path="/challenges" element={<Challenges />} />
