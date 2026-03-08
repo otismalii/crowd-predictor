@@ -2,7 +2,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { LogOut, Trophy, User, Zap, Menu, X, Home, Shield, Swords } from "lucide-react";
+import { LogOut, Trophy, User, Zap, Menu, X, Home, Shield, Swords, Wallet } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import NotificationBell from "@/components/NotificationBell";
 import { useState, useEffect } from "react";
