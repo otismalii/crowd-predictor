@@ -370,19 +370,51 @@ const Feed = () => {
               transition={{ duration: 0.3 }}
               className="max-w-2xl mx-auto space-y-4"
             >
+              {/* Following filter */}
+              {user && followingIds.length > 0 && (
+                <div className="flex gap-1 p-1 bg-muted/50 rounded-xl w-fit backdrop-blur-sm border border-border/30">
+                  {[
+                    { key: "all" as const, label: "All" },
+                    { key: "following" as const, label: `Following (${followingIds.length})` },
+                  ].map(({ key, label }) => (
+                    <motion.button
+                      key={key}
+                      onClick={() => setFeedFilter(key)}
+                      className={`relative px-4 py-2 rounded-lg text-xs font-semibold transition-colors ${
+                        feedFilter === key ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                      }`}
+                      whileTap={{ scale: 0.97 }}
+                    >
+                      {feedFilter === key && (
+                        <motion.div
+                          layoutId="feed-filter-bg"
+                          className="absolute inset-0 bg-primary rounded-lg"
+                          transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                        />
+                      )}
+                      <span className="relative z-10">{label}</span>
+                    </motion.button>
+                  ))}
+                </div>
+              )}
+
               {loading ? (
                 Array.from({ length: 4 }).map((_, i) => (
                   <Skeleton key={i} className="h-32 w-full rounded-xl" />
                 ))
-              ) : predictions.length === 0 ? (
+              ) : filteredPredictions.length === 0 ? (
                 <Card className="glass-card p-12 text-center">
                   <Zap className="mx-auto mb-4 h-12 w-12 text-primary/30" />
-                  <p className="text-lg font-display text-muted-foreground">No predictions yet</p>
-                  <p className="text-sm text-muted-foreground mt-1">Be the first — pick a match above and make your call!</p>
+                  <p className="text-lg font-display text-muted-foreground">
+                    {feedFilter === "following" ? "No predictions from people you follow" : "No predictions yet"}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {feedFilter === "following" ? "Follow more predictors to see their calls here." : "Be the first — pick a match above and make your call!"}
+                  </p>
                 </Card>
               ) : (
                 <AnimatePresence mode="popLayout">
-                  {predictions.map((p, i) => (
+                  {filteredPredictions.map((p, i) => (
                     <motion.div
                       key={p.id}
                       initial={{ opacity: 0, y: 20, scale: 0.97 }}
