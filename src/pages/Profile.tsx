@@ -155,6 +155,7 @@ const Profile = () => {
                       {profile.subscription_plan} plan
                     </span>
                     <StreakBadge currentStreak={profile.current_streak} bestStreak={profile.best_streak} compact />
+                    <AchievementBadges userId={id!} compact />
                   </motion.div>
 
                   {/* Actions */}
