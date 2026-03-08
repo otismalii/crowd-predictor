@@ -1,11 +1,11 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
-import { LogIn, TrendingUp, Search, BarChart3, Flame, Clock, ArrowRight } from "lucide-react";
+import { LogIn, TrendingUp, Search, BarChart3, Flame, Clock, ArrowRight, Loader2 } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import MarketCard from "@/components/MarketCard";
@@ -13,54 +13,100 @@ import type { Market, MarketOutcome } from "@/components/MarketCard";
 import { motion, AnimatePresence } from "framer-motion";
 import heroBg from "@/assets/hero-bg.jpg";
 
+const PAGE_SIZE = 20;
+
 const Feed = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [markets, setMarkets] = useState<Market[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<"trending" | "newest" | "closing">("trending");
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const totalFetched = useRef(0);
 
   useEffect(() => {
-    fetchMarkets().then(() => setLoading(false));
+    totalFetched.current = 0;
+    setMarkets([]);
+    setHasMore(true);
+    setLoading(true);
+    fetchMarkets(0).then(() => setLoading(false));
 
     const channel = supabase
       .channel("feed-markets")
-      .on("postgres_changes", { event: "*", schema: "public", table: "markets" }, () => fetchMarkets())
-      .on("postgres_changes", { event: "*", schema: "public", table: "market_outcomes" }, () => fetchMarkets())
+      .on("postgres_changes", { event: "*", schema: "public", table: "markets" }, () => {
+        totalFetched.current = 0;
+        fetchMarkets(0, true);
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "market_outcomes" }, () => {
+        totalFetched.current = 0;
+        fetchMarkets(0, true);
+      })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  const fetchMarkets = async () => {
+  const fetchMarkets = async (offset: number, replace = false) => {
     const { data: marketsData } = await supabase
       .from("markets")
       .select("*, matches(home_team, away_team, league, kickoff)")
       .in("status", ["open", "closed"])
       .order("created_at", { ascending: false })
-      .limit(60) as any;
+      .range(offset, offset + PAGE_SIZE - 1) as any;
 
-    if (marketsData) {
-      const marketIds = marketsData.map((m: any) => m.id);
-      const { data: outcomesData } = await supabase
-        .from("market_outcomes")
-        .select("*")
-        .in("market_id", marketIds)
-        .order("sort_order") as any;
+    if (!marketsData) return;
 
-      const outcomesByMarket: Record<string, MarketOutcome[]> = {};
-      for (const o of (outcomesData || [])) {
-        if (!outcomesByMarket[o.market_id]) outcomesByMarket[o.market_id] = [];
-        outcomesByMarket[o.market_id].push(o);
-      }
+    if (marketsData.length < PAGE_SIZE) setHasMore(false);
+    totalFetched.current = offset + marketsData.length;
 
-      setMarkets(marketsData.map((m: any) => ({
-        ...m,
-        outcomes: outcomesByMarket[m.id] || [],
-      })));
+    const marketIds = marketsData.map((m: any) => m.id);
+    const { data: outcomesData } = await supabase
+      .from("market_outcomes")
+      .select("*")
+      .in("market_id", marketIds)
+      .order("sort_order") as any;
+
+    const outcomesByMarket: Record<string, MarketOutcome[]> = {};
+    for (const o of (outcomesData || [])) {
+      if (!outcomesByMarket[o.market_id]) outcomesByMarket[o.market_id] = [];
+      outcomesByMarket[o.market_id].push(o);
+    }
+
+    const newMarkets = marketsData.map((m: any) => ({
+      ...m,
+      outcomes: outcomesByMarket[m.id] || [],
+    }));
+
+    if (replace || offset === 0) {
+      setMarkets(newMarkets);
+    } else {
+      setMarkets(prev => {
+        const existingIds = new Set(prev.map(m => m.id));
+        const unique = newMarkets.filter((m: Market) => !existingIds.has(m.id));
+        return [...prev, ...unique];
+      });
     }
   };
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    await fetchMarkets(totalFetched.current);
+    setLoadingMore(false);
+  }, [loadingMore, hasMore]);
+
+  const lastCardRef = useCallback((node: HTMLDivElement | null) => {
+    if (observerRef.current) observerRef.current.disconnect();
+    observerRef.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore && !loadingMore) {
+        loadMore();
+      }
+    }, { rootMargin: "200px" });
+    if (node) observerRef.current.observe(node);
+  }, [hasMore, loadingMore, loadMore]);
 
   const filtered = useMemo(() => {
     let list = markets;
@@ -217,28 +263,39 @@ const Feed = () => {
             </p>
           </motion.div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-2 max-w-4xl mx-auto">
-            <AnimatePresence mode="popLayout">
-              {filtered.map((market, i) => (
-                <motion.div
-                  key={market.id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ delay: i * 0.03, duration: 0.3 }}
-                  layout
-                >
-                  <MarketCard
-                    market={market}
-                    matchTeams={(market as any).matches ? {
-                      home_team: (market as any).matches.home_team,
-                      away_team: (market as any).matches.away_team,
-                    } : null}
-                  />
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
+          <>
+            <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-2 max-w-4xl mx-auto">
+              <AnimatePresence mode="popLayout">
+                {filtered.map((market, i) => (
+                  <motion.div
+                    key={market.id}
+                    ref={i === filtered.length - 1 ? lastCardRef : undefined}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ delay: Math.min(i * 0.03, 0.3), duration: 0.3 }}
+                    layout
+                  >
+                    <MarketCard
+                      market={market}
+                      matchTeams={(market as any).matches ? {
+                        home_team: (market as any).matches.home_team,
+                        away_team: (market as any).matches.away_team,
+                      } : null}
+                    />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+            {loadingMore && (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            )}
+            {!hasMore && filtered.length > 0 && (
+              <p className="text-center text-xs text-muted-foreground py-6">All markets loaded</p>
+            )}
+          </>
         )}
       </div>
       <Footer />
