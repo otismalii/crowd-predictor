@@ -18,6 +18,8 @@ import TeamBadge from "@/components/TeamBadge";
 import FollowButton from "@/components/FollowButton";
 import StreakBadge from "@/components/StreakBadge";
 import ProfileEdit from "@/components/ProfileEdit";
+import AchievementBadges from "@/components/AchievementBadges";
+import CreateBetDialog from "@/components/CreateBetDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
