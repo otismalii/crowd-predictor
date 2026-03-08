@@ -199,8 +199,34 @@ serve(async (req) => {
 
     console.log(`Done: synced ${upsertCount} of ${rows.length} total, generated ${insightsGenerated} AI insights`);
 
+    // 5. Auto-run manage-markets to create/resolve markets
+    let marketsCreated = 0;
+    let marketsResolved = 0;
+    try {
+      const manageRes = await fetch(
+        `${supabaseUrl}/functions/v1/manage-markets`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${supabaseKey}`,
+          },
+        }
+      );
+      if (manageRes.ok) {
+        const manageData = await manageRes.json();
+        marketsCreated = manageData.markets_created || 0;
+        marketsResolved = manageData.markets_resolved || 0;
+        console.log(`manage-markets: created ${marketsCreated}, resolved ${marketsResolved}`);
+      } else {
+        console.log(`manage-markets failed: ${manageRes.status}`);
+      }
+    } catch (e) {
+      console.log("manage-markets chain error:", e);
+    }
+
     return new Response(
-      JSON.stringify({ success: true, synced: upsertCount, total: rows.length, insights_generated: insightsGenerated }),
+      JSON.stringify({ success: true, synced: upsertCount, total: rows.length, insights_generated: insightsGenerated, markets_created: marketsCreated, markets_resolved: marketsResolved }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
