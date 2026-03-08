@@ -111,93 +111,8 @@ serve(async (req) => {
       }
     }
 
-    // 4. Auto-generate AI insights for upcoming matches without one
-    let insightsGenerated = 0;
-    try {
-      const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-      if (GEMINI_API_KEY) {
-        // Get upcoming matches that don't have insights yet
-        const { data: upcomingMatches } = await supabase
-          .from("matches")
-          .select("id, home_team, away_team, league, kickoff")
-          .eq("status", "upcoming")
-          .order("kickoff", { ascending: true })
-          .limit(10);
 
-        if (upcomingMatches && upcomingMatches.length > 0) {
-          // Get existing insights
-          const matchIds = upcomingMatches.map((m: any) => m.id);
-          const { data: existingInsights } = await supabase
-            .from("ai_insights")
-            .select("match_id")
-            .in("match_id", matchIds);
-
-          const insightSet = new Set((existingInsights || []).map((i: any) => i.match_id));
-          const needInsights = upcomingMatches.filter((m: any) => !insightSet.has(m.id));
-
-          // Generate up to 5 insights per sync
-          for (const match of needInsights.slice(0, 5)) {
-            try {
-              // Fetch community predictions
-              const { data: preds } = await supabase
-                .from("predictions")
-                .select("predicted_home_score, predicted_away_score, confidence, analysis")
-                .eq("match_id", match.id);
-
-              const predictions = preds || [];
-              const predSummary = predictions.length > 0
-                ? predictions.map((p: any) => `${p.predicted_home_score}-${p.predicted_away_score} (conf: ${p.confidence})`).join(", ")
-                : "No community predictions yet";
-              const avgHome = predictions.length > 0
-                ? (predictions.reduce((s: number, p: any) => s + p.predicted_home_score, 0) / predictions.length).toFixed(1)
-                : "N/A";
-              const avgAway = predictions.length > 0
-                ? (predictions.reduce((s: number, p: any) => s + p.predicted_away_score, 0) / predictions.length).toFixed(1)
-                : "N/A";
-
-              const geminiRes = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
-                {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    contents: [{
-                      parts: [{
-                        text: `You are a football match analyst for PagazaBetz. Provide concise, insightful match analysis in 2-3 paragraphs. Include prediction, key factors, and confidence level.\n\nAnalyze this match:\n${match.home_team} vs ${match.away_team}\nLeague: ${match.league}\nKickoff: ${match.kickoff}\n\nCommunity predictions: ${predSummary}\nAverage community prediction: ${avgHome} - ${avgAway}\n\nProvide your analysis and prediction.`
-                      }]
-                    }],
-                  }),
-                }
-              );
-
-              if (geminiRes.ok) {
-                const geminiData = await geminiRes.json();
-                const aiSummary = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
-                if (aiSummary) {
-                  await supabase.from("ai_insights").insert({
-                    match_id: match.id,
-                    ai_summary: aiSummary,
-                    community_prediction: `${avgHome} - ${avgAway}`,
-                  });
-                  insightsGenerated++;
-                  console.log(`AI insight generated for ${match.home_team} vs ${match.away_team}`);
-                }
-              } else {
-                console.log(`Gemini error for ${match.id}: ${geminiRes.status}`);
-              }
-            } catch (e) {
-              console.log(`Insight generation failed for ${match.id}:`, e);
-            }
-          }
-        }
-      } else {
-        console.log("GEMINI_API_KEY not set, skipping AI insights");
-      }
-    } catch (e) {
-      console.log("AI insights auto-generation error:", e);
-    }
-
-    console.log(`Done: synced ${upsertCount} of ${rows.length} total, generated ${insightsGenerated} AI insights`);
+    console.log(`Done: synced ${upsertCount} of ${rows.length} total`);
 
     // 5. Auto-run manage-markets to create/resolve markets
     let marketsCreated = 0;
@@ -226,7 +141,7 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, synced: upsertCount, total: rows.length, insights_generated: insightsGenerated, markets_created: marketsCreated, markets_resolved: marketsResolved }),
+      JSON.stringify({ success: true, synced: upsertCount, total: rows.length, markets_created: marketsCreated, markets_resolved: marketsResolved }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {

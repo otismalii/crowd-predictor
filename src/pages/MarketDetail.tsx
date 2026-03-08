@@ -13,9 +13,9 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
   ArrowUpRight, ArrowDownLeft, BarChart3, Clock, TrendingUp,
-  Wallet, MessageCircle, Send, Brain, Trash2, Calendar,
-  Info, Layers, Share2, Copy, CheckCircle2, AlertCircle,
-  Users, ExternalLink, ChevronRight, Sparkles,
+  Wallet, MessageCircle, Send, Trash2, Calendar,
+  Info, Layers, Share2, CheckCircle2, AlertCircle,
+  Users, ChevronRight,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
@@ -108,7 +108,6 @@ const MarketDetail = () => {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
   const [relatedMarkets, setRelatedMarkets] = useState<RelatedMarket[]>([]);
-  const [insight, setInsight] = useState<string | null>(null);
   const [walletBalance, setWalletBalance] = useState(0);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -145,11 +144,7 @@ const MarketDetail = () => {
     if (mRes.data) {
       setMarket(mRes.data);
       if (mRes.data.match_id) {
-        const [insightRes, relatedRes] = await Promise.all([
-          supabase.from("ai_insights").select("ai_summary").eq("match_id", mRes.data.match_id).order("created_at", { ascending: false }).limit(1).single(),
-          supabase.from("markets").select("id, title, status, total_volume, category").eq("match_id", mRes.data.match_id).neq("id", id!).limit(10) as any,
-        ]);
-        if (insightRes.data) setInsight((insightRes.data as any).ai_summary);
+        const relatedRes = await supabase.from("markets").select("id, title, status, total_volume, category").eq("match_id", mRes.data.match_id).neq("id", id!).limit(10) as any;
         if (relatedRes.data) setRelatedMarkets(relatedRes.data);
       }
     }
@@ -452,23 +447,8 @@ const MarketDetail = () => {
               />
             </motion.div>
 
-            {/* AI Insight */}
-            {insight && (
-              <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.15 }}
-                className="rounded-xl border border-accent/20 bg-accent/5 p-4"
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <Sparkles className="h-4 w-4 text-accent" />
-                  <span className="text-xs font-semibold text-accent uppercase tracking-wider">AI Analysis</span>
-                </div>
-                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line line-clamp-6">
-                  {insight}
-                </p>
-              </motion.div>
-            )}
+
+
 
             {/* Enhanced Tabs */}
             <motion.div
