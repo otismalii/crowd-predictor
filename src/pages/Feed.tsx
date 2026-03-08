@@ -59,7 +59,8 @@ const Feed = () => {
   const [followingIds, setFollowingIds] = useState<string[]>([]);
   const [feedFilter, setFeedFilter] = useState<"all" | "following">("all");
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"matches" | "predictions">("matches");
+  const [tab, setTab] = useState<"matches" | "markets" | "predictions">("markets");
+  const [markets, setMarketsData] = useState<Market[]>([]);
 
   useEffect(() => {
     Promise.all([fetchMatches(), fetchPredictions(), fetchInsights(), fetchFollowing()]).then(() => setLoading(false));
