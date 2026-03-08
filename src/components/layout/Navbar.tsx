@@ -69,9 +69,8 @@ const Navbar = () => {
             </Link>
           ))}
 
-          <div className="ml-4 flex items-center gap-1">
-            <ThemeToggle />
-            <div className="h-6 w-px bg-border" />
+          <ThemeToggle />
+          <div className="h-6 w-px bg-border" />
 
           {user ? (
             <div className="flex items-center gap-1 ml-2">
