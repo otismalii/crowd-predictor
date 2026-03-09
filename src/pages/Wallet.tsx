@@ -529,7 +529,7 @@ const Wallet = () => {
             </div>
           </div>
         )}
-      </div>
+      </PullToRefresh>
       <Footer />
     </div>
   );
