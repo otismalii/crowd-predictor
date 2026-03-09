@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -12,7 +12,7 @@ import WalletSkeleton from "@/components/skeletons/WalletSkeleton";
 import {
   Wallet as WalletIcon, ArrowUpRight, ArrowDownLeft, Phone, History,
   TrendingUp, TrendingDown, PieChart, Activity, ChevronRight,
-  BarChart3,
+  BarChart3, Pencil, Users,
 } from "lucide-react";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
@@ -24,6 +24,10 @@ import SplitText from "@/components/reactbits/SplitText";
 import Aurora from "@/components/reactbits/Aurora";
 import AnimatedCounter from "@/components/reactbits/AnimatedCounter";
 import { lmsrPrice } from "@/components/MarketCard";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import StreakBadge from "@/components/StreakBadge";
+import ProfileEdit from "@/components/ProfileEdit";
+import PullToRefresh from "@/components/PullToRefresh";
 
 // --- Types ---
 
@@ -37,6 +41,10 @@ interface PortfolioItem { market: MarketRow; outcome: OutcomeRow; position: Posi
 const Wallet = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+
+  // Profile state
+  const [profile, setProfile] = useState<any>(null);
+  const [editingProfile, setEditingProfile] = useState(false);
 
   // Wallet state
   const [wallet, setWallet] = useState<WalletData | null>(null);
@@ -68,14 +76,16 @@ const Wallet = () => {
   const fetchAll = async () => {
     if (!user) return;
 
-    const [walletRes, txRes, posRes] = await Promise.all([
+    const [walletRes, txRes, posRes, profileRes] = await Promise.all([
       supabase.from("wallets").select("*").eq("user_id", user.id).single() as any,
       supabase.from("transactions").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50) as any,
       supabase.from("positions").select("outcome_id, market_id, shares, avg_price, total_cost").eq("user_id", user.id).gt("shares", 0) as any,
+      supabase.from("profiles").select("*").eq("id", user.id).single() as any,
     ]);
 
     if (walletRes.data) setWallet(walletRes.data);
     if (txRes.data) setTransactions(txRes.data);
+    if (profileRes.data) setProfile(profileRes.data);
 
     const positions: PositionRow[] = posRes.data || [];
     if (positions.length === 0) { setPortfolioItems([]); setLoading(false); return; }
@@ -116,7 +126,8 @@ const Wallet = () => {
     setLoading(false);
   };
 
-  // Wallet actions
+  const handleRefresh = useCallback(async () => { await fetchAll(); }, [user]);
+
   const handleDeposit = async () => {
     if (!user || !wallet || !amount || !phone) return;
     const numAmount = parseFloat(amount);
@@ -197,18 +208,69 @@ const Wallet = () => {
       {/* Hero header */}
       <div className="relative border-b border-border/30 overflow-hidden">
         <Aurora />
-        <div className="relative container py-8 sm:py-10">
-          <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-wider">
-            <SplitText text="MY " className="text-foreground" splitType="chars" delay={0.04} />
-            <GradientText className="font-display text-3xl sm:text-4xl font-bold tracking-wider">DASHBOARD</GradientText>
-          </h1>
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="text-sm text-muted-foreground mt-1">
-            Wallet, positions & transaction history
-          </motion.p>
+        <div className="relative container py-6 sm:py-8">
+          {/* Profile row */}
+          {profile && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center gap-4 mb-4"
+            >
+              <Link to={`/profile/${user!.id}`}>
+                <Avatar className="h-14 w-14 ring-2 ring-border/50 hover:ring-primary/40 transition-all">
+                  <AvatarImage src={profile.avatar_url || undefined} />
+                  <AvatarFallback className="bg-primary/10 text-primary font-display font-bold text-lg">
+                    {(profile.username || "?")[0]?.toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              </Link>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <Link to={`/profile/${user!.id}`} className="font-display text-lg font-bold tracking-wider text-foreground hover:text-primary transition-colors truncate">
+                    {profile.username || "Anonymous"}
+                  </Link>
+                  <StreakBadge currentStreak={profile.current_streak} bestStreak={profile.best_streak} compact />
+                </div>
+                {profile.bio && <p className="text-xs text-muted-foreground truncate">{profile.bio}</p>}
+                <div className="flex items-center gap-3 mt-1">
+                  <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                    <Users className="h-3 w-3" /> {profile.followers_count} followers
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    {profile.accuracy_rate}% accuracy
+                  </span>
+                </div>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setEditingProfile(!editingProfile)} className="flex-shrink-0">
+                <Pencil className="h-4 w-4" />
+              </Button>
+            </motion.div>
+          )}
+
+          <AnimatePresence>
+            {editingProfile && profile && (
+              <ProfileEdit
+                profile={profile}
+                onClose={() => setEditingProfile(false)}
+                onSaved={(updated) => { setProfile(updated); setEditingProfile(false); }}
+              />
+            )}
+          </AnimatePresence>
+
+          {!editingProfile && (
+            <>
+              <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-wider">
+                <GradientText className="font-display text-2xl sm:text-3xl font-bold tracking-wider">DASHBOARD</GradientText>
+              </h1>
+              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="text-xs text-muted-foreground mt-0.5">
+                Wallet, positions & transaction history
+              </motion.p>
+            </>
+          )}
         </div>
       </div>
 
-      <div className="container py-6">
+      <PullToRefresh onRefresh={handleRefresh} className="container py-6">
         {loading ? (
           <WalletSkeleton />
         ) : (
@@ -467,7 +529,7 @@ const Wallet = () => {
             </div>
           </div>
         )}
-      </div>
+      </PullToRefresh>
       <Footer />
     </div>
   );
