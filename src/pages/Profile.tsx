@@ -21,6 +21,7 @@ import ProfileEdit from "@/components/ProfileEdit";
 import AchievementBadges from "@/components/AchievementBadges";
 import CreateBetDialog from "@/components/CreateBetDialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import ProfileSkeleton from "@/components/skeletons/ProfileSkeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const Profile = () => {
