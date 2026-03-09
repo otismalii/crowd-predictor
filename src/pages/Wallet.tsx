@@ -76,14 +76,16 @@ const Wallet = () => {
   const fetchAll = async () => {
     if (!user) return;
 
-    const [walletRes, txRes, posRes] = await Promise.all([
+    const [walletRes, txRes, posRes, profileRes] = await Promise.all([
       supabase.from("wallets").select("*").eq("user_id", user.id).single() as any,
       supabase.from("transactions").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50) as any,
       supabase.from("positions").select("outcome_id, market_id, shares, avg_price, total_cost").eq("user_id", user.id).gt("shares", 0) as any,
+      supabase.from("profiles").select("*").eq("id", user.id).single() as any,
     ]);
 
     if (walletRes.data) setWallet(walletRes.data);
     if (txRes.data) setTransactions(txRes.data);
+    if (profileRes.data) setProfile(profileRes.data);
 
     const positions: PositionRow[] = posRes.data || [];
     if (positions.length === 0) { setPortfolioItems([]); setLoading(false); return; }
