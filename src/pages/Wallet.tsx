@@ -126,7 +126,8 @@ const Wallet = () => {
     setLoading(false);
   };
 
-  // Wallet actions
+  const handleRefresh = useCallback(async () => { await fetchAll(); }, [user]);
+
   const handleDeposit = async () => {
     if (!user || !wallet || !amount || !phone) return;
     const numAmount = parseFloat(amount);
