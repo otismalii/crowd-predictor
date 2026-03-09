@@ -309,9 +309,7 @@ const Challenges = () => {
             <Link to="/auth"><Button className="mt-4 neon-glow">Sign In</Button></Link>
           </SpotlightCard>
         ) : user && loading ? (
-          <div className="space-y-3">
-            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 w-full rounded-xl" />)}
-          </div>
+          <ChallengesSkeleton />
         ) : user && currentBets.length === 0 ? (
           <SpotlightCard className="p-12 text-center" spotlightColor="rgba(120, 255, 120, 0.08)">
             <Swords className="mx-auto mb-3 h-10 w-10 text-accent/30" />

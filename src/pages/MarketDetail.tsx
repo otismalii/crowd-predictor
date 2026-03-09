@@ -263,9 +263,8 @@ const MarketDetail = () => {
   if (loading) return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <div className="container py-8 max-w-4xl space-y-4">
-        <Skeleton className="h-48 w-full rounded-xl" />
-        <Skeleton className="h-64 w-full rounded-xl" />
+      <div className="container py-8">
+        <MarketDetailSkeleton />
       </div>
     </div>
   );

@@ -58,12 +58,8 @@ const Profile = () => {
   if (loading) return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <div className="container py-8 max-w-2xl space-y-6">
-        <Skeleton className="h-64 w-full rounded-xl" />
-        <Skeleton className="h-8 w-48" />
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-20 w-full rounded-xl" />
-        ))}
+      <div className="container py-8">
+        <ProfileSkeleton />
       </div>
     </div>
   );

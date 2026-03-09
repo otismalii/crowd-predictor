@@ -244,11 +244,7 @@ const Feed = () => {
       {/* Market grid */}
       <div className="container py-6">
         {loading ? (
-          <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-2 max-w-4xl mx-auto">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-44 w-full rounded-xl" />
-            ))}
-          </div>
+          <FeedSkeleton />
         ) : filtered.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}

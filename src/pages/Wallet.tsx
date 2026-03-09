@@ -216,10 +216,7 @@ const Wallet = () => {
             <Link to="/auth"><Button className="mt-4 neon-glow">Sign In</Button></Link>
           </SpotlightCard>
         ) : loading ? (
-          <div className="space-y-3">
-            <Skeleton className="h-40 w-full rounded-xl" />
-            <Skeleton className="h-20 w-full rounded-xl" />
-          </div>
+          <WalletSkeleton />
         ) : (
           <AnimatePresence mode="wait">
             {(tab === "deposit" || tab === "withdraw") && (

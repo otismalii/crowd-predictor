@@ -163,19 +163,7 @@ const Leaderboard = () => {
         <SpotlightCard spotlightColor="rgba(120, 255, 120, 0.1)">
           <CardContent className="p-0">
             {loading ? (
-              <div className="divide-y divide-border/50">
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <div key={i} className="flex items-center gap-4 p-4">
-                    <Skeleton className="h-10 w-10 rounded-full" />
-                    <Skeleton className="h-10 w-10 rounded-full" />
-                    <div className="flex-1 space-y-1.5">
-                      <Skeleton className="h-4 w-28" />
-                      <Skeleton className="h-3 w-16" />
-                    </div>
-                    <Skeleton className="h-5 w-12" />
-                  </div>
-                ))}
-              </div>
+              <LeaderboardSkeleton />
             ) : profiles.length === 0 ? (
               <div className="p-12 text-center text-muted-foreground">No users yet.</div>
             ) : (

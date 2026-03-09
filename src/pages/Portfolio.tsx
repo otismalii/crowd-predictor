@@ -278,11 +278,7 @@ const Portfolio = () => {
 
         {/* Positions list */}
         {loading ? (
-          <div className="space-y-3">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-24 w-full rounded-xl" />
-            ))}
-          </div>
+          <PortfolioSkeleton />
         ) : filtered.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
