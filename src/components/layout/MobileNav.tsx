@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, Swords, Trophy, Wallet, PieChart } from "lucide-react";
+import { Home, Swords, Trophy, Wallet } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 
