@@ -10,6 +10,7 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import MarketCard from "@/components/MarketCard";
 import type { Market, MarketOutcome } from "@/components/MarketCard";
+import FeedSkeleton from "@/components/skeletons/FeedSkeleton";
 import { motion, AnimatePresence } from "framer-motion";
 import heroBg from "@/assets/hero-bg.jpg";
 
