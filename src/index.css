@@ -132,6 +132,16 @@
   .scrollbar-none::-webkit-scrollbar {
     display: none;
   }
+  /* Safe area for mobile bottom nav */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  /* Add bottom padding to pages so content isn't hidden behind mobile nav */
+  @media (max-width: 767px) {
+    .min-h-screen {
+      padding-bottom: 4.5rem;
+    }
+  }
 }
 
 /* React Bits animation keyframes */
