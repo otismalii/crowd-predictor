@@ -6,13 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Zap, ArrowLeft, Mail, Lock, UserPlus } from "lucide-react";
+import { Zap, ArrowLeft, Mail, Lock, UserPlus, Eye, EyeOff } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import SpotlightCard from "@/components/reactbits/SpotlightCard";
 import GradientText from "@/components/reactbits/GradientText";
 import Aurora from "@/components/reactbits/Aurora";
 import SplitText from "@/components/reactbits/SplitText";
-import ShimmerButton from "@/components/reactbits/ShimmerButton";
+import PasswordStrength from "@/components/PasswordStrength";
 
 const Auth = () => {
   const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
@@ -20,6 +20,8 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmEmail, setShowConfirmEmail] = useState(false);
   const { signIn, signUp, resetPassword, user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -35,7 +37,7 @@ const Auth = () => {
     if (mode === "forgot") {
       const { error } = await resetPassword(email);
       if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
-      else toast({ title: "Check your email", description: "Password reset link sent." });
+      else toast({ title: "📧 Check your email", description: "Password reset link sent." });
       setLoading(false);
       return;
     }
@@ -46,13 +48,30 @@ const Auth = () => {
         setLoading(false);
         return;
       }
+      if (password.length < 8) {
+        toast({ title: "Password too short", description: "Use at least 8 characters", variant: "destructive" });
+        setLoading(false);
+        return;
+      }
       const { error } = await signUp(email, password, username);
-      if (error) toast({ title: "Signup failed", description: error.message, variant: "destructive" });
-      else toast({ title: "Account created!", description: "Check your email to verify." });
+      if (error) {
+        const msg = error.message?.includes("already registered")
+          ? "This email is already registered. Try signing in instead."
+          : error.message;
+        toast({ title: "Signup failed", description: msg, variant: "destructive" });
+      } else {
+        setShowConfirmEmail(true);
+      }
     } else {
       const { error } = await signIn(email, password);
-      if (error) toast({ title: "Login failed", description: error.message, variant: "destructive" });
-      else navigate("/");
+      if (error) {
+        const msg = error.message?.includes("Invalid login")
+          ? "Invalid email or password. Please try again."
+          : error.message;
+        toast({ title: "Login failed", description: msg, variant: "destructive" });
+      } else {
+        navigate("/");
+      }
     }
     setLoading(false);
   };
@@ -69,11 +88,54 @@ const Auth = () => {
     forgot: "We'll send you a reset link",
   };
 
+  if (showConfirmEmail) {
+    return (
+      <div className="relative flex min-h-screen items-center justify-center bg-background px-4 overflow-hidden">
+        <Aurora />
+        <motion.div
+          initial={{ opacity: 0, y: 30, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          className="relative w-full max-w-md"
+        >
+          <SpotlightCard className="backdrop-blur-sm" spotlightColor="rgba(120, 255, 120, 0.12)">
+            <CardContent className="p-8 text-center space-y-4">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 300, delay: 0.2 }}
+                className="mx-auto h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center"
+              >
+                <Mail className="h-8 w-8 text-primary" />
+              </motion.div>
+              <h2 className="font-display text-2xl font-bold tracking-wider">
+                <GradientText>Check Your Email</GradientText>
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                We've sent a confirmation link to <span className="text-foreground font-semibold">{email}</span>. 
+                Click the link to activate your account.
+              </p>
+              <div className="rounded-lg bg-muted/50 border border-border/30 p-3 text-xs text-muted-foreground space-y-1">
+                <p>💡 <strong>Tip:</strong> Check your spam folder if you don't see it.</p>
+                <p>The link expires in 24 hours.</p>
+              </div>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => { setShowConfirmEmail(false); setMode("login"); }}
+              >
+                <ArrowLeft className="h-3.5 w-3.5 mr-1.5" /> Back to Sign In
+              </Button>
+            </CardContent>
+          </SpotlightCard>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-background px-4 overflow-hidden">
       <Aurora />
 
-      {/* Decorative floating elements */}
       <motion.div
         className="absolute top-1/4 left-10 h-32 w-32 rounded-full bg-primary/5 blur-3xl"
         animate={{ y: [0, -20, 0], scale: [1, 1.1, 1] }}
@@ -94,16 +156,10 @@ const Auth = () => {
         <SpotlightCard className="backdrop-blur-sm" spotlightColor="rgba(120, 255, 120, 0.12)">
           <CardHeader className="text-center pb-2">
             <Link to="/" className="mx-auto mb-5 flex items-center gap-2 group">
-              <motion.div
-                whileHover={{ rotate: 180 }}
-                transition={{ duration: 0.4 }}
-              >
+              <motion.div whileHover={{ rotate: 180 }} transition={{ duration: 0.4 }}>
                 <Zap className="h-8 w-8 text-primary" />
               </motion.div>
-              <GradientText
-                className="font-display text-2xl font-bold tracking-wider"
-                animationSpeed={4}
-              >
+              <GradientText className="font-display text-2xl font-bold tracking-wider" animationSpeed={4}>
                 PAGAZABETZ
               </GradientText>
             </Link>
@@ -119,9 +175,7 @@ const Auth = () => {
                 <CardTitle className="font-display text-xl">
                   <SplitText text={titles[mode]} splitType="words" delay={0.08} />
                 </CardTitle>
-                <CardDescription className="mt-2">
-                  {descriptions[mode]}
-                </CardDescription>
+                <CardDescription className="mt-2">{descriptions[mode]}</CardDescription>
               </motion.div>
             </AnimatePresence>
           </CardHeader>
@@ -150,11 +204,14 @@ const Auth = () => {
                     <Input
                       id="username"
                       value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      placeholder="Your username"
+                      onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, "").slice(0, 20))}
+                      placeholder="your_username"
                       required
                       className="bg-background/50 border-border/50 focus:border-primary/50 transition-colors"
                     />
+                    {username && username.length < 3 && (
+                      <p className="text-[10px] text-destructive">Username must be at least 3 characters</p>
+                    )}
                   </motion.div>
                 )}
 
@@ -178,21 +235,35 @@ const Auth = () => {
                     <Label htmlFor="password" className="flex items-center gap-1.5 text-xs">
                       <Lock className="h-3 w-3 text-primary" /> Password
                     </Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
-                      required
-                      minLength={6}
-                      className="bg-background/50 border-border/50 focus:border-primary/50 transition-colors"
-                    />
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                        required
+                        minLength={6}
+                        className="bg-background/50 border-border/50 focus:border-primary/50 transition-colors pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                    {mode === "signup" && <PasswordStrength password={password} />}
                   </div>
                 )}
 
                 <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}>
-                  <Button type="submit" className="w-full neon-glow font-display tracking-wider" disabled={loading}>
+                  <Button
+                    type="submit"
+                    className="w-full neon-glow font-display tracking-wider"
+                    disabled={loading || (mode === "signup" && username.length < 3)}
+                  >
                     {loading ? (
                       <motion.span
                         animate={{ opacity: [1, 0.5, 1] }}
