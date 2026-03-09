@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import PortfolioSkeleton from "@/components/skeletons/PortfolioSkeleton";
 import { Badge } from "@/components/ui/badge";
 import {
   TrendingUp, TrendingDown, BarChart3, Wallet, ChevronRight,
