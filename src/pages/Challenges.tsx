@@ -6,6 +6,7 @@ import { CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import ChallengesSkeleton from "@/components/skeletons/ChallengesSkeleton";
 import { Swords, Check, X, Clock, Share2, Copy } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "@/components/layout/Navbar";
