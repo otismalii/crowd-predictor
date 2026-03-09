@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { CardContent } from "@/components/ui/card";
 import { Trophy, Medal, Star, TrendingUp, Target, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import LeaderboardSkeleton from "@/components/skeletons/LeaderboardSkeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
