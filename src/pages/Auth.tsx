@@ -24,10 +24,9 @@ const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  if (user) {
-    navigate("/", { replace: true });
-    return null;
-  }
+  useEffect(() => {
+    if (user) navigate("/", { replace: true });
+  }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
