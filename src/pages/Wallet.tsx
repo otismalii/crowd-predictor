@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -12,7 +12,7 @@ import WalletSkeleton from "@/components/skeletons/WalletSkeleton";
 import {
   Wallet as WalletIcon, ArrowUpRight, ArrowDownLeft, Phone, History,
   TrendingUp, TrendingDown, PieChart, Activity, ChevronRight,
-  BarChart3,
+  BarChart3, Pencil, Users,
 } from "lucide-react";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
@@ -24,6 +24,10 @@ import SplitText from "@/components/reactbits/SplitText";
 import Aurora from "@/components/reactbits/Aurora";
 import AnimatedCounter from "@/components/reactbits/AnimatedCounter";
 import { lmsrPrice } from "@/components/MarketCard";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import StreakBadge from "@/components/StreakBadge";
+import ProfileEdit from "@/components/ProfileEdit";
+import PullToRefresh from "@/components/PullToRefresh";
 
 // --- Types ---
 
