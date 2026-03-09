@@ -19,7 +19,7 @@ import NotFound from "./pages/NotFound";
 import Challenges from "./pages/Challenges";
 import Wallet from "./pages/Wallet";
 import MarketDetail from "./pages/MarketDetail";
-import Portfolio from "./pages/Portfolio";
+import { Navigate } from "react-router-dom";
 
 const queryClient = new QueryClient({
   defaultOptions: {
