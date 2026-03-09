@@ -208,18 +208,69 @@ const Wallet = () => {
       {/* Hero header */}
       <div className="relative border-b border-border/30 overflow-hidden">
         <Aurora />
-        <div className="relative container py-8 sm:py-10">
-          <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-wider">
-            <SplitText text="MY " className="text-foreground" splitType="chars" delay={0.04} />
-            <GradientText className="font-display text-3xl sm:text-4xl font-bold tracking-wider">DASHBOARD</GradientText>
-          </h1>
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="text-sm text-muted-foreground mt-1">
-            Wallet, positions & transaction history
-          </motion.p>
+        <div className="relative container py-6 sm:py-8">
+          {/* Profile row */}
+          {profile && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center gap-4 mb-4"
+            >
+              <Link to={`/profile/${user!.id}`}>
+                <Avatar className="h-14 w-14 ring-2 ring-border/50 hover:ring-primary/40 transition-all">
+                  <AvatarImage src={profile.avatar_url || undefined} />
+                  <AvatarFallback className="bg-primary/10 text-primary font-display font-bold text-lg">
+                    {(profile.username || "?")[0]?.toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              </Link>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <Link to={`/profile/${user!.id}`} className="font-display text-lg font-bold tracking-wider text-foreground hover:text-primary transition-colors truncate">
+                    {profile.username || "Anonymous"}
+                  </Link>
+                  <StreakBadge currentStreak={profile.current_streak} bestStreak={profile.best_streak} compact />
+                </div>
+                {profile.bio && <p className="text-xs text-muted-foreground truncate">{profile.bio}</p>}
+                <div className="flex items-center gap-3 mt-1">
+                  <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                    <Users className="h-3 w-3" /> {profile.followers_count} followers
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    {profile.accuracy_rate}% accuracy
+                  </span>
+                </div>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setEditingProfile(!editingProfile)} className="flex-shrink-0">
+                <Pencil className="h-4 w-4" />
+              </Button>
+            </motion.div>
+          )}
+
+          <AnimatePresence>
+            {editingProfile && profile && (
+              <ProfileEdit
+                profile={profile}
+                onClose={() => setEditingProfile(false)}
+                onSaved={(updated) => { setProfile(updated); setEditingProfile(false); }}
+              />
+            )}
+          </AnimatePresence>
+
+          {!editingProfile && (
+            <>
+              <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-wider">
+                <GradientText className="font-display text-2xl sm:text-3xl font-bold tracking-wider">DASHBOARD</GradientText>
+              </h1>
+              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="text-xs text-muted-foreground mt-0.5">
+                Wallet, positions & transaction history
+              </motion.p>
+            </>
+          )}
         </div>
       </div>
 
-      <div className="container py-6">
+      <PullToRefresh onRefresh={handleRefresh} className="container py-6">
         {loading ? (
           <WalletSkeleton />
         ) : (
