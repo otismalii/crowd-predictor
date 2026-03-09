@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import SpotlightCard from "@/components/reactbits/SpotlightCard";
 import { CardContent } from "@/components/ui/card";
 import TeamBadge from "@/components/TeamBadge";
-import { TrendingUp, Users, BarChart3, CheckCircle2 } from "lucide-react";
+import { TrendingUp, Users, BarChart3, CheckCircle2, Clock, Radio } from "lucide-react";
 
 interface MarketOutcome {
   id: string;
@@ -36,12 +36,99 @@ function lmsrPrice(pools: number[], index: number, b: number): number {
   return exps[index] / total;
 }
 
+interface MatchTimeInfo {
+  kickoff: string | null;
+  status: "scheduled" | "live" | "half_time" | "finished" | "postponed" | "cancelled" | null;
+  match_minute?: number | null;
+}
+
 interface MarketCardProps {
   market: Market;
   matchTeams?: { home_team: string; away_team: string } | null;
+  matchTime?: MatchTimeInfo | null;
 }
 
-const MarketCard = ({ market, matchTeams }: MarketCardProps) => {
+// Component to display match time based on status
+const MatchTimeDisplay = ({ matchTime }: { matchTime: MatchTimeInfo }) => {
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (!matchTime.kickoff) return null;
+
+  const kickoffDate = new Date(matchTime.kickoff);
+  const isLive = matchTime.status === "live";
+  const isHalfTime = matchTime.status === "half_time";
+  const isFinished = matchTime.status === "finished";
+  const isPostponed = matchTime.status === "postponed" || matchTime.status === "cancelled";
+
+  // Format kickoff time
+  const formatKickoff = () => {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const isToday = kickoffDate.toDateString() === today.toDateString();
+    const isTomorrow = kickoffDate.toDateString() === tomorrow.toDateString();
+
+    const timeStr = kickoffDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+    if (isToday) return `Today ${timeStr}`;
+    if (isTomorrow) return `Tomorrow ${timeStr}`;
+
+    return kickoffDate.toLocaleDateString([], { month: "short", day: "numeric" }) + ` ${timeStr}`;
+  };
+
+  if (isLive) {
+    const minute = matchTime.match_minute ?? "?";
+    return (
+      <span className="flex items-center gap-1 text-[10px] font-semibold text-red-500">
+        <Radio className="h-3 w-3 animate-pulse" />
+        <span className="animate-pulse">{minute}'</span>
+      </span>
+    );
+  }
+
+  if (isHalfTime) {
+    return (
+      <span className="flex items-center gap-1 text-[10px] font-semibold text-amber-500">
+        <Radio className="h-3 w-3" />
+        <span>HT</span>
+      </span>
+    );
+  }
+
+  if (isFinished) {
+    return (
+      <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+        <Clock className="h-3 w-3" />
+        <span>FT</span>
+      </span>
+    );
+  }
+
+  if (isPostponed) {
+    return (
+      <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+        <Clock className="h-3 w-3" />
+        <span>PPD</span>
+      </span>
+    );
+  }
+
+  // Scheduled - show kickoff time
+  return (
+    <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+      <Clock className="h-3 w-3" />
+      <span>{formatKickoff()}</span>
+    </span>
+  );
+};
+
+const MarketCard = ({ market, matchTeams, matchTime }: MarketCardProps) => {
   const pools = market.outcomes.map(o => Number(o.pool_shares));
   const b = Number(market.liquidity_param);
   const prices = market.outcomes.map((_, i) => lmsrPrice(pools, i, b));
@@ -72,6 +159,7 @@ const MarketCard = ({ market, matchTeams }: MarketCardProps) => {
                 </span>
               </div>
               <div className="flex items-center gap-2">
+                {matchTime && <MatchTimeDisplay matchTime={matchTime} />}
                 {market.total_volume > 0 && (
                   <span className="text-[10px] text-muted-foreground flex items-center gap-1">
                     <BarChart3 className="h-3 w-3" /> {Math.round(market.total_volume)} KES

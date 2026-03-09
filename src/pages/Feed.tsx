@@ -53,7 +53,7 @@ const Feed = () => {
   const fetchMarkets = async (offset: number, replace = false) => {
     const { data: marketsData } = await supabase
       .from("markets")
-      .select("*, matches(home_team, away_team, league, kickoff)")
+      .select("*, matches(home_team, away_team, league, kickoff, status, match_minute)")
       .in("status", ["open", "closed"])
       .order("created_at", { ascending: false })
       .range(offset, offset + PAGE_SIZE - 1) as any;
@@ -160,7 +160,7 @@ const Feed = () => {
           >
             <div>
               <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-wider text-foreground">
-                Prediction <span className="text-primary neon-text">Markets</span>
+                Live <span className="text-primary neon-text">Sports</span>
               </h1>
               <motion.div
                 initial={{ opacity: 0 }}
@@ -278,6 +278,11 @@ const Feed = () => {
                       matchTeams={(market as any).matches ? {
                         home_team: (market as any).matches.home_team,
                         away_team: (market as any).matches.away_team,
+                      } : null}
+                      matchTime={(market as any).matches ? {
+                        kickoff: (market as any).matches.kickoff,
+                        status: (market as any).matches.status,
+                        match_minute: (market as any).matches.match_minute,
                       } : null}
                     />
                   </motion.div>
