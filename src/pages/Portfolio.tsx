@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import PortfolioSkeleton from "@/components/skeletons/PortfolioSkeleton";
 import { Badge } from "@/components/ui/badge";
 import {
   TrendingUp, TrendingDown, BarChart3, Wallet, ChevronRight,
@@ -277,11 +278,7 @@ const Portfolio = () => {
 
         {/* Positions list */}
         {loading ? (
-          <div className="space-y-3">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-24 w-full rounded-xl" />
-            ))}
-          </div>
+          <PortfolioSkeleton />
         ) : filtered.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}

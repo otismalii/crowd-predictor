@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
+import MarketDetailSkeleton from "@/components/skeletons/MarketDetailSkeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -262,9 +263,8 @@ const MarketDetail = () => {
   if (loading) return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <div className="container py-8 max-w-4xl space-y-4">
-        <Skeleton className="h-48 w-full rounded-xl" />
-        <Skeleton className="h-64 w-full rounded-xl" />
+      <div className="container py-8">
+        <MarketDetailSkeleton />
       </div>
     </div>
   );
