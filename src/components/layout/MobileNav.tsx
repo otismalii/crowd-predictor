@@ -1,14 +1,13 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, Swords, Trophy, Wallet, PieChart } from "lucide-react";
+import { Home, Swords, Trophy, Wallet } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 
 const tabs = [
   { to: "/", label: "Markets", icon: Home },
-  { to: "/portfolio", label: "Portfolio", icon: PieChart },
   { to: "/challenges", label: "Bets", icon: Swords },
   { to: "/leaderboard", label: "Ranks", icon: Trophy },
-  { to: "/wallet", label: "Wallet", icon: Wallet },
+  { to: "/wallet", label: "Dashboard", icon: Wallet },
 ];
 
 const MobileNav = () => {
