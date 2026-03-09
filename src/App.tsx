@@ -71,7 +71,7 @@ const AnimatedRoutes = () => {
           <Route path="/profile/:id" element={<AnimatedPage><Profile /></AnimatedPage>} />
           <Route path="/challenges" element={<AnimatedPage><Challenges /></AnimatedPage>} />
           <Route path="/wallet" element={<AnimatedPage><Wallet /></AnimatedPage>} />
-          <Route path="/portfolio" element={<AnimatedPage><Portfolio /></AnimatedPage>} />
+          <Route path="/portfolio" element={<Navigate to="/wallet" replace />} />
           <Route path="/admin" element={<AnimatedPage><ProtectedRoute><Admin /></ProtectedRoute></AnimatedPage>} />
           <Route path="*" element={<AnimatedPage><NotFound /></AnimatedPage>} />
         </Routes>

@@ -12,10 +12,9 @@ import logoImg from "@/assets/logo.png";
 
 const navLinks = [
   { to: "/", label: "Markets", icon: Home },
-  { to: "/portfolio", label: "Portfolio", icon: PieChart },
   { to: "/challenges", label: "Challenges", icon: Swords },
   { to: "/leaderboard", label: "Leaderboard", icon: Trophy },
-  { to: "/wallet", label: "Wallet", icon: Wallet },
+  { to: "/wallet", label: "Dashboard", icon: Wallet },
 ];
 
 const Navbar = () => {
