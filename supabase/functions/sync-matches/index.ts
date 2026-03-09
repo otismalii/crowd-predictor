@@ -140,8 +140,39 @@ serve(async (req) => {
       console.log("manage-markets chain error:", e);
     }
 
+    // 6. Auto-run resolve-bets to settle P2P bets and pay out KES
+    let betsResolved = 0;
+    try {
+      const resolveRes = await fetch(
+        `${supabaseUrl}/functions/v1/resolve-bets`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${supabaseKey}`,
+          },
+        }
+      );
+      if (resolveRes.ok) {
+        const resolveData = await resolveRes.json();
+        betsResolved = resolveData.resolved || 0;
+        console.log(`resolve-bets: resolved ${betsResolved} P2P bets`);
+      } else {
+        console.log(`resolve-bets failed: ${resolveRes.status}`);
+      }
+    } catch (e) {
+      console.log("resolve-bets chain error:", e);
+    }
+
     return new Response(
-      JSON.stringify({ success: true, synced: upsertCount, total: rows.length, markets_created: marketsCreated, markets_resolved: marketsResolved }),
+      JSON.stringify({ 
+        success: true, 
+        synced: upsertCount, 
+        total: rows.length, 
+        markets_created: marketsCreated, 
+        markets_resolved: marketsResolved,
+        bets_resolved: betsResolved
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {

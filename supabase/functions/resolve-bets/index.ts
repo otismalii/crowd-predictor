@@ -90,8 +90,41 @@ serve(async (req) => {
         continue;
       }
 
-      // Award reputation points to winner
+      // Pay out KES to winner's wallet
       if (winnerId) {
+        // Get winner's wallet
+        const { data: winnerWallet } = await supabase
+          .from("wallets")
+          .select("id, balance")
+          .eq("user_id", winnerId)
+          .single();
+
+        if (winnerWallet) {
+          // Credit winnings to wallet
+          const { error: walletError } = await supabase
+            .from("wallets")
+            .update({ 
+              balance: Number(winnerWallet.balance) + winnerPayout,
+              updated_at: new Date().toISOString()
+            })
+            .eq("id", winnerWallet.id);
+
+          if (walletError) {
+            console.error(`Failed to credit wallet for bet ${bet.id}:`, walletError);
+          } else {
+            // Record transaction for audit trail
+            await supabase.from("transactions").insert({
+              user_id: winnerId,
+              wallet_id: winnerWallet.id,
+              type: "bet_win",
+              amount: winnerPayout,
+              status: "completed",
+              description: `P2P bet won: ${match.home_team} vs ${match.away_team} (${houseCut} KES house cut)`,
+            });
+          }
+        }
+
+        // Also award reputation bonus (10 points per win)
         const { data: winnerProfile } = await supabase
           .from("profiles")
           .select("reputation_score")
@@ -101,7 +134,7 @@ serve(async (req) => {
         if (winnerProfile) {
           await supabase
             .from("profiles")
-            .update({ reputation_score: winnerProfile.reputation_score + winnerPayout })
+            .update({ reputation_score: winnerProfile.reputation_score + 10 })
             .eq("id", winnerId);
         }
 
@@ -109,8 +142,8 @@ serve(async (req) => {
         await supabase.from("notifications").insert({
           user_id: winnerId,
           type: "bet_won",
-          title: "🏆 You won a bet!",
-          message: `You won ${winnerPayout} pts on ${match.home_team} vs ${match.away_team}! (${houseCut} pts house cut)`,
+          title: "You won a bet!",
+          message: `You won ${winnerPayout} KES on ${match.home_team} vs ${match.away_team}! (${houseCut} KES house cut)`,
           link: "/challenges",
         });
 
@@ -119,32 +152,49 @@ serve(async (req) => {
         await supabase.from("notifications").insert({
           user_id: loserId,
           type: "bet_lost",
-          title: "😢 Bet lost",
+          title: "Bet lost",
           message: `You lost your bet on ${match.home_team} vs ${match.away_team}. Better luck next time!`,
           link: "/challenges",
         });
       } else {
         // Draw — refund both minus half house cut each
         const refund = Math.round(bet.stake_amount - houseCut / 2);
+        
         for (const uid of [bet.challenger_id, bet.opponent_id]) {
-          const { data: prof } = await supabase
-            .from("profiles")
-            .select("reputation_score")
-            .eq("id", uid)
+          // Refund to wallet
+          const { data: wallet } = await supabase
+            .from("wallets")
+            .select("id, balance")
+            .eq("user_id", uid)
             .single();
 
-          if (prof) {
-            await supabase
-              .from("profiles")
-              .update({ reputation_score: prof.reputation_score + refund })
-              .eq("id", uid);
+          if (wallet) {
+            const { error: refundError } = await supabase
+              .from("wallets")
+              .update({ 
+                balance: Number(wallet.balance) + refund,
+                updated_at: new Date().toISOString()
+              })
+              .eq("id", wallet.id);
+
+            if (!refundError) {
+              // Record refund transaction
+              await supabase.from("transactions").insert({
+                user_id: uid,
+                wallet_id: wallet.id,
+                type: "bet_refund",
+                amount: refund,
+                status: "completed",
+                description: `P2P bet draw refund: ${match.home_team} vs ${match.away_team}`,
+              });
+            }
           }
 
           await supabase.from("notifications").insert({
             user_id: uid,
             type: "bet_draw",
-            title: "🤝 Bet drawn",
-            message: `Your bet on ${match.home_team} vs ${match.away_team} was a draw. Refunded ${refund} pts.`,
+            title: "Bet drawn",
+            message: `Your bet on ${match.home_team} vs ${match.away_team} was a draw. Refunded ${refund} KES.`,
             link: "/challenges",
           });
         }
