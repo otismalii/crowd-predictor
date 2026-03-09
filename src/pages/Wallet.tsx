@@ -42,6 +42,10 @@ const Wallet = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
+  // Profile state
+  const [profile, setProfile] = useState<any>(null);
+  const [editingProfile, setEditingProfile] = useState(false);
+
   // Wallet state
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
