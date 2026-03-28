@@ -100,6 +100,165 @@ export type Database = {
         }
         Relationships: []
       }
+      guest_sessions: {
+        Row: {
+          converted_user_id: string | null
+          created_at: string
+          credits: number
+          device_fingerprint: string | null
+          expired: boolean
+          guest_id: string
+          id: string
+          last_active_at: string
+        }
+        Insert: {
+          converted_user_id?: string | null
+          created_at?: string
+          credits?: number
+          device_fingerprint?: string | null
+          expired?: boolean
+          guest_id: string
+          id?: string
+          last_active_at?: string
+        }
+        Update: {
+          converted_user_id?: string | null
+          created_at?: string
+          credits?: number
+          device_fingerprint?: string | null
+          expired?: boolean
+          guest_id?: string
+          id?: string
+          last_active_at?: string
+        }
+        Relationships: []
+      }
+      ingestion_logs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          raw_data: Json | null
+          records_fetched: number | null
+          records_processed: number | null
+          source_id: string | null
+          source_name: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          raw_data?: Json | null
+          records_fetched?: number | null
+          records_processed?: number | null
+          source_id?: string | null
+          source_name: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          raw_data?: Json | null
+          records_fetched?: number | null
+          records_processed?: number | null
+          source_id?: string | null
+          source_name?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingestion_logs_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "source_registry"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ledger_entries: {
+        Row: {
+          amount: number
+          balance_after: number
+          created_at: string
+          description: string | null
+          entry_type: string
+          guest_id: string | null
+          id: string
+          reference_id: string | null
+          user_id: string | null
+          wallet_id: string | null
+        }
+        Insert: {
+          amount: number
+          balance_after: number
+          created_at?: string
+          description?: string | null
+          entry_type: string
+          guest_id?: string | null
+          id?: string
+          reference_id?: string | null
+          user_id?: string | null
+          wallet_id?: string | null
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          created_at?: string
+          description?: string | null
+          entry_type?: string
+          guest_id?: string | null
+          id?: string
+          reference_id?: string | null
+          user_id?: string | null
+          wallet_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ledger_entries_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      market_audit_log: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          id: string
+          market_id: string | null
+          performed_by: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          market_id?: string | null
+          performed_by: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          market_id?: string | null
+          performed_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_audit_log_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       market_comments: {
         Row: {
           content: string
@@ -142,6 +301,53 @@ export type Database = {
           },
         ]
       }
+      market_disputes: {
+        Row: {
+          admin_response: string | null
+          created_at: string
+          evidence: string | null
+          id: string
+          market_id: string
+          reason: string
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          admin_response?: string | null
+          created_at?: string
+          evidence?: string | null
+          id?: string
+          market_id: string
+          reason: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          admin_response?: string | null
+          created_at?: string
+          evidence?: string | null
+          id?: string
+          market_id?: string
+          reason?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_disputes_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       market_outcomes: {
         Row: {
           created_at: string
@@ -180,46 +386,186 @@ export type Database = {
           },
         ]
       }
-      markets: {
+      market_sources: {
         Row: {
-          category: string
-          closes_at: string | null
+          confidence: number | null
           created_at: string
+          fetched_at: string | null
+          id: string
+          market_id: string
+          snapshot_data: Json | null
+          source_name: string
+          source_type: string
+          source_url: string | null
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          fetched_at?: string | null
+          id?: string
+          market_id: string
+          snapshot_data?: Json | null
+          source_name: string
+          source_type?: string
+          source_url?: string | null
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          fetched_at?: string | null
+          id?: string
+          market_id?: string
+          snapshot_data?: Json | null
+          source_name?: string
+          source_type?: string
+          source_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_sources_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      market_suggestions: {
+        Row: {
+          category: string | null
+          confidence_score: number | null
+          created_at: string
+          created_market_id: string | null
           description: string | null
           id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source_data: Json | null
+          source_id: string | null
+          status: string
+          subcategory: string | null
+          suggested_outcomes: Json | null
+          title: string
+        }
+        Insert: {
+          category?: string | null
+          confidence_score?: number | null
+          created_at?: string
+          created_market_id?: string | null
+          description?: string | null
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_data?: Json | null
+          source_id?: string | null
+          status?: string
+          subcategory?: string | null
+          suggested_outcomes?: Json | null
+          title: string
+        }
+        Update: {
+          category?: string | null
+          confidence_score?: number | null
+          created_at?: string
+          created_market_id?: string | null
+          description?: string | null
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_data?: Json | null
+          source_id?: string | null
+          status?: string
+          subcategory?: string | null
+          suggested_outcomes?: Json | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_suggestions_created_market_id_fkey"
+            columns: ["created_market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "market_suggestions_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "source_registry"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      markets: {
+        Row: {
+          alt_text: string | null
+          category: string
+          closes_at: string | null
+          confidence_score: number | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          image_source_type: string | null
+          image_url: string | null
           liquidity_param: number
           match_id: string | null
+          resolution_rule: string | null
           resolution_source: string | null
           resolved_at: string | null
+          risk_level: string | null
+          slug: string | null
           status: Database["public"]["Enums"]["market_status"]
+          subcategory: string | null
+          tags: string[] | null
           title: string
           total_volume: number
         }
         Insert: {
+          alt_text?: string | null
           category?: string
           closes_at?: string | null
+          confidence_score?: number | null
           created_at?: string
+          created_by?: string | null
           description?: string | null
           id?: string
+          image_source_type?: string | null
+          image_url?: string | null
           liquidity_param?: number
           match_id?: string | null
+          resolution_rule?: string | null
           resolution_source?: string | null
           resolved_at?: string | null
+          risk_level?: string | null
+          slug?: string | null
           status?: Database["public"]["Enums"]["market_status"]
+          subcategory?: string | null
+          tags?: string[] | null
           title: string
           total_volume?: number
         }
         Update: {
+          alt_text?: string | null
           category?: string
           closes_at?: string | null
+          confidence_score?: number | null
           created_at?: string
+          created_by?: string | null
           description?: string | null
           id?: string
+          image_source_type?: string | null
+          image_url?: string | null
           liquidity_param?: number
           match_id?: string | null
+          resolution_rule?: string | null
           resolution_source?: string | null
           resolved_at?: string | null
+          risk_level?: string | null
+          slug?: string | null
           status?: Database["public"]["Enums"]["market_status"]
+          subcategory?: string | null
+          tags?: string[] | null
           title?: string
           total_volume?: number
         }
@@ -508,6 +854,45 @@ export type Database = {
           reputation_score?: number
           subscription_plan?: Database["public"]["Enums"]["subscription_plan"]
           username?: string | null
+        }
+        Relationships: []
+      }
+      source_registry: {
+        Row: {
+          base_url: string | null
+          config: Json | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          last_error: string | null
+          last_fetched_at: string | null
+          name: string
+          priority: number | null
+          source_type: string
+        }
+        Insert: {
+          base_url?: string | null
+          config?: Json | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          last_error?: string | null
+          last_fetched_at?: string | null
+          name: string
+          priority?: number | null
+          source_type?: string
+        }
+        Update: {
+          base_url?: string | null
+          config?: Json | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          last_error?: string | null
+          last_fetched_at?: string | null
+          name?: string
+          priority?: number | null
+          source_type?: string
         }
         Relationships: []
       }
