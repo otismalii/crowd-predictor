@@ -4,10 +4,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Shield, Users, Activity, Database, Zap, RefreshCw, LayoutDashboard } from "lucide-react";
+import { Shield, Users, Activity, Database, Zap, RefreshCw, Scale, ScrollText, Inbox, Layers } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import SEOHead from "@/components/SEOHead";
 import { Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import AdminOverview from "@/components/admin/AdminOverview";
@@ -15,6 +16,11 @@ import AdminMatches from "@/components/admin/AdminMatches";
 import AdminUsers from "@/components/admin/AdminUsers";
 import AdminPredictions from "@/components/admin/AdminPredictions";
 import AdminAPI from "@/components/admin/AdminAPI";
+import MarketBuilder from "@/components/admin/MarketBuilder";
+import AdminDisputes from "@/components/admin/AdminDisputes";
+import AdminAuditLog from "@/components/admin/AdminAuditLog";
+import AdminSourceRegistry from "@/components/admin/AdminSourceRegistry";
+import AdminIngestion from "@/components/admin/AdminIngestion";
 
 const Admin = () => {
   const { user } = useAuth();
@@ -89,66 +95,69 @@ const Admin = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead title="Admin Dashboard" path="/admin" />
       <Navbar />
       <div className="container py-8 space-y-8">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between"
-        >
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-primary/10">
               <Shield className="h-7 w-7 text-primary" />
             </div>
             <div>
               <h1 className="font-display text-3xl font-bold tracking-wider">
-                Admin <span className="text-primary">Dashboard</span>
+                Admin <span className="text-primary">Operations</span>
               </h1>
-              <p className="text-xs text-muted-foreground mt-0.5">Manage matches, users, predictions & APIs</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Market creation, resolution, disputes, sources & audit</p>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={fetchAll} disabled={loading} className="gap-2">
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
+          <div className="flex items-center gap-2">
+            <MarketBuilder onCreated={fetchAll} />
+            <Button variant="outline" size="sm" onClick={fetchAll} disabled={loading} className="gap-2">
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+          </div>
         </motion.div>
 
-        {/* Overview Stats */}
         <AdminOverview stats={stats} />
 
-        {/* Tabs */}
         <Tabs defaultValue="matches" className="space-y-6">
-          <TabsList className="bg-muted/50 border border-border/50 w-full sm:w-auto">
-            <TabsTrigger value="matches" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1.5">
-              <Database className="h-4 w-4" /> Matches
+          <TabsList className="bg-muted/50 border border-border/50 flex-wrap h-auto gap-1 p-1">
+            <TabsTrigger value="matches" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1.5 text-xs">
+              <Database className="h-3.5 w-3.5" /> Matches
             </TabsTrigger>
-            <TabsTrigger value="predictions" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1.5">
-              <Activity className="h-4 w-4" /> Predictions
+            <TabsTrigger value="predictions" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1.5 text-xs">
+              <Activity className="h-3.5 w-3.5" /> Predictions
             </TabsTrigger>
-            <TabsTrigger value="users" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1.5">
-              <Users className="h-4 w-4" /> Users
+            <TabsTrigger value="users" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1.5 text-xs">
+              <Users className="h-3.5 w-3.5" /> Users
             </TabsTrigger>
-            <TabsTrigger value="api" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1.5">
-              <Zap className="h-4 w-4" /> API & AI
+            <TabsTrigger value="disputes" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1.5 text-xs">
+              <Scale className="h-3.5 w-3.5" /> Disputes
+            </TabsTrigger>
+            <TabsTrigger value="sources" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1.5 text-xs">
+              <Layers className="h-3.5 w-3.5" /> Sources
+            </TabsTrigger>
+            <TabsTrigger value="ingestion" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1.5 text-xs">
+              <Inbox className="h-3.5 w-3.5" /> Ingestion
+            </TabsTrigger>
+            <TabsTrigger value="audit" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1.5 text-xs">
+              <ScrollText className="h-3.5 w-3.5" /> Audit
+            </TabsTrigger>
+            <TabsTrigger value="api" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1.5 text-xs">
+              <Zap className="h-3.5 w-3.5" /> API
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="matches">
-            <AdminMatches matches={matches} onRefresh={fetchAll} />
-          </TabsContent>
-
-          <TabsContent value="predictions">
-            <AdminPredictions predictions={predictions} onRefresh={fetchAll} />
-          </TabsContent>
-
-          <TabsContent value="users">
-            <AdminUsers profiles={profiles} adminIds={adminIds} onRefresh={fetchAll} />
-          </TabsContent>
-
-          <TabsContent value="api">
-            <AdminAPI matches={matches} onRefresh={fetchAll} />
-          </TabsContent>
+          <TabsContent value="matches"><AdminMatches matches={matches} onRefresh={fetchAll} /></TabsContent>
+          <TabsContent value="predictions"><AdminPredictions predictions={predictions} onRefresh={fetchAll} /></TabsContent>
+          <TabsContent value="users"><AdminUsers profiles={profiles} adminIds={adminIds} onRefresh={fetchAll} /></TabsContent>
+          <TabsContent value="disputes"><AdminDisputes /></TabsContent>
+          <TabsContent value="sources"><AdminSourceRegistry /></TabsContent>
+          <TabsContent value="ingestion"><AdminIngestion /></TabsContent>
+          <TabsContent value="audit"><AdminAuditLog /></TabsContent>
+          <TabsContent value="api"><AdminAPI matches={matches} onRefresh={fetchAll} /></TabsContent>
         </Tabs>
       </div>
       <Footer />
