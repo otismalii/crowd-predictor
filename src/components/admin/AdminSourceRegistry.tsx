@@ -98,7 +98,7 @@ const AdminSourceRegistry = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {s.last_error && <AlertTriangle className="h-3.5 w-3.5 text-destructive" title={s.last_error} />}
+                  {s.last_error && <span title={s.last_error}><AlertTriangle className="h-3.5 w-3.5 text-destructive" /></span>}
                   <Badge
                     variant={s.is_active ? "default" : "secondary"}
                     className="text-[10px] cursor-pointer"
