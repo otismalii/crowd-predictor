@@ -1,18 +1,16 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, Swords, Trophy, Wallet } from "lucide-react";
+import { Home, BarChart3, Trophy, Wallet } from "lucide-react";
 import { motion } from "framer-motion";
-import { useAuth } from "@/contexts/AuthContext";
 
 const tabs = [
-  { to: "/", label: "Markets", icon: Home },
-  { to: "/challenges", label: "Bets", icon: Swords },
+  { to: "/", label: "Home", icon: Home },
+  { to: "/markets", label: "Markets", icon: BarChart3 },
   { to: "/leaderboard", label: "Ranks", icon: Trophy },
   { to: "/wallet", label: "Dashboard", icon: Wallet },
 ];
 
 const MobileNav = () => {
   const location = useLocation();
-  const { user } = useAuth();
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/50 bg-background/95 backdrop-blur-xl md:hidden safe-area-bottom">
@@ -25,7 +23,7 @@ const MobileNav = () => {
           return (
             <Link
               key={tab.to}
-              to={!user && tab.to !== "/" && tab.to !== "/leaderboard" ? "/auth" : tab.to}
+              to={tab.to}
               className="relative flex flex-col items-center justify-center min-w-0 flex-1 py-2 px-1 group"
             >
               {isActive && (

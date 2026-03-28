@@ -1,8 +1,9 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGuest } from "@/contexts/GuestContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { LogOut, Trophy, User, Menu, X, Home, Shield, Swords, Wallet } from "lucide-react";
+import { LogOut, Trophy, User, Menu, X, Home, Shield, Swords, Wallet, BarChart3, BookOpen } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import NotificationBell from "@/components/NotificationBell";
 import { useState, useEffect } from "react";
@@ -11,14 +12,15 @@ import WalletBalance from "@/components/WalletBalance";
 import logoImg from "@/assets/logo.png";
 
 const navLinks = [
-  { to: "/", label: "Markets", icon: Home },
-  { to: "/challenges", label: "Challenges", icon: Swords },
+  { to: "/", label: "Home", icon: Home },
+  { to: "/markets", label: "Markets", icon: BarChart3 },
   { to: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { to: "/wallet", label: "Dashboard", icon: Wallet },
 ];
 
 const Navbar = () => {
   const { user, signOut } = useAuth();
+  const { isGuest } = useGuest();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -43,7 +45,11 @@ const Navbar = () => {
     navigate("/");
   };
 
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) => {
+    if (path === "/") return location.pathname === "/";
+    return location.pathname.startsWith(path);
+  };
+
   const allLinks = isAdmin ? [...navLinks, { to: "/admin", label: "Admin", icon: Shield }] : navLinks;
 
   return (
@@ -58,13 +64,13 @@ const Navbar = () => {
         <Link to="/" className="flex items-center gap-2 group">
           <motion.img
             src={logoImg}
-            alt="PagazaBetz"
+            alt="Pagaza"
             className="h-7 w-7 object-contain"
             whileHover={{ rotate: 10, scale: 1.1 }}
             transition={{ type: "spring", stiffness: 300 }}
           />
           <span className="font-display text-lg font-bold tracking-wider text-foreground">
-            PAGAZA<span className="text-primary">BETZ</span>
+            PAGAZA
           </span>
         </Link>
 
@@ -93,8 +99,8 @@ const Navbar = () => {
           ))}
 
           <div className="h-5 w-px bg-border mx-1" />
-          <WalletBalance />
-          <NotificationBell />
+          {user && <WalletBalance />}
+          {user && <NotificationBell />}
           <ThemeToggle />
 
           {user ? (
@@ -122,12 +128,9 @@ const Navbar = () => {
 
         {/* Mobile toggle */}
         <div className="flex items-center gap-1 md:hidden">
-          <WalletBalance />
-          <NotificationBell />
-          <button
-            className="text-foreground p-2"
-            onClick={() => setMobileOpen(!mobileOpen)}
-          >
+          {user && <WalletBalance />}
+          {user && <NotificationBell />}
+          <button className="text-foreground p-2" onClick={() => setMobileOpen(!mobileOpen)}>
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
