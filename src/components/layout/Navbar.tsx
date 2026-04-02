@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useGuest } from "@/contexts/GuestContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { LogOut, Trophy, User, Menu, X, Home, Shield, Swords, Wallet, BarChart3, BookOpen } from "lucide-react";
+import { LogOut, Trophy, User, Menu, X, Home, Shield, Wallet, BarChart3 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import NotificationBell from "@/components/NotificationBell";
 import { useState, useEffect } from "react";
@@ -15,7 +15,7 @@ const navLinks = [
   { to: "/", label: "Home", icon: Home },
   { to: "/markets", label: "Markets", icon: BarChart3 },
   { to: "/leaderboard", label: "Leaderboard", icon: Trophy },
-  { to: "/wallet", label: "Dashboard", icon: Wallet },
+  { to: "/dashboard", label: "Dashboard", icon: Wallet },
 ];
 
 const Navbar = () => {
