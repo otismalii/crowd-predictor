@@ -1,12 +1,12 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, BarChart3, Trophy, Wallet } from "lucide-react";
+import { Home, BarChart3, Trophy, Wallet, User } from "lucide-react";
 import { motion } from "framer-motion";
 
 const tabs = [
   { to: "/", label: "Home", icon: Home },
   { to: "/markets", label: "Markets", icon: BarChart3 },
   { to: "/leaderboard", label: "Ranks", icon: Trophy },
-  { to: "/wallet", label: "Dashboard", icon: Wallet },
+  { to: "/dashboard", label: "Dashboard", icon: Wallet },
 ];
 
 const MobileNav = () => {

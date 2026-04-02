@@ -7,7 +7,6 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { GuestProvider } from "@/contexts/GuestContext";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { HelmetProvider } from "react-helmet-async";
-import ProtectedRoute from "@/components/layout/ProtectedRoute";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import MobileNav from "@/components/layout/MobileNav";
 import { AnimatePresence, motion } from "framer-motion";
@@ -15,28 +14,40 @@ import { lazy, Suspense } from "react";
 import { Navigate } from "react-router-dom";
 import PageLoader from "@/components/PageLoader";
 
-// Eager loads
+// Eager loads — critical path
 import Feed from "./pages/Feed";
 import Auth from "./pages/Auth";
 
-// Lazy loads for non-critical pages
-const ResetPassword = lazy(() => import("./pages/ResetPassword"));
-const Leaderboard = lazy(() => import("./pages/Leaderboard"));
-const Profile = lazy(() => import("./pages/Profile"));
-const Admin = lazy(() => import("./pages/Admin"));
-const NotFound = lazy(() => import("./pages/NotFound"));
-const Challenges = lazy(() => import("./pages/Challenges"));
-const Wallet = lazy(() => import("./pages/Wallet"));
-const MarketDetail = lazy(() => import("./pages/MarketDetail"));
+// Lazy loads — public
 const Markets = lazy(() => import("./pages/Markets"));
-const CategoryPage = lazy(() => import("./pages/CategoryPage"));
-const Trending = lazy(() => import("./pages/Trending"));
-const ClosingSoon = lazy(() => import("./pages/ClosingSoon"));
-const Resolved = lazy(() => import("./pages/Resolved"));
+const MarketDetail = lazy(() => import("./pages/MarketDetail"));
+const Leaderboard = lazy(() => import("./pages/Leaderboard"));
 const Rules = lazy(() => import("./pages/Rules"));
-const FAQ = lazy(() => import("./pages/FAQ"));
-const About = lazy(() => import("./pages/About"));
 const Sources = lazy(() => import("./pages/Sources"));
+
+// Lazy loads — auth
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+
+// Lazy loads — player
+const PlayerDashboard = lazy(() => import("./pages/player/Dashboard"));
+const PlayerActivity = lazy(() => import("./pages/player/Activity"));
+const Profile = lazy(() => import("./pages/Profile"));
+const Wallet = lazy(() => import("./pages/Wallet"));
+const Portfolio = lazy(() => import("./pages/Portfolio"));
+
+// Lazy loads — admin
+const AdminOverviewPage = lazy(() => import("./pages/admin/AdminOverviewPage"));
+const AdminMarketsPage = lazy(() => import("./pages/admin/AdminMarketsPage"));
+const AdminMarketsNewPage = lazy(() => import("./pages/admin/AdminMarketsNewPage"));
+const AdminResolutionPage = lazy(() => import("./pages/admin/AdminResolutionPage"));
+const AdminBotsPage = lazy(() => import("./pages/admin/AdminBotsPage"));
+const AdminAnalyticsPage = lazy(() => import("./pages/admin/AdminAnalyticsPage"));
+const AdminUsersPage = lazy(() => import("./pages/admin/AdminUsersPage"));
+const AdminUploadsPage = lazy(() => import("./pages/admin/AdminUploadsPage"));
+const AdminCollaborationsPage = lazy(() => import("./pages/admin/AdminCollaborationsPage"));
+
+// Lazy loads — misc
+const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -82,37 +93,47 @@ const AnimatedRoutes = () => {
     <>
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
-          {/* Core */}
+          {/* ========== PUBLIC ========== */}
           <Route path="/" element={<AnimatedPage><Feed /></AnimatedPage>} />
+          <Route path="/markets" element={<AnimatedPage><Markets /></AnimatedPage>} />
+          <Route path="/markets/:id" element={<AnimatedPage><MarketDetail /></AnimatedPage>} />
+          {/* Legacy route */}
+          <Route path="/market/:id" element={<AnimatedPage><MarketDetail /></AnimatedPage>} />
+          <Route path="/leaderboard" element={<AnimatedPage><Leaderboard /></AnimatedPage>} />
+          <Route path="/rules" element={<AnimatedPage><Rules /></AnimatedPage>} />
+          <Route path="/sources" element={<AnimatedPage><Sources /></AnimatedPage>} />
+
+          {/* ========== AUTH ========== */}
           <Route path="/auth" element={<AnimatedPage><Auth /></AnimatedPage>} />
           <Route path="/reset-password" element={<AnimatedPage><ResetPassword /></AnimatedPage>} />
-          
-          {/* Markets */}
-          <Route path="/markets" element={<AnimatedPage><Markets /></AnimatedPage>} />
-          <Route path="/market/:id" element={<AnimatedPage><MarketDetail /></AnimatedPage>} />
-          <Route path="/categories/:slug" element={<AnimatedPage><CategoryPage /></AnimatedPage>} />
-          <Route path="/trending" element={<AnimatedPage><Trending /></AnimatedPage>} />
-          <Route path="/closing-soon" element={<AnimatedPage><ClosingSoon /></AnimatedPage>} />
-          <Route path="/resolved" element={<AnimatedPage><Resolved /></AnimatedPage>} />
-          
-          {/* Community */}
-          <Route path="/leaderboard" element={<AnimatedPage><Leaderboard /></AnimatedPage>} />
+
+          {/* ========== PLAYER ========== */}
+          <Route path="/dashboard" element={<AnimatedPage><PlayerDashboard /></AnimatedPage>} />
+          <Route path="/portfolio" element={<AnimatedPage><Portfolio /></AnimatedPage>} />
+          <Route path="/activity" element={<AnimatedPage><PlayerActivity /></AnimatedPage>} />
           <Route path="/profile/:id" element={<AnimatedPage><Profile /></AnimatedPage>} />
-          <Route path="/challenges" element={<AnimatedPage><Challenges /></AnimatedPage>} />
-          
-          {/* User */}
           <Route path="/wallet" element={<AnimatedPage><Wallet /></AnimatedPage>} />
-          <Route path="/portfolio" element={<Navigate to="/wallet" replace />} />
-          
-          {/* Info */}
-          <Route path="/rules" element={<AnimatedPage><Rules /></AnimatedPage>} />
-          <Route path="/faq" element={<AnimatedPage><FAQ /></AnimatedPage>} />
-          <Route path="/about" element={<AnimatedPage><About /></AnimatedPage>} />
-          <Route path="/sources" element={<AnimatedPage><Sources /></AnimatedPage>} />
-          
-          {/* Admin */}
-          <Route path="/admin" element={<AnimatedPage><ProtectedRoute><Admin /></ProtectedRoute></AnimatedPage>} />
-          
+
+          {/* ========== ADMIN ========== */}
+          <Route path="/admin" element={<AnimatedPage><AdminOverviewPage /></AnimatedPage>} />
+          <Route path="/admin/markets" element={<AnimatedPage><AdminMarketsPage /></AnimatedPage>} />
+          <Route path="/admin/markets/new" element={<AnimatedPage><AdminMarketsNewPage /></AnimatedPage>} />
+          <Route path="/admin/resolution" element={<AnimatedPage><AdminResolutionPage /></AnimatedPage>} />
+          <Route path="/admin/bots" element={<AnimatedPage><AdminBotsPage /></AnimatedPage>} />
+          <Route path="/admin/analytics" element={<AnimatedPage><AdminAnalyticsPage /></AnimatedPage>} />
+          <Route path="/admin/users" element={<AnimatedPage><AdminUsersPage /></AnimatedPage>} />
+          <Route path="/admin/uploads" element={<AnimatedPage><AdminUploadsPage /></AnimatedPage>} />
+          <Route path="/admin/collaborations" element={<AnimatedPage><AdminCollaborationsPage /></AnimatedPage>} />
+
+          {/* ========== REDIRECTS ========== */}
+          <Route path="/trending" element={<Navigate to="/markets?sort=trending" replace />} />
+          <Route path="/closing-soon" element={<Navigate to="/markets?sort=closing" replace />} />
+          <Route path="/resolved" element={<Navigate to="/markets?filter=resolved" replace />} />
+          <Route path="/categories/:slug" element={<Navigate to="/markets" replace />} />
+          <Route path="/faq" element={<Navigate to="/rules" replace />} />
+          <Route path="/about" element={<Navigate to="/rules" replace />} />
+          <Route path="/challenges" element={<Navigate to="/leaderboard" replace />} />
+
           <Route path="*" element={<AnimatedPage><NotFound /></AnimatedPage>} />
         </Routes>
       </AnimatePresence>
