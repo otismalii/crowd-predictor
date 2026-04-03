@@ -13,6 +13,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { lazy, Suspense } from "react";
 import { Navigate } from "react-router-dom";
 import PageLoader from "@/components/PageLoader";
+import { PlayerRoute } from "@/routes/route-guards";
 
 // Eager loads — critical path
 import Feed from "./pages/Feed";
