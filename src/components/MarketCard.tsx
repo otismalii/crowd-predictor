@@ -28,12 +28,7 @@ interface Market {
   outcomes: MarketOutcome[];
 }
 
-// LMSR price calculation
-function lmsrPrice(pools: number[], index: number, b: number): number {
-  const exps = pools.map(q => Math.exp(q / b));
-  const total = exps.reduce((s, e) => s + e, 0);
-  return exps[index] / total;
-}
+// LMSR price imported from @/lib/pricing
 
 interface MarketCardProps {
   market: Market;
