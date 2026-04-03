@@ -39,6 +39,7 @@ const Feed = () => {
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<"trending" | "newest" | "closing">("trending");
   const [category, setCategory] = useState("all");
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const totalFetched = useRef(0);
 
@@ -47,6 +48,7 @@ const Feed = () => {
     setMarkets([]);
     setHasMore(true);
     setLoading(true);
+    setFetchError(null);
     fetchMarkets(0).then(() => setLoading(false));
   }, []);
 
