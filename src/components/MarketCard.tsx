@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { lmsrPrice } from "@/lib/pricing";
 import { motion } from "framer-motion";
 import SpotlightCard from "@/components/reactbits/SpotlightCard";
 import { CardContent } from "@/components/ui/card";
