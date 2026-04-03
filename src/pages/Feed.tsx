@@ -53,14 +53,20 @@ const Feed = () => {
   }, []);
 
   const fetchMarkets = async (offset: number, replace = false) => {
-    const { data: marketsData } = await supabase
-      .from("markets")
-      .select("*, matches(home_team, away_team, league, kickoff)")
-      .in("status", ["open", "closed"])
-      .order("created_at", { ascending: false })
-      .range(offset, offset + PAGE_SIZE - 1) as any;
+    try {
+      const { data: marketsData, error } = await supabase
+        .from("markets")
+        .select("*, matches(home_team, away_team, league, kickoff)")
+        .in("status", ["open", "closed"])
+        .order("created_at", { ascending: false })
+        .range(offset, offset + PAGE_SIZE - 1) as any;
 
-    if (!marketsData) return;
+      if (error) {
+        console.error("[Feed] Failed to fetch markets:", error.message);
+        setFetchError("Failed to load markets. Please try again.");
+        return;
+      }
+      if (!marketsData) return;
     if (marketsData.length < PAGE_SIZE) setHasMore(false);
     totalFetched.current = offset + marketsData.length;
 
