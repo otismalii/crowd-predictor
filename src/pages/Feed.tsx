@@ -259,6 +259,14 @@ const Feed = () => {
       <div className="container py-6">
         {loading ? (
           <FeedSkeleton />
+        ) : fetchError ? (
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-16">
+            <AlertCircle className="mx-auto mb-4 h-12 w-12 text-destructive/40" />
+            <p className="text-muted-foreground font-display text-lg">{fetchError}</p>
+            <button onClick={() => { setFetchError(null); setLoading(true); fetchMarkets(0).then(() => setLoading(false)); }} className="text-primary hover:underline text-sm mt-3 inline-block">
+              Try again
+            </button>
+          </motion.div>
         ) : filtered.length === 0 ? (
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-16">
             <BarChart3 className="mx-auto mb-4 h-12 w-12 text-muted-foreground/20" />
