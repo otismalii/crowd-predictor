@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useGuest } from "@/contexts/GuestContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { LogIn, TrendingUp, Search, BarChart3, Flame, Clock, ArrowRight, Loader2, ChevronRight, CheckCircle2 } from "lucide-react";
+import { LogIn, TrendingUp, Search, BarChart3, Flame, Clock, ArrowRight, Loader2, ChevronRight, CheckCircle2, AlertCircle } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import MarketCard from "@/components/MarketCard";
