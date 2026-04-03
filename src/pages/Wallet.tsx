@@ -63,8 +63,9 @@ const Wallet = () => {
     if (!user) { setLoading(false); return; }
     fetchAll();
 
+    const channelName = `wallet-${user.id}-${Date.now()}`;
     const channel = supabase
-      .channel("wallet-portfolio")
+      .channel(channelName)
       .on("postgres_changes", { event: "*", schema: "public", table: "positions", filter: `user_id=eq.${user.id}` }, () => fetchAll())
       .on("postgres_changes", { event: "*", schema: "public", table: "market_outcomes" }, () => fetchAll())
       .on("postgres_changes", { event: "*", schema: "public", table: "wallets", filter: `user_id=eq.${user.id}` }, () => fetchAll())

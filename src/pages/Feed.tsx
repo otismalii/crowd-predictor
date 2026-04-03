@@ -82,13 +82,18 @@ const Feed = () => {
 
     const newMarkets = marketsData.map((m: any) => ({ ...m, outcomes: outcomesByMarket[m.id] || [] }));
 
-    if (replace || offset === 0) {
-      setMarkets(newMarkets);
-    } else {
-      setMarkets(prev => {
-        const existingIds = new Set(prev.map(m => m.id));
-        return [...prev, ...newMarkets.filter((m: Market) => !existingIds.has(m.id))];
-      });
+      if (replace || offset === 0) {
+        setMarkets(newMarkets);
+      } else {
+        setMarkets(prev => {
+          const existingIds = new Set(prev.map(m => m.id));
+          return [...prev, ...newMarkets.filter((m: Market) => !existingIds.has(m.id))];
+        });
+      }
+      setFetchError(null);
+    } catch (e: any) {
+      console.error("[Feed] Unexpected error:", e);
+      setFetchError("Something went wrong. Please try again.");
     }
   };
 

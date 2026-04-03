@@ -109,11 +109,11 @@ const AnimatedRoutes = () => {
           <Route path="/reset-password" element={<AnimatedPage><ResetPassword /></AnimatedPage>} />
 
           {/* ========== PLAYER ========== */}
-          <Route path="/dashboard" element={<AnimatedPage><PlayerDashboard /></AnimatedPage>} />
-          <Route path="/portfolio" element={<AnimatedPage><Portfolio /></AnimatedPage>} />
-          <Route path="/activity" element={<AnimatedPage><PlayerActivity /></AnimatedPage>} />
+          <Route path="/dashboard" element={<AnimatedPage><PlayerRoute><PlayerDashboard /></PlayerRoute></AnimatedPage>} />
+          <Route path="/portfolio" element={<AnimatedPage><PlayerRoute><Portfolio /></PlayerRoute></AnimatedPage>} />
+          <Route path="/activity" element={<AnimatedPage><PlayerRoute><PlayerActivity /></PlayerRoute></AnimatedPage>} />
           <Route path="/profile/:id" element={<AnimatedPage><Profile /></AnimatedPage>} />
-          <Route path="/wallet" element={<AnimatedPage><Wallet /></AnimatedPage>} />
+          <Route path="/wallet" element={<AnimatedPage><PlayerRoute><Wallet /></PlayerRoute></AnimatedPage>} />
 
           {/* ========== ADMIN ========== */}
           <Route path="/admin" element={<AnimatedPage><AdminOverviewPage /></AnimatedPage>} />

@@ -139,7 +139,7 @@ const MarketDetail = () => {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "market_comments", filter: `market_id=eq.${id}` }, () => fetchComments())
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { clearTimeout(debounceTimer); supabase.removeChannel(channel); };
   }, [id, user]);
 
   const fetchAll = async () => {

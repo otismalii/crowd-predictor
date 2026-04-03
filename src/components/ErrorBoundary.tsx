@@ -23,7 +23,19 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error("ErrorBoundary caught:", error, errorInfo);
+    console.error("[ErrorBoundary]", {
+      error: error.message,
+      stack: error.stack?.split("\n").slice(0, 5).join("\n"),
+      componentStack: errorInfo.componentStack?.split("\n").slice(0, 5).join("\n"),
+      url: window.location.pathname,
+    });
+  }
+
+  componentDidUpdate(prevProps: Props) {
+    // Reset error state when children change (e.g., navigation)
+    if (this.state.hasError && this.props.children !== prevProps.children) {
+      this.setState({ hasError: false, error: null });
+    }
   }
 
   render() {

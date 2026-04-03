@@ -71,7 +71,7 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
     };
 
     initGuest();
-  }, [user]);
+  }, [user, authLoading]);
 
   const refreshGuest = useCallback(async () => {
     if (!guestId) return;

@@ -311,7 +311,7 @@ const Portfolio = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.03 }}
                 >
-                  <Link to={`/market/${item.market.id}`}>
+                  <Link to={`/markets/${item.market.id}`}>
                     <div className={`rounded-xl border p-4 transition-all hover:shadow-sm group ${
                       isWin ? "border-primary/30 bg-primary/5 hover:border-primary/50" :
                       isLoss ? "border-destructive/20 bg-destructive/5 opacity-70" :
