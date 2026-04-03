@@ -65,8 +65,9 @@ const Portfolio = () => {
     if (!user) { setLoading(false); return; }
     fetchPortfolio();
 
+    const channelName = `portfolio-${user.id}-${Date.now()}`;
     const channel = supabase
-      .channel("portfolio-updates")
+      .channel(channelName)
       .on("postgres_changes", { event: "*", schema: "public", table: "positions", filter: `user_id=eq.${user.id}` }, () => fetchPortfolio())
       .on("postgres_changes", { event: "*", schema: "public", table: "market_outcomes" }, () => fetchPortfolio())
       .subscribe();
