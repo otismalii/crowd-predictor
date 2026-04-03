@@ -15,12 +15,15 @@ export function lmsrPrice(pools: number[], index: number, b: number): number {
 }
 
 export function lmsrCost(pools: number[], index: number, shares: number, b: number): number {
-  const exps = pools.map(q => Math.exp(q / b));
-  const costBefore = b * Math.log(exps.reduce((s, e) => s + e, 0));
+  if (pools.length === 0 || index < 0 || index >= pools.length || b === 0) return 0;
+  const maxQ = Math.max(...pools);
+  const exps = pools.map(q => Math.exp((q - maxQ) / b));
+  const costBefore = b * Math.log(exps.reduce((s, e) => s + e, 0)) + maxQ;
   const newPools = [...pools];
   newPools[index] += shares;
-  const newExps = newPools.map(q => Math.exp(q / b));
-  const costAfter = b * Math.log(newExps.reduce((s, e) => s + e, 0));
+  const newMax = Math.max(...newPools);
+  const newExps = newPools.map(q => Math.exp((q - newMax) / b));
+  const costAfter = b * Math.log(newExps.reduce((s, e) => s + e, 0)) + newMax;
   return costAfter - costBefore;
 }
 
