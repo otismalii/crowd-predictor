@@ -23,8 +23,9 @@ const WalletBalance = () => {
 
     fetchBalance();
 
+    const channelName = `wallet-balance-${user.id}-${Date.now()}`;
     const channel = supabase
-      .channel("wallet-balance")
+      .channel(channelName)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "wallets", filter: `user_id=eq.${user.id}` }, (payload: any) => {
         setBalance(payload.new.balance);
       })

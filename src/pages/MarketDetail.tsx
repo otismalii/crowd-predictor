@@ -125,14 +125,21 @@ const MarketDetail = () => {
     if (!id) return;
     fetchAll();
 
+    let debounceTimer: ReturnType<typeof setTimeout>;
+    const debouncedFetchAll = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => fetchAll(), 300);
+    };
+
+    const channelName = `market-${id}-${Date.now()}`;
     const channel = supabase
-      .channel(`market-${id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "market_outcomes", filter: `market_id=eq.${id}` }, () => fetchAll())
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "trades", filter: `market_id=eq.${id}` }, () => fetchAll())
+      .channel(channelName)
+      .on("postgres_changes", { event: "*", schema: "public", table: "market_outcomes", filter: `market_id=eq.${id}` }, () => debouncedFetchAll())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "trades", filter: `market_id=eq.${id}` }, () => debouncedFetchAll())
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "market_comments", filter: `market_id=eq.${id}` }, () => fetchComments())
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { clearTimeout(debounceTimer); supabase.removeChannel(channel); };
   }, [id, user]);
 
   const fetchAll = async () => {

@@ -1,6 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { lmsrPrice } from "@/lib/pricing";
 import { motion } from "framer-motion";
 import SpotlightCard from "@/components/reactbits/SpotlightCard";
 import { CardContent } from "@/components/ui/card";
@@ -29,12 +28,7 @@ interface Market {
   outcomes: MarketOutcome[];
 }
 
-// LMSR price calculation
-function lmsrPrice(pools: number[], index: number, b: number): number {
-  const exps = pools.map(q => Math.exp(q / b));
-  const total = exps.reduce((s, e) => s + e, 0);
-  return exps[index] / total;
-}
+// LMSR price imported from @/lib/pricing
 
 interface MarketCardProps {
   market: Market;
@@ -54,7 +48,7 @@ const MarketCard = ({ market, matchTeams }: MarketCardProps) => {
     : "rgba(120, 255, 120, 0.03)";
 
   return (
-    <Link to={`/market/${market.id}`}>
+    <Link to={`/markets/${market.id}`}>
       <motion.div whileHover={{ y: -2 }} transition={{ duration: 0.2 }}>
         <SpotlightCard spotlightColor={spotlightColor} className="overflow-hidden hover:border-primary/20 transition-all cursor-pointer">
           <CardContent className="p-0">

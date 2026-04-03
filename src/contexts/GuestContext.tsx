@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -17,11 +17,14 @@ function generateGuestId(): string {
 }
 
 export const GuestProvider = ({ children }: { children: ReactNode }) => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [guestId, setGuestId] = useState<string | null>(null);
   const [guestCredits, setGuestCredits] = useState(1000);
 
   useEffect(() => {
+    // Wait for auth to resolve before deciding on guest session
+    if (authLoading) return;
+
     if (user) {
       // Authenticated user — no guest session needed
       setGuestId(null);
@@ -68,7 +71,7 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
     };
 
     initGuest();
-  }, [user]);
+  }, [user, authLoading]);
 
   const refreshGuest = useCallback(async () => {
     if (!guestId) return;

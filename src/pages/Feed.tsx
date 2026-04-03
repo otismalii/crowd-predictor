@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useGuest } from "@/contexts/GuestContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { LogIn, TrendingUp, Search, BarChart3, Flame, Clock, ArrowRight, Loader2, ChevronRight, CheckCircle2 } from "lucide-react";
+import { LogIn, TrendingUp, Search, BarChart3, Flame, Clock, ArrowRight, Loader2, ChevronRight, CheckCircle2, AlertCircle } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import MarketCard from "@/components/MarketCard";
@@ -39,6 +39,7 @@ const Feed = () => {
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<"trending" | "newest" | "closing">("trending");
   const [category, setCategory] = useState("all");
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const totalFetched = useRef(0);
 
@@ -47,18 +48,25 @@ const Feed = () => {
     setMarkets([]);
     setHasMore(true);
     setLoading(true);
+    setFetchError(null);
     fetchMarkets(0).then(() => setLoading(false));
   }, []);
 
   const fetchMarkets = async (offset: number, replace = false) => {
-    const { data: marketsData } = await supabase
-      .from("markets")
-      .select("*, matches(home_team, away_team, league, kickoff)")
-      .in("status", ["open", "closed"])
-      .order("created_at", { ascending: false })
-      .range(offset, offset + PAGE_SIZE - 1) as any;
+    try {
+      const { data: marketsData, error } = await supabase
+        .from("markets")
+        .select("*, matches(home_team, away_team, league, kickoff)")
+        .in("status", ["open", "closed"])
+        .order("created_at", { ascending: false })
+        .range(offset, offset + PAGE_SIZE - 1) as any;
 
-    if (!marketsData) return;
+      if (error) {
+        console.error("[Feed] Failed to fetch markets:", error.message);
+        setFetchError("Failed to load markets. Please try again.");
+        return;
+      }
+      if (!marketsData) return;
     if (marketsData.length < PAGE_SIZE) setHasMore(false);
     totalFetched.current = offset + marketsData.length;
 
@@ -74,13 +82,18 @@ const Feed = () => {
 
     const newMarkets = marketsData.map((m: any) => ({ ...m, outcomes: outcomesByMarket[m.id] || [] }));
 
-    if (replace || offset === 0) {
-      setMarkets(newMarkets);
-    } else {
-      setMarkets(prev => {
-        const existingIds = new Set(prev.map(m => m.id));
-        return [...prev, ...newMarkets.filter((m: Market) => !existingIds.has(m.id))];
-      });
+      if (replace || offset === 0) {
+        setMarkets(newMarkets);
+      } else {
+        setMarkets(prev => {
+          const existingIds = new Set(prev.map(m => m.id));
+          return [...prev, ...newMarkets.filter((m: Market) => !existingIds.has(m.id))];
+        });
+      }
+      setFetchError(null);
+    } catch (e: any) {
+      console.error("[Feed] Unexpected error:", e);
+      setFetchError("Something went wrong. Please try again.");
     }
   };
 
@@ -246,6 +259,14 @@ const Feed = () => {
       <div className="container py-6">
         {loading ? (
           <FeedSkeleton />
+        ) : fetchError ? (
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-16">
+            <AlertCircle className="mx-auto mb-4 h-12 w-12 text-destructive/40" />
+            <p className="text-muted-foreground font-display text-lg">{fetchError}</p>
+            <button onClick={() => { setFetchError(null); setLoading(true); fetchMarkets(0).then(() => setLoading(false)); }} className="text-primary hover:underline text-sm mt-3 inline-block">
+              Try again
+            </button>
+          </motion.div>
         ) : filtered.length === 0 ? (
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-16">
             <BarChart3 className="mx-auto mb-4 h-12 w-12 text-muted-foreground/20" />
