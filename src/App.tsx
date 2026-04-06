@@ -158,6 +158,7 @@ const App = () => (
           <BrowserRouter>
             <AuthProvider>
               <GuestProvider>
+                <OfflineIndicator />
                 <AnimatedRoutes />
               </GuestProvider>
             </AuthProvider>
