@@ -9,7 +9,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { format } from "date-fns";
-import { lmsrPrice } from "@/components/MarketCard";
+import { lmsrPrice } from "@/lib/pricing";
 
 interface Trade {
   outcome_id: string;

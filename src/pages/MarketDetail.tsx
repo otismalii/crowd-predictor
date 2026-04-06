@@ -25,7 +25,7 @@ import Footer from "@/components/layout/Footer";
 import SpotlightCard from "@/components/reactbits/SpotlightCard";
 import GradientText from "@/components/reactbits/GradientText";
 import TeamBadge from "@/components/TeamBadge";
-import { lmsrPrice } from "@/components/MarketCard";
+import { lmsrPrice, lmsrCost, lmsrSellReturn } from "@/lib/pricing";
 import PriceChart from "@/components/PriceChart";
 
 interface MarketOutcome {
@@ -131,15 +131,20 @@ const MarketDetail = () => {
       debounceTimer = setTimeout(() => fetchAll(), 300);
     };
 
-    const channelName = `market-${id}-${Date.now()}`;
-    const channel = supabase
-      .channel(channelName)
-      .on("postgres_changes", { event: "*", schema: "public", table: "market_outcomes", filter: `market_id=eq.${id}` }, () => debouncedFetchAll())
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "trades", filter: `market_id=eq.${id}` }, () => debouncedFetchAll())
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "market_comments", filter: `market_id=eq.${id}` }, () => fetchComments())
-      .subscribe();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      const channelName = `market-${id}-${Date.now()}`;
+      channel = supabase
+        .channel(channelName)
+        .on("postgres_changes", { event: "*", schema: "public", table: "market_outcomes", filter: `market_id=eq.${id}` }, () => debouncedFetchAll())
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "trades", filter: `market_id=eq.${id}` }, () => debouncedFetchAll())
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "market_comments", filter: `market_id=eq.${id}` }, () => fetchComments())
+        .subscribe();
+    } catch (e) {
+      console.warn("[realtime] MarketDetail channel setup failed:", e);
+    }
 
-    return () => { clearTimeout(debounceTimer); supabase.removeChannel(channel); };
+    return () => { clearTimeout(debounceTimer); if (channel) supabase.removeChannel(channel); };
   }, [id, user]);
 
   const fetchAll = async () => {
@@ -194,23 +199,11 @@ const MarketDetail = () => {
   let estimatedCost = 0;
   if (numShares > 0 && selectedIdx >= 0) {
     if (side === "buy") {
-      const exps = pools.map(q => Math.exp(q / b));
-      const costBefore = b * Math.log(exps.reduce((s, e) => s + e, 0));
-      const newPools = [...pools];
-      newPools[selectedIdx] += numShares;
-      const newExps = newPools.map(q => Math.exp(q / b));
-      const costAfter = b * Math.log(newExps.reduce((s, e) => s + e, 0));
-      estimatedCost = costAfter - costBefore;
+      estimatedCost = lmsrCost(pools, selectedIdx, numShares, b);
     } else {
       const pos = positions.find(p => p.outcome_id === selectedOutcome);
       if (pos && pos.shares >= numShares) {
-        const exps = pools.map(q => Math.exp(q / b));
-        const costBefore = b * Math.log(exps.reduce((s, e) => s + e, 0));
-        const newPools = [...pools];
-        newPools[selectedIdx] -= numShares;
-        const newExps = newPools.map(q => Math.exp(q / b));
-        const costAfter = b * Math.log(newExps.reduce((s, e) => s + e, 0));
-        estimatedCost = costBefore - costAfter;
+        estimatedCost = lmsrSellReturn(pools, selectedIdx, numShares, b);
       }
     }
   }

@@ -16,7 +16,7 @@ import Footer from "@/components/layout/Footer";
 import SpotlightCard from "@/components/reactbits/SpotlightCard";
 import GradientText from "@/components/reactbits/GradientText";
 import AnimatedCounter from "@/components/reactbits/AnimatedCounter";
-import { lmsrPrice } from "@/components/MarketCard";
+import { lmsrPrice } from "@/lib/pricing";
 
 interface PositionRow {
   outcome_id: string;
@@ -65,14 +65,19 @@ const Portfolio = () => {
     if (!user) { setLoading(false); return; }
     fetchPortfolio();
 
-    const channelName = `portfolio-${user.id}-${Date.now()}`;
-    const channel = supabase
-      .channel(channelName)
-      .on("postgres_changes", { event: "*", schema: "public", table: "positions", filter: `user_id=eq.${user.id}` }, () => fetchPortfolio())
-      .on("postgres_changes", { event: "*", schema: "public", table: "market_outcomes" }, () => fetchPortfolio())
-      .subscribe();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      const channelName = `portfolio-${user.id}-${Date.now()}`;
+      channel = supabase
+        .channel(channelName)
+        .on("postgres_changes", { event: "*", schema: "public", table: "positions", filter: `user_id=eq.${user.id}` }, () => fetchPortfolio())
+        .on("postgres_changes", { event: "*", schema: "public", table: "market_outcomes" }, () => fetchPortfolio())
+        .subscribe();
+    } catch (e) {
+      console.warn("[realtime] Portfolio channel setup failed:", e);
+    }
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { if (channel) supabase.removeChannel(channel); };
   }, [user]);
 
   const fetchPortfolio = async () => {

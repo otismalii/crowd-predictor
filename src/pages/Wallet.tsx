@@ -23,7 +23,7 @@ import GradientText from "@/components/reactbits/GradientText";
 import SplitText from "@/components/reactbits/SplitText";
 import Aurora from "@/components/reactbits/Aurora";
 import AnimatedCounter from "@/components/reactbits/AnimatedCounter";
-import { lmsrPrice } from "@/components/MarketCard";
+import { lmsrPrice } from "@/lib/pricing";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import StreakBadge from "@/components/StreakBadge";
 import ProfileEdit from "@/components/ProfileEdit";
@@ -63,15 +63,20 @@ const Wallet = () => {
     if (!user) { setLoading(false); return; }
     fetchAll();
 
-    const channelName = `wallet-${user.id}-${Date.now()}`;
-    const channel = supabase
-      .channel(channelName)
-      .on("postgres_changes", { event: "*", schema: "public", table: "positions", filter: `user_id=eq.${user.id}` }, () => fetchAll())
-      .on("postgres_changes", { event: "*", schema: "public", table: "market_outcomes" }, () => fetchAll())
-      .on("postgres_changes", { event: "*", schema: "public", table: "wallets", filter: `user_id=eq.${user.id}` }, () => fetchAll())
-      .subscribe();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      const channelName = `wallet-${user.id}-${Date.now()}`;
+      channel = supabase
+        .channel(channelName)
+        .on("postgres_changes", { event: "*", schema: "public", table: "positions", filter: `user_id=eq.${user.id}` }, () => fetchAll())
+        .on("postgres_changes", { event: "*", schema: "public", table: "market_outcomes" }, () => fetchAll())
+        .on("postgres_changes", { event: "*", schema: "public", table: "wallets", filter: `user_id=eq.${user.id}` }, () => fetchAll())
+        .subscribe();
+    } catch (e) {
+      console.warn("[realtime] Wallet channel setup failed:", e);
+    }
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { if (channel) supabase.removeChannel(channel); };
   }, [user]);
 
   const fetchAll = async () => {

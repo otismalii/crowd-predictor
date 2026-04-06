@@ -14,6 +14,7 @@ import { lazy, Suspense } from "react";
 import { Navigate } from "react-router-dom";
 import PageLoader from "@/components/PageLoader";
 import { PlayerRoute } from "@/routes/route-guards";
+import OfflineIndicator from "@/components/OfflineIndicator";
 
 // Eager loads — critical path
 import Feed from "./pages/Feed";
@@ -46,6 +47,8 @@ const AdminAnalyticsPage = lazy(() => import("./pages/admin/AdminAnalyticsPage")
 const AdminUsersPage = lazy(() => import("./pages/admin/AdminUsersPage"));
 const AdminUploadsPage = lazy(() => import("./pages/admin/AdminUploadsPage"));
 const AdminCollaborationsPage = lazy(() => import("./pages/admin/AdminCollaborationsPage"));
+const AdminTreasuryPage = lazy(() => import("./pages/admin/AdminTreasuryPage"));
+const AdminFraudPage = lazy(() => import("./pages/admin/AdminFraudPage"));
 
 // Lazy loads — misc
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -115,7 +118,7 @@ const AnimatedRoutes = () => {
           <Route path="/profile/:id" element={<AnimatedPage><Profile /></AnimatedPage>} />
           <Route path="/wallet" element={<AnimatedPage><PlayerRoute><Wallet /></PlayerRoute></AnimatedPage>} />
 
-          {/* ========== ADMIN ========== */}
+          {/* ========== ADMIN (self-guarded via useAdminGuard) ========== */}
           <Route path="/admin" element={<AnimatedPage><AdminOverviewPage /></AnimatedPage>} />
           <Route path="/admin/markets" element={<AnimatedPage><AdminMarketsPage /></AnimatedPage>} />
           <Route path="/admin/markets/new" element={<AnimatedPage><AdminMarketsNewPage /></AnimatedPage>} />
@@ -125,6 +128,8 @@ const AnimatedRoutes = () => {
           <Route path="/admin/users" element={<AnimatedPage><AdminUsersPage /></AnimatedPage>} />
           <Route path="/admin/uploads" element={<AnimatedPage><AdminUploadsPage /></AnimatedPage>} />
           <Route path="/admin/collaborations" element={<AnimatedPage><AdminCollaborationsPage /></AnimatedPage>} />
+          <Route path="/admin/treasury" element={<AnimatedPage><AdminTreasuryPage /></AnimatedPage>} />
+          <Route path="/admin/fraud" element={<AnimatedPage><AdminFraudPage /></AnimatedPage>} />
 
           {/* ========== REDIRECTS ========== */}
           <Route path="/trending" element={<Navigate to="/markets?sort=trending" replace />} />
@@ -153,6 +158,7 @@ const App = () => (
           <BrowserRouter>
             <AuthProvider>
               <GuestProvider>
+                <OfflineIndicator />
                 <AnimatedRoutes />
               </GuestProvider>
             </AuthProvider>
