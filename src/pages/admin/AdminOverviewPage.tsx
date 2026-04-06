@@ -7,12 +7,14 @@ import SEOHead from "@/components/SEOHead";
 import AdminOverview from "@/components/admin/AdminOverview";
 import MarketBuilder from "@/components/admin/MarketBuilder";
 import { Navigate, Link } from "react-router-dom";
-import { Shield, BarChart3, Users, Layers, ScrollText, Database, Inbox, Scale, Zap, RefreshCw, Image, Handshake } from "lucide-react";
+import { Shield, BarChart3, Users, Layers, ScrollText, Database, Inbox, Scale, Zap, RefreshCw, Image, Handshake, Landmark, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
 
 const adminLinks = [
+  { to: "/admin/treasury", label: "Treasury", icon: Landmark },
+  { to: "/admin/fraud", label: "Fraud", icon: ShieldAlert },
   { to: "/admin/markets", label: "Markets", icon: BarChart3 },
   { to: "/admin/markets/new", label: "New Market", icon: Database },
   { to: "/admin/resolution", label: "Resolution", icon: Scale },
