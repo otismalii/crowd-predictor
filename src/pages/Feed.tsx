@@ -240,13 +240,13 @@ const Feed = () => {
       {/* Quick links bar */}
       <div className="border-b border-border/20 bg-muted/20">
         <div className="container flex items-center gap-4 py-2 overflow-x-auto scrollbar-none text-xs">
-          <Link to="/trending" className="flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors whitespace-nowrap">
+          <Link to="/markets?sort=trending" className="flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors whitespace-nowrap">
             <Flame className="h-3 w-3" /> Trending <ChevronRight className="h-3 w-3" />
           </Link>
-          <Link to="/closing-soon" className="flex items-center gap-1 text-muted-foreground hover:text-accent transition-colors whitespace-nowrap">
+          <Link to="/markets?sort=closing" className="flex items-center gap-1 text-muted-foreground hover:text-accent transition-colors whitespace-nowrap">
             <Clock className="h-3 w-3" /> Closing Soon <ChevronRight className="h-3 w-3" />
           </Link>
-          <Link to="/resolved" className="flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors whitespace-nowrap">
+          <Link to="/markets?filter=resolved" className="flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors whitespace-nowrap">
             <CheckCircle2 className="h-3 w-3" /> Resolved <ChevronRight className="h-3 w-3" />
           </Link>
           <Link to="/rules" className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap ml-auto">
