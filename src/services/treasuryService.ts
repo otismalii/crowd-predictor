@@ -67,10 +67,10 @@ export async function fetchAdminTransactions(
     .limit(filters.limit || 100);
 
   if (filters.status && filters.status !== "all") {
-    query = query.eq("status", filters.status);
+    query = query.eq("status", filters.status as any);
   }
   if (filters.type && filters.type !== "all") {
-    query = query.eq("type", filters.type);
+    query = query.eq("type", filters.type as any);
   }
   if (filters.search) {
     query = query.or(`mpesa_receipt.ilike.%${filters.search}%,phone_number.ilike.%${filters.search}%`);
