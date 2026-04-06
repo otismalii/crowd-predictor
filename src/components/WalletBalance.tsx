@@ -23,15 +23,20 @@ const WalletBalance = () => {
 
     fetchBalance();
 
-    const channelName = `wallet-balance-${user.id}-${Date.now()}`;
-    const channel = supabase
-      .channel(channelName)
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "wallets", filter: `user_id=eq.${user.id}` }, (payload: any) => {
-        setBalance(payload.new.balance);
-      })
-      .subscribe();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      const channelName = `wallet-balance-${user.id}-${Date.now()}`;
+      channel = supabase
+        .channel(channelName)
+        .on("postgres_changes", { event: "UPDATE", schema: "public", table: "wallets", filter: `user_id=eq.${user.id}` }, (payload: any) => {
+          setBalance(payload.new.balance);
+        })
+        .subscribe();
+    } catch (e) {
+      console.warn("[realtime] WalletBalance channel setup failed:", e);
+    }
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { if (channel) supabase.removeChannel(channel); };
   }, [user]);
 
   if (!user || balance === null) return null;

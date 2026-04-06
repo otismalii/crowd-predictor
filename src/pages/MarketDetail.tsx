@@ -25,7 +25,7 @@ import Footer from "@/components/layout/Footer";
 import SpotlightCard from "@/components/reactbits/SpotlightCard";
 import GradientText from "@/components/reactbits/GradientText";
 import TeamBadge from "@/components/TeamBadge";
-import { lmsrPrice } from "@/components/MarketCard";
+import { lmsrPrice, lmsrCost, lmsrSellReturn } from "@/lib/pricing";
 import PriceChart from "@/components/PriceChart";
 
 interface MarketOutcome {

@@ -23,7 +23,7 @@ import GradientText from "@/components/reactbits/GradientText";
 import SplitText from "@/components/reactbits/SplitText";
 import Aurora from "@/components/reactbits/Aurora";
 import AnimatedCounter from "@/components/reactbits/AnimatedCounter";
-import { lmsrPrice } from "@/components/MarketCard";
+import { lmsrPrice } from "@/lib/pricing";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import StreakBadge from "@/components/StreakBadge";
 import ProfileEdit from "@/components/ProfileEdit";

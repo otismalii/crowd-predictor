@@ -16,7 +16,7 @@ import Footer from "@/components/layout/Footer";
 import SpotlightCard from "@/components/reactbits/SpotlightCard";
 import GradientText from "@/components/reactbits/GradientText";
 import AnimatedCounter from "@/components/reactbits/AnimatedCounter";
-import { lmsrPrice } from "@/components/MarketCard";
+import { lmsrPrice } from "@/lib/pricing";
 
 interface PositionRow {
   outcome_id: string;

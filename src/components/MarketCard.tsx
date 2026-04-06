@@ -136,5 +136,4 @@ const MarketCard = ({ market, matchTeams }: MarketCardProps) => {
 };
 
 export default MarketCard;
-export { lmsrPrice };
 export type { Market, MarketOutcome };

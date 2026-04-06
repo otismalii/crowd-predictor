@@ -33,15 +33,20 @@ const NotificationBell = () => {
     if (!user) return;
     fetchNotifications();
 
-    const channelName = `notifications-${user.id}-${Date.now()}`;
-    const channel = supabase
-      .channel(channelName)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, () => {
-        fetchNotifications();
-      })
-      .subscribe();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      const channelName = `notifications-${user.id}-${Date.now()}`;
+      channel = supabase
+        .channel(channelName)
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, () => {
+          fetchNotifications();
+        })
+        .subscribe();
+    } catch (e) {
+      console.warn("[realtime] NotificationBell channel setup failed:", e);
+    }
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { if (channel) supabase.removeChannel(channel); };
   }, [user]);
 
   const fetchNotifications = async () => {
