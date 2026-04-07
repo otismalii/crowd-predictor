@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
-import { useAdminGuard } from "@/hooks/useAdminGuard";
 import {
   fetchTreasurySummary,
   fetchAdminTransactions,
   fetchLedgerEntries,
+  approveTransaction,
+  rejectTransaction,
   type TreasurySummary,
   type TransactionRow,
 } from "@/services/treasuryService";
