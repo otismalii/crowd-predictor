@@ -171,6 +171,7 @@ const Portfolio = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead title="Portfolio | Pagaza" path="/portfolio" />
       <Navbar />
 
       <div className="container py-8 max-w-3xl">
