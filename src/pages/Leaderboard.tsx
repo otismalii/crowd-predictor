@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
+import SEOHead from "@/components/SEOHead";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { CardContent } from "@/components/ui/card";
@@ -114,6 +115,7 @@ const Leaderboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead title="Leaderboard | Pagaza" path="/leaderboard" />
       <Navbar />
       <div className="container py-8 max-w-2xl">
         <h1 className="mb-2 font-display text-3xl sm:text-4xl font-bold tracking-wider">
