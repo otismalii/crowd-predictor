@@ -3,7 +3,7 @@ import { safeFetch } from "@/lib/api";
 
 export interface FraudAlert {
   id: string;
-  type: "duplicate_mpesa" | "rapid_submission" | "suspicious_amount" | "manual_flag";
+  type: "duplicate_mpesa" | "rapid_submission" | "suspicious_amount" | "same_phone_multi_user" | "failed_deposit_spam" | "manual_flag";
   severity: "low" | "medium" | "high" | "critical";
   user_id: string;
   username: string | null;
@@ -17,6 +17,8 @@ export interface FraudAlert {
  * 1. Duplicate M-Pesa receipts
  * 2. Rapid submission (multiple deposits in < 2 min)
  * 3. Suspicious large amounts
+ * 4. Same phone number across multiple user accounts
+ * 5. Failed deposit spam (>3 failed in 1 hour)
  */
 export async function scanForFraudAlerts(): Promise<{ data: FraudAlert[]; error: string | null }> {
   const { data: transactions, error } = await safeFetch(
@@ -67,7 +69,7 @@ export async function scanForFraudAlerts(): Promise<{ data: FraudAlert[]; error:
     const sorted = txs.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
     for (let i = 1; i < sorted.length; i++) {
       const gap = new Date(sorted[i].created_at).getTime() - new Date(sorted[i - 1].created_at).getTime();
-      if (gap < 120000) { // 2 minutes
+      if (gap < 120000) {
         alerts.push({
           id: `rapid-${sorted[i].id}`,
           type: "rapid_submission",
@@ -94,6 +96,56 @@ export async function scanForFraudAlerts(): Promise<{ data: FraudAlert[]; error:
         description: `Large ${tx.type} of KES ${Number(tx.amount).toLocaleString()}`,
         metadata: { amount: tx.amount, type: tx.type },
         created_at: tx.created_at,
+      });
+    }
+  }
+
+  // 4. Same phone number across multiple user accounts
+  const phoneUserMap = new Map<string, Set<string>>();
+  for (const tx of txList) {
+    if (tx.phone_number) {
+      const users = phoneUserMap.get(tx.phone_number) || new Set();
+      users.add(tx.user_id);
+      phoneUserMap.set(tx.phone_number, users);
+    }
+  }
+  for (const [phone, users] of phoneUserMap) {
+    if (users.size > 1) {
+      const firstTx = txList.find(t => t.phone_number === phone);
+      alerts.push({
+        id: `phone-${phone}`,
+        type: "same_phone_multi_user",
+        severity: "high",
+        user_id: firstTx?.user_id || "",
+        username: firstTx?.profiles?.username || null,
+        description: `Phone ${phone} used by ${users.size} different accounts`,
+        metadata: { phone, user_count: users.size, user_ids: [...users] },
+        created_at: firstTx?.created_at || new Date().toISOString(),
+      });
+    }
+  }
+
+  // 5. Failed deposit spam (>3 failed deposits in 1 hour)
+  const oneHourAgo = Date.now() - 3600000;
+  const recentFailed = new Map<string, any[]>();
+  for (const tx of txList) {
+    if (tx.type === "deposit" && tx.status === "failed" && new Date(tx.created_at).getTime() > oneHourAgo) {
+      const existing = recentFailed.get(tx.user_id) || [];
+      existing.push(tx);
+      recentFailed.set(tx.user_id, existing);
+    }
+  }
+  for (const [userId, txs] of recentFailed) {
+    if (txs.length > 3) {
+      alerts.push({
+        id: `failspam-${userId}`,
+        type: "failed_deposit_spam",
+        severity: "high",
+        user_id: userId,
+        username: txs[0].profiles?.username || null,
+        description: `${txs.length} failed deposits in the last hour`,
+        metadata: { count: txs.length, transaction_ids: txs.map((t: any) => t.id) },
+        created_at: txs[0].created_at,
       });
     }
   }

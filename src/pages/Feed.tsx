@@ -13,7 +13,7 @@ import type { Market, MarketOutcome } from "@/components/MarketCard";
 import FeedSkeleton from "@/components/skeletons/FeedSkeleton";
 import SEOHead from "@/components/SEOHead";
 import { motion, AnimatePresence } from "framer-motion";
-import heroBg from "@/assets/hero-bg.jpg";
+// Hero uses CSS gradient instead of image asset
 
 const CATEGORIES = [
   { key: "all", label: "All", emoji: "🌍" },
@@ -162,7 +162,7 @@ const Feed = () => {
 
       {/* Hero */}
       <div className="relative overflow-hidden border-b border-border/30">
-        <div className="absolute inset-0 bg-cover bg-center opacity-20 dark:opacity-30" style={{ backgroundImage: `url(${heroBg})` }} />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-accent/5 to-background opacity-60" />
         <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/70 to-background" />
         <div className="relative container py-10 sm:py-14">
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex items-center justify-between flex-wrap gap-4">

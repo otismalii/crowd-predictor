@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
-import { useAdminGuard } from "@/hooks/useAdminGuard";
 import {
   fetchTreasurySummary,
   fetchAdminTransactions,
   fetchLedgerEntries,
+  approveTransaction,
+  rejectTransaction,
   type TreasurySummary,
   type TransactionRow,
 } from "@/services/treasuryService";
@@ -14,31 +14,29 @@ import Footer from "@/components/layout/Footer";
 import SEOHead from "@/components/SEOHead";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CardContent } from "@/components/ui/card";
 import SpotlightCard from "@/components/reactbits/SpotlightCard";
 import AnimatedCounter from "@/components/reactbits/AnimatedCounter";
+import { useToast } from "@/hooks/use-toast";
 import {
   Landmark, ArrowDownLeft, ArrowUpRight, RefreshCw, Search,
-  TrendingUp, TrendingDown, Clock, AlertCircle, ScrollText,
-  DollarSign, Wallet,
+  Clock, DollarSign, Wallet, CheckCircle2, XCircle,
 } from "lucide-react";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
 
 const AdminTreasuryPage = () => {
-  const { isAdmin, loading: guardLoading } = useAdminGuard();
+  const { toast } = useToast();
   const [summary, setSummary] = useState<TreasurySummary | null>(null);
   const [transactions, setTransactions] = useState<TransactionRow[]>([]);
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"transactions" | "ledger">("transactions");
   const [txFilter, setTxFilter] = useState({ status: "all", type: "all", search: "" });
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (isAdmin) fetchData();
-  }, [isAdmin]);
+  useEffect(() => { fetchData(); }, []);
 
   const fetchData = async () => {
     setLoading(true);
@@ -54,11 +52,9 @@ const AdminTreasuryPage = () => {
   };
 
   useEffect(() => {
-    if (isAdmin) {
-      fetchAdminTransactions(txFilter).then(res => {
-        if (res.data) setTransactions(res.data);
-      });
-    }
+    fetchAdminTransactions(txFilter).then(res => {
+      if (res.data) setTransactions(res.data);
+    });
   }, [txFilter.status, txFilter.type]);
 
   const handleSearch = () => {
@@ -67,12 +63,23 @@ const AdminTreasuryPage = () => {
     });
   };
 
-  if (guardLoading) return (
-    <div className="min-h-screen bg-background"><Navbar />
-      <div className="container py-20"><Skeleton className="h-8 w-48" /></div>
-    </div>
-  );
-  if (!isAdmin) return <Navigate to="/" replace />;
+  const handleApprove = async (tx: TransactionRow) => {
+    setActionLoading(tx.id);
+    const { error } = await approveTransaction(tx);
+    if (error) toast({ title: "Error", description: error, variant: "destructive" });
+    else toast({ title: "✅ Transaction approved" });
+    setActionLoading(null);
+    fetchData();
+  };
+
+  const handleReject = async (tx: TransactionRow) => {
+    setActionLoading(tx.id);
+    const { error } = await rejectTransaction(tx);
+    if (error) toast({ title: "Error", description: error, variant: "destructive" });
+    else toast({ title: "❌ Transaction rejected" });
+    setActionLoading(null);
+    fetchData();
+  };
 
   const getStatusColor = (status: string) => ({
     completed: "bg-primary/20 text-primary",
@@ -106,7 +113,6 @@ const AdminTreasuryPage = () => {
       </div>
 
       <div className="container py-6 space-y-6">
-        {/* Summary cards */}
         {summary && (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {[
@@ -135,7 +141,6 @@ const AdminTreasuryPage = () => {
           </div>
         )}
 
-        {/* Tabs */}
         <div className="flex gap-0.5 p-0.5 bg-muted/50 rounded-xl border border-border/30 w-fit">
           {(["transactions", "ledger"] as const).map(tab => (
             <button
@@ -155,7 +160,6 @@ const AdminTreasuryPage = () => {
 
         {activeTab === "transactions" && (
           <div className="space-y-4">
-            {/* Filters */}
             <div className="flex flex-wrap items-center gap-3">
               <div className="relative flex-1 max-w-xs">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -190,7 +194,6 @@ const AdminTreasuryPage = () => {
               </select>
             </div>
 
-            {/* Transaction list */}
             <div className="rounded-xl border border-border/30 overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
@@ -200,9 +203,10 @@ const AdminTreasuryPage = () => {
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">Type</th>
                       <th className="px-4 py-3 text-right font-medium text-muted-foreground">Amount</th>
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
-                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">M-Pesa</th>
+                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">Ref</th>
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">Phone</th>
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">Date</th>
+                      <th className="px-4 py-3 text-center font-medium text-muted-foreground">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -226,10 +230,36 @@ const AdminTreasuryPage = () => {
                         <td className="px-4 py-3 font-mono text-muted-foreground">{tx.mpesa_receipt || "—"}</td>
                         <td className="px-4 py-3 text-muted-foreground">{tx.phone_number || "—"}</td>
                         <td className="px-4 py-3 text-muted-foreground">{format(new Date(tx.created_at), "MMM d, HH:mm")}</td>
+                        <td className="px-4 py-3">
+                          {tx.status === "pending" && (
+                            <div className="flex items-center justify-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 text-primary hover:bg-primary/10"
+                                disabled={actionLoading === tx.id}
+                                onClick={() => handleApprove(tx)}
+                                title="Approve"
+                              >
+                                <CheckCircle2 className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10"
+                                disabled={actionLoading === tx.id}
+                                onClick={() => handleReject(tx)}
+                                title="Reject"
+                              >
+                                <XCircle className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
+                        </td>
                       </tr>
                     ))}
                     {transactions.length === 0 && (
-                      <tr><td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">No transactions found</td></tr>
+                      <tr><td colSpan={8} className="px-4 py-12 text-center text-muted-foreground">No transactions found</td></tr>
                     )}
                   </tbody>
                 </table>

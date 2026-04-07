@@ -13,6 +13,7 @@ export interface TreasurySummary {
 export interface TransactionRow {
   id: string;
   user_id: string;
+  wallet_id: string;
   type: string;
   amount: number;
   status: string;
@@ -87,4 +88,77 @@ export async function fetchLedgerEntries(limit = 100) {
       .order("created_at", { ascending: false })
       .limit(limit) as any
   );
+}
+
+/**
+ * Approve a pending transaction (deposit or withdrawal).
+ * For deposits: credit wallet. For withdrawals: mark as processed (funds already held).
+ */
+export async function approveTransaction(tx: TransactionRow): Promise<{ error: string | null }> {
+  try {
+    if (tx.type === "deposit") {
+      // Credit wallet
+      const { data: wallet } = await supabase.from("wallets").select("id, balance").eq("id", tx.wallet_id).single();
+      if (wallet) {
+        await supabase.from("wallets").update({
+          balance: Number(wallet.balance) + Number(tx.amount),
+          updated_at: new Date().toISOString(),
+        }).eq("id", wallet.id);
+      }
+    }
+    // Update transaction status
+    await supabase.from("transactions").update({
+      status: "completed",
+      updated_at: new Date().toISOString(),
+    }).eq("id", tx.id);
+
+    // Notify user
+    await supabase.from("notifications").insert({
+      user_id: tx.user_id,
+      type: tx.type,
+      title: tx.type === "deposit" ? "Deposit Approved" : "Withdrawal Processed",
+      message: `Your ${tx.type} of KES ${Number(tx.amount).toLocaleString()} has been approved`,
+      link: "/wallet",
+    });
+
+    return { error: null };
+  } catch (e: any) {
+    return { error: e.message };
+  }
+}
+
+/**
+ * Reject a pending transaction.
+ * For withdrawals: refund the held balance.
+ */
+export async function rejectTransaction(tx: TransactionRow): Promise<{ error: string | null }> {
+  try {
+    if (tx.type === "withdrawal") {
+      // Refund wallet
+      const { data: wallet } = await supabase.from("wallets").select("id, balance").eq("id", tx.wallet_id).single();
+      if (wallet) {
+        await supabase.from("wallets").update({
+          balance: Number(wallet.balance) + Number(tx.amount),
+          updated_at: new Date().toISOString(),
+        }).eq("id", wallet.id);
+      }
+    }
+    await supabase.from("transactions").update({
+      status: "failed",
+      description: (tx.description || "") + " [REJECTED BY ADMIN]",
+      updated_at: new Date().toISOString(),
+    }).eq("id", tx.id);
+
+    await supabase.from("notifications").insert({
+      user_id: tx.user_id,
+      type: tx.type,
+      title: tx.type === "deposit" ? "Deposit Rejected" : "Withdrawal Rejected",
+      message: `Your ${tx.type} of KES ${Number(tx.amount).toLocaleString()} was rejected`,
+      link: "/wallet",
+    });
+
+    return { error: null };
+  } catch (e: any) {
+    return { error: e.message };
+  }
 }

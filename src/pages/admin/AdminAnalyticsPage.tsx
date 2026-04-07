@@ -13,18 +13,14 @@ import AnimatedCounter from "@/components/reactbits/AnimatedCounter";
 import {
   BarChart3, Users, TrendingUp, Layers, RefreshCw,
   DollarSign, ArrowDownLeft, ArrowUpRight, Activity,
-  ChevronRight,
 } from "lucide-react";
 import { motion } from "framer-motion";
 
 const AdminAnalyticsPage = () => {
-  const { isAdmin, loading: guardLoading } = useAdminGuard();
   const [analytics, setAnalytics] = useState<PlatformAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (isAdmin) fetchData();
-  }, [isAdmin]);
+  useEffect(() => { fetchData(); }, []);
 
   const fetchData = async () => {
     setLoading(true);
@@ -33,18 +29,10 @@ const AdminAnalyticsPage = () => {
     setLoading(false);
   };
 
-  if (guardLoading) return (
-    <div className="min-h-screen bg-background"><Navbar />
-      <div className="container py-20"><Skeleton className="h-8 w-48" /></div>
-    </div>
-  );
-  if (!isAdmin) return <Navigate to="/" replace />;
-
   return (
     <div className="min-h-screen bg-background">
       <SEOHead title="Admin - Analytics" path="/admin/analytics" />
       <Navbar />
-
       <div className="border-b border-border/30">
         <div className="container py-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -52,9 +40,7 @@ const AdminAnalyticsPage = () => {
               <BarChart3 className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <h1 className="font-display text-2xl font-bold tracking-wider">
-                Platform <span className="text-primary">Analytics</span>
-              </h1>
+              <h1 className="font-display text-2xl font-bold tracking-wider">Platform <span className="text-primary">Analytics</span></h1>
               <p className="text-xs text-muted-foreground mt-0.5">Users, volume, markets & revenue metrics</p>
             </div>
           </div>
@@ -63,7 +49,6 @@ const AdminAnalyticsPage = () => {
           </Button>
         </div>
       </div>
-
       <div className="container py-6 space-y-6">
         {loading || !analytics ? (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -71,7 +56,6 @@ const AdminAnalyticsPage = () => {
           </div>
         ) : (
           <>
-            {/* KPI grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
                 { label: "Total Users", value: analytics.totalUsers, icon: Users, color: "text-primary" },
@@ -99,8 +83,6 @@ const AdminAnalyticsPage = () => {
                 </motion.div>
               ))}
             </div>
-
-            {/* Top markets */}
             <div>
               <h2 className="font-display text-lg font-bold tracking-wider mb-3">Top Markets by Volume</h2>
               <div className="rounded-xl border border-border/30 overflow-hidden">
@@ -118,22 +100,16 @@ const AdminAnalyticsPage = () => {
                       <tr key={m.id} className="border-b border-border/20 hover:bg-muted/20 transition-colors">
                         <td className="px-4 py-3 font-display font-bold text-muted-foreground">{i + 1}</td>
                         <td className="px-4 py-3">
-                          <Link to={`/markets/${m.id}`} className="font-medium text-foreground hover:text-primary transition-colors">
-                            {m.title}
-                          </Link>
+                          <Link to={`/markets/${m.id}`} className="font-medium text-foreground hover:text-primary transition-colors">{m.title}</Link>
                         </td>
                         <td className="px-4 py-3">
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
                             m.status === "open" ? "bg-primary/20 text-primary" :
                             m.status === "resolved" ? "bg-muted text-muted-foreground" :
                             "bg-accent/20 text-accent"
-                          }`}>
-                            {m.status.toUpperCase()}
-                          </span>
+                          }`}>{m.status.toUpperCase()}</span>
                         </td>
-                        <td className="px-4 py-3 text-right font-display font-bold tabular-nums">
-                          {Math.round(m.total_volume).toLocaleString()}
-                        </td>
+                        <td className="px-4 py-3 text-right font-display font-bold tabular-nums">{Math.round(m.total_volume).toLocaleString()}</td>
                       </tr>
                     ))}
                     {analytics.topMarkets.length === 0 && (
@@ -142,15 +118,6 @@ const AdminAnalyticsPage = () => {
                   </tbody>
                 </table>
               </div>
-            </div>
-
-            {/* Revenue placeholder */}
-            <div className="rounded-xl border border-border/30 p-8 text-center bg-muted/10">
-              <DollarSign className="mx-auto mb-3 h-10 w-10 text-muted-foreground/20" />
-              <p className="text-muted-foreground font-display text-sm font-bold">Revenue Tracking</p>
-              <p className="text-[11px] text-muted-foreground mt-1">
-                Transaction fees, premium markets & sponsored content — coming soon
-              </p>
             </div>
           </>
         )}

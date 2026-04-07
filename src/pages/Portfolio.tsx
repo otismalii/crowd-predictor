@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import SEOHead from "@/components/SEOHead";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -170,6 +171,7 @@ const Portfolio = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead title="Portfolio | Pagaza" path="/portfolio" />
       <Navbar />
 
       <div className="container py-8 max-w-3xl">

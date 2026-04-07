@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
+import SEOHead from "@/components/SEOHead";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -135,16 +136,23 @@ const Wallet = () => {
   const handleRefresh = useCallback(async () => { await fetchAll(); }, [user]);
 
   const handleDeposit = async () => {
-    if (!user || !wallet || !amount || !phone) return;
+    if (!user || !wallet || !amount) return;
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount < 10) { toast({ title: "Minimum deposit is KES 10", variant: "destructive" }); return; }
     setProcessing(true);
     try {
-      const { error } = await supabase.functions.invoke("mpesa-deposit", { body: { amount: numAmount, phone_number: phone } });
+      const { data, error } = await supabase.functions.invoke("pesapal-deposit", {
+        body: { amount: numAmount, phone_number: phone || undefined, callback_url: window.location.origin + "/wallet" },
+      });
       if (error) throw error;
-      toast({ title: "📱 STK Push sent!", description: "Check your phone to complete M-Pesa payment" });
+      if (data?.redirect_url) {
+        toast({ title: "🔄 Redirecting to PesaPal...", description: "Complete your payment on PesaPal" });
+        window.location.href = data.redirect_url;
+        return;
+      }
+      toast({ title: "Deposit initiated!", description: "Complete payment to fund your wallet" });
       setAmount("");
-      setTimeout(fetchAll, 5000); setTimeout(fetchAll, 15000); setTimeout(fetchAll, 30000);
+      setTimeout(fetchAll, 5000); setTimeout(fetchAll, 15000);
     } catch (e: any) { toast({ title: "Deposit failed", description: e.message || "Try again", variant: "destructive" }); }
     setProcessing(false);
   };
@@ -156,9 +164,9 @@ const Wallet = () => {
     if (numAmount > wallet.balance) { toast({ title: "Insufficient balance", variant: "destructive" }); return; }
     setProcessing(true);
     try {
-      const { error } = await supabase.functions.invoke("mpesa-withdraw", { body: { amount: numAmount, phone_number: phone } });
+      const { error } = await supabase.functions.invoke("pesapal-withdraw", { body: { amount: numAmount, phone_number: phone } });
       if (error) throw error;
-      toast({ title: "💸 Withdrawal initiated!", description: "You'll receive M-Pesa shortly" });
+      toast({ title: "💸 Withdrawal submitted!", description: "Pending admin approval" });
       setAmount(""); fetchAll();
     } catch (e: any) { toast({ title: "Withdrawal failed", description: e.message || "Try again", variant: "destructive" }); }
     setProcessing(false);
@@ -209,6 +217,7 @@ const Wallet = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead title="Dashboard | Pagaza" path="/wallet" />
       <Navbar />
 
       {/* Hero header */}
