@@ -13,7 +13,7 @@ import type { Market, MarketOutcome } from "@/components/MarketCard";
 import FeedSkeleton from "@/components/skeletons/FeedSkeleton";
 import SEOHead from "@/components/SEOHead";
 import { motion, AnimatePresence } from "framer-motion";
-import heroBg from "@/assets/hero-bg.jpg";
+// Hero uses CSS gradient instead of image asset
 
 const CATEGORIES = [
   { key: "all", label: "All", emoji: "🌍" },
