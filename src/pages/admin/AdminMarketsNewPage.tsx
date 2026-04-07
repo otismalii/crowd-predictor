@@ -1,27 +1,11 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import SEOHead from "@/components/SEOHead";
 import MarketBuilder from "@/components/admin/MarketBuilder";
-import { Navigate, useNavigate } from "react-router-dom";
-import { Skeleton } from "@/components/ui/skeleton";
+import { useNavigate } from "react-router-dom";
 
 const AdminMarketsNewPage = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    if (!user) return;
-    supabase.rpc("has_role", { _user_id: user.id, _role: "admin" }).then(({ data }) => {
-      setIsAdmin(data === true);
-    });
-  }, [user]);
-
-  if (isAdmin === null) return <div className="min-h-screen bg-background"><Navbar /><div className="container py-20"><Skeleton className="h-8 w-48" /></div></div>;
-  if (!isAdmin) return <Navigate to="/" replace />;
 
   return (
     <div className="min-h-screen bg-background">

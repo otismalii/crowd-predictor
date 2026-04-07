@@ -1,6 +1,4 @@
 import { useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
-import { useAdminGuard } from "@/hooks/useAdminGuard";
 import { scanForFraudAlerts, type FraudAlert } from "@/services/fraudService";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -8,11 +6,9 @@ import SEOHead from "@/components/SEOHead";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CardContent } from "@/components/ui/card";
-import SpotlightCard from "@/components/reactbits/SpotlightCard";
 import {
   ShieldAlert, RefreshCw, AlertTriangle, AlertCircle,
-  Copy, Clock, Ban, Eye,
+  Ban, Clock, Eye,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
@@ -28,18 +24,17 @@ const typeLabels: Record<string, string> = {
   duplicate_mpesa: "Duplicate M-Pesa Receipt",
   rapid_submission: "Rapid Submission",
   suspicious_amount: "Suspicious Amount",
+  same_phone_multi_user: "Same Phone, Multiple Users",
+  failed_deposit_spam: "Failed Deposit Spam",
   manual_flag: "Manual Flag",
 };
 
 const AdminFraudPage = () => {
-  const { isAdmin, loading: guardLoading } = useAdminGuard();
   const [alerts, setAlerts] = useState<FraudAlert[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterSeverity, setFilterSeverity] = useState<string>("all");
 
-  useEffect(() => {
-    if (isAdmin) runScan();
-  }, [isAdmin]);
+  useEffect(() => { runScan(); }, []);
 
   const runScan = async () => {
     setLoading(true);
@@ -48,15 +43,7 @@ const AdminFraudPage = () => {
     setLoading(false);
   };
 
-  if (guardLoading) return (
-    <div className="min-h-screen bg-background"><Navbar />
-      <div className="container py-20"><Skeleton className="h-8 w-48" /></div>
-    </div>
-  );
-  if (!isAdmin) return <Navigate to="/" replace />;
-
   const filtered = filterSeverity === "all" ? alerts : alerts.filter(a => a.severity === filterSeverity);
-
   const criticalCount = alerts.filter(a => a.severity === "critical").length;
   const highCount = alerts.filter(a => a.severity === "high").length;
 
@@ -64,7 +51,6 @@ const AdminFraudPage = () => {
     <div className="min-h-screen bg-background">
       <SEOHead title="Admin - Fraud Detection" path="/admin/fraud" />
       <Navbar />
-
       <div className="border-b border-border/30">
         <div className="container py-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -72,9 +58,7 @@ const AdminFraudPage = () => {
               <ShieldAlert className="h-6 w-6 text-destructive" />
             </div>
             <div>
-              <h1 className="font-display text-2xl font-bold tracking-wider">
-                Fraud <span className="text-destructive">Detection</span>
-              </h1>
+              <h1 className="font-display text-2xl font-bold tracking-wider">Fraud <span className="text-destructive">Detection</span></h1>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Automated anomaly scanning · {alerts.length} alert{alerts.length !== 1 ? "s" : ""} found
               </p>
@@ -85,9 +69,7 @@ const AdminFraudPage = () => {
           </Button>
         </div>
       </div>
-
       <div className="container py-6 space-y-6">
-        {/* Summary chips */}
         <div className="flex flex-wrap gap-3">
           {criticalCount > 0 && (
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-destructive/10 border border-destructive/20">
@@ -107,8 +89,6 @@ const AdminFraudPage = () => {
             </div>
           )}
         </div>
-
-        {/* Severity filter */}
         <div className="flex gap-0.5 p-0.5 bg-muted/50 rounded-xl border border-border/30 w-fit">
           {["all", "critical", "high", "medium", "low"].map(sev => (
             <button
@@ -125,12 +105,8 @@ const AdminFraudPage = () => {
             </button>
           ))}
         </div>
-
-        {/* Alerts list */}
         {loading ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map(i => <Skeleton key={i} className="h-20 rounded-xl" />)}
-          </div>
+          <div className="space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-20 rounded-xl" />)}</div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-16">
             <ShieldAlert className="mx-auto mb-4 h-12 w-12 text-muted-foreground/20" />
@@ -142,12 +118,7 @@ const AdminFraudPage = () => {
               const config = severityConfig[alert.severity] || severityConfig.low;
               const Icon = config.icon;
               return (
-                <motion.div
-                  key={alert.id}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.03 }}
-                >
+                <motion.div key={alert.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
                   <div className={`rounded-xl border border-border/30 p-4 ${config.bg} transition-all hover:shadow-sm`}>
                     <div className="flex items-start gap-3">
                       <div className={`p-2 rounded-lg ${config.bg}`}>
@@ -160,10 +131,8 @@ const AdminFraudPage = () => {
                             alert.severity === "high" ? "bg-destructive/10 text-destructive" :
                             alert.severity === "medium" ? "bg-accent/20 text-accent" :
                             "bg-muted text-muted-foreground"
-                          }`}>
-                            {alert.severity}
-                          </span>
-                          <Badge variant="outline" className="text-[10px]">{typeLabels[alert.type]}</Badge>
+                          }`}>{alert.severity}</span>
+                          <Badge variant="outline" className="text-[10px]">{typeLabels[alert.type] || alert.type}</Badge>
                         </div>
                         <p className="text-sm font-medium text-foreground">{alert.description}</p>
                         <div className="flex items-center gap-3 mt-1.5 text-[11px] text-muted-foreground">
