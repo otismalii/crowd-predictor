@@ -13,7 +13,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { lazy, Suspense } from "react";
 import { Navigate } from "react-router-dom";
 import PageLoader from "@/components/PageLoader";
-import { PlayerRoute } from "@/routes/route-guards";
+import { PlayerRoute, AdminRoute } from "@/routes/route-guards";
 import OfflineIndicator from "@/components/OfflineIndicator";
 
 // Eager loads — critical path
@@ -101,7 +101,6 @@ const AnimatedRoutes = () => {
           <Route path="/" element={<AnimatedPage><Feed /></AnimatedPage>} />
           <Route path="/markets" element={<AnimatedPage><Markets /></AnimatedPage>} />
           <Route path="/markets/:id" element={<AnimatedPage><MarketDetail /></AnimatedPage>} />
-          {/* Legacy route */}
           <Route path="/market/:id" element={<AnimatedPage><MarketDetail /></AnimatedPage>} />
           <Route path="/leaderboard" element={<AnimatedPage><Leaderboard /></AnimatedPage>} />
           <Route path="/rules" element={<AnimatedPage><Rules /></AnimatedPage>} />
@@ -118,18 +117,18 @@ const AnimatedRoutes = () => {
           <Route path="/profile/:id" element={<AnimatedPage><Profile /></AnimatedPage>} />
           <Route path="/wallet" element={<AnimatedPage><PlayerRoute><Wallet /></PlayerRoute></AnimatedPage>} />
 
-          {/* ========== ADMIN (self-guarded via useAdminGuard) ========== */}
-          <Route path="/admin" element={<AnimatedPage><AdminOverviewPage /></AnimatedPage>} />
-          <Route path="/admin/markets" element={<AnimatedPage><AdminMarketsPage /></AnimatedPage>} />
-          <Route path="/admin/markets/new" element={<AnimatedPage><AdminMarketsNewPage /></AnimatedPage>} />
-          <Route path="/admin/resolution" element={<AnimatedPage><AdminResolutionPage /></AnimatedPage>} />
-          <Route path="/admin/bots" element={<AnimatedPage><AdminBotsPage /></AnimatedPage>} />
-          <Route path="/admin/analytics" element={<AnimatedPage><AdminAnalyticsPage /></AnimatedPage>} />
-          <Route path="/admin/users" element={<AnimatedPage><AdminUsersPage /></AnimatedPage>} />
-          <Route path="/admin/uploads" element={<AnimatedPage><AdminUploadsPage /></AnimatedPage>} />
-          <Route path="/admin/collaborations" element={<AnimatedPage><AdminCollaborationsPage /></AnimatedPage>} />
-          <Route path="/admin/treasury" element={<AnimatedPage><AdminTreasuryPage /></AnimatedPage>} />
-          <Route path="/admin/fraud" element={<AnimatedPage><AdminFraudPage /></AnimatedPage>} />
+          {/* ========== ADMIN (guarded by AdminRoute) ========== */}
+          <Route path="/admin" element={<AnimatedPage><AdminRoute><AdminOverviewPage /></AdminRoute></AnimatedPage>} />
+          <Route path="/admin/markets" element={<AnimatedPage><AdminRoute><AdminMarketsPage /></AdminRoute></AnimatedPage>} />
+          <Route path="/admin/markets/new" element={<AnimatedPage><AdminRoute><AdminMarketsNewPage /></AdminRoute></AnimatedPage>} />
+          <Route path="/admin/resolution" element={<AnimatedPage><AdminRoute><AdminResolutionPage /></AdminRoute></AnimatedPage>} />
+          <Route path="/admin/bots" element={<AnimatedPage><AdminRoute><AdminBotsPage /></AdminRoute></AnimatedPage>} />
+          <Route path="/admin/analytics" element={<AnimatedPage><AdminRoute><AdminAnalyticsPage /></AdminRoute></AnimatedPage>} />
+          <Route path="/admin/users" element={<AnimatedPage><AdminRoute><AdminUsersPage /></AdminRoute></AnimatedPage>} />
+          <Route path="/admin/uploads" element={<AnimatedPage><AdminRoute><AdminUploadsPage /></AdminRoute></AnimatedPage>} />
+          <Route path="/admin/collaborations" element={<AnimatedPage><AdminRoute><AdminCollaborationsPage /></AdminRoute></AnimatedPage>} />
+          <Route path="/admin/treasury" element={<AnimatedPage><AdminRoute><AdminTreasuryPage /></AdminRoute></AnimatedPage>} />
+          <Route path="/admin/fraud" element={<AnimatedPage><AdminRoute><AdminFraudPage /></AdminRoute></AnimatedPage>} />
 
           {/* ========== REDIRECTS ========== */}
           <Route path="/trending" element={<Navigate to="/markets?sort=trending" replace />} />
