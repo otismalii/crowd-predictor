@@ -1,154 +1,169 @@
 
+## Pagaza Betz Production Revamp Plan
 
-## Pagaza Hardening & Refactor Plan
+This plan fixes critical bugs, replaces IntaSend with PesaPal for payments, hardens admin tooling, cleans dead code, and adds PWA safety. Organized by priority.
 
-### Priority 1: Critical Bugs (Quick Wins)
+---
 
-**A. Fix Realtime Crash (the ErrorBoundary-triggering bug)**
+### Phase 1: Critical Stability Fixes
 
-The console error `cannot add postgres_changes callbacks after subscribe()` crashes the app. Root cause: `NotificationBell` uses a static channel name `"notifications-realtime"`. When `user` changes (auth state resolves), React re-runs the effect. Supabase may reuse the existing channel reference before cleanup completes, then `.on()` is called on an already-subscribed channel.
+**1A. Fix `execute-trade` edge function numerical instability**
+The server-side LMSR in `supabase/functions/execute-trade/index.ts` uses raw `Math.exp(q/b)` without max-subtraction, causing `Infinity` for large pool values. Apply the same guard pattern from `src/lib/pricing.ts`.
 
-Fix across all 5 files that use `.channel()`:
-- `src/components/NotificationBell.tsx` — change to `notifications-${user.id}`
-- `src/components/WalletBalance.tsx` — change to `wallet-balance-${user.id}`
-- `src/pages/MarketDetail.tsx` — already uses `market-${id}`, but add a unique suffix with a ref counter to prevent remount collisions
-- `src/pages/Portfolio.tsx` — change to `portfolio-${user.id}`
-- `src/pages/Wallet.tsx` — change to `wallet-${user.id}`
+Files: `supabase/functions/execute-trade/index.ts`
 
-For all: wrap cleanup in a proper pattern:
-```ts
-const channelName = `notifications-${user.id}-${Date.now()}`;
-const channel = supabase.channel(channelName)
-  .on(...)
-  .subscribe();
-return () => { supabase.removeChannel(channel); };
+**1B. Fix Feed.tsx `heroBg` import safety**
+`src/assets/hero-bg.jpg` exists but is a potential build issue if removed. Replace with a CSS gradient fallback that doesn't depend on the asset, or keep the import but add a fallback.
+
+Files: `src/pages/Feed.tsx`
+
+**1C. Fix admin routes missing route guard**
+Admin routes in `App.tsx` (lines 122-132) have no route-level guard -- they rely on each page's internal `useAdminGuard`. This is fragile. Wrap all `/admin/*` routes in an `AdminRoute` guard component.
+
+Files: `src/App.tsx`, `src/routes/route-guards.tsx`
+
+**1D. Deduplicate admin guard logic**
+`AdminOverviewPage`, `AdminMarketsPage`, and other admin pages each independently call `has_role` RPC. Refactor to use the existing `useAdminGuard` hook consistently. Remove the duplicated inline check pattern.
+
+Files: `src/pages/admin/AdminOverviewPage.tsx`, `src/pages/admin/AdminMarketsPage.tsx` (+ other admin pages that duplicate the pattern)
+
+**1E. PWA service worker iframe guard**
+Per Lovable PWA rules, the service worker must not register inside iframes or preview hosts. Add the guard to `src/main.tsx`.
+
+Files: `src/main.tsx`
+
+---
+
+### Phase 2: PesaPal Payment Integration
+
+**2A. Add PesaPal secrets**
+Store `PESAPAL_CONSUMER_KEY` and `PESAPAL_CONSUMER_SECRET` as Supabase edge function secrets. The values provided:
+- Key: `5dmbgMfLGLVcQ7NQDyyVKuzIEshhQMkN`
+- Secret: `KvwEhJa6BV9muE5djcmfTFZKnvE=`
+
+**2B. Create `pesapal-deposit` edge function**
+New edge function that:
+1. Authenticates user via JWT
+2. Validates amount and phone
+3. Calls PesaPal OAuth2 to get auth token
+4. Registers IPN URL
+5. Submits order request
+6. Creates pending transaction in DB
+7. Returns redirect URL for user to complete payment
+
+Files: `supabase/functions/pesapal-deposit/index.ts`
+
+**2C. Create `pesapal-callback` edge function**
+IPN callback handler that:
+1. Receives PesaPal notification
+2. Queries transaction status from PesaPal API
+3. Updates transaction status in DB
+4. Credits wallet on success
+5. Creates notification for user
+
+Files: `supabase/functions/pesapal-callback/index.ts`
+
+**2D. Create `pesapal-withdraw` edge function**
+Withdrawal handler (manual approval flow for now):
+1. Validates user balance
+2. Deducts from wallet immediately
+3. Creates pending withdrawal transaction
+4. Admin approves/rejects via treasury dashboard
+
+Files: `supabase/functions/pesapal-withdraw/index.ts`
+
+**2E. Update Wallet UI for PesaPal**
+Replace the IntaSend STK Push UI with PesaPal flow:
+- Deposit: redirect to PesaPal payment page
+- Withdraw: submit request for admin approval
+- Show pending/completed/failed states
+
+Files: `src/pages/Wallet.tsx`
+
+**2F. Keep IntaSend edge functions** (don't delete yet -- mark as deprecated for fallback)
+
+---
+
+### Phase 3: Admin Dashboard Hardening
+
+**3A. Add transaction approve/reject to Treasury**
+Add action buttons on pending transactions in `AdminTreasuryPage`:
+- Approve deposit (credit wallet + update status)
+- Reject deposit (update status to failed)
+- Approve withdrawal (mark as processed)
+- Reject withdrawal (refund wallet balance)
+
+Files: `src/pages/admin/AdminTreasuryPage.tsx`, `src/services/treasuryService.ts`
+
+**3B. Add admin user management actions**
+The `AdminUsersPage` needs actual CRUD:
+- View user details + wallet balance
+- Flag/suspend accounts (update profile status)
+- View user transaction history
+
+Files: `src/pages/admin/AdminUsersPage.tsx`
+
+**3C. Enhance fraud detection**
+Add to the existing fraud scanner:
+- Same phone number across different accounts
+- Failed deposit spam (many failed attempts)
+- Admin action buttons: flag user, block transaction
+
+Files: `src/services/fraudService.ts`, `src/pages/admin/AdminFraudPage.tsx`
+
+---
+
+### Phase 4: Dead Code Removal & Cleanup
+
+**4A. Remove unused/redundant files**
+Audit and remove:
+- `src/components/admin/AdminAPI.tsx` (if unused)
+- `src/components/admin/AdminAuditLog.tsx` (if unused)  
+- `src/components/admin/AdminDisputes.tsx` (if unused)
+- `src/components/admin/AdminIngestion.tsx` (if unused)
+- `src/components/admin/AdminPredictions.tsx` (if unused)
+- `src/components/admin/AdminSourceRegistry.tsx` (if unused)
+- Any components not imported anywhere
+
+**4B. Remove mock data patterns**
+Search for hardcoded sample data arrays, fake balances, or static JSON markets in components and remove them. Replace with proper empty states.
+
+**4C. Consolidate duplicate LMSR implementations**
+The edge function `execute-trade` has its own LMSR. Keep it (server needs its own copy) but apply the numerical stability fix. Document that `src/lib/pricing.ts` is the client reference and `execute-trade/index.ts` is the server reference.
+
+---
+
+### Phase 5: SEO & Performance
+
+**5A. Add SEOHead to pages missing it**
+Pages that need `<SEOHead>`:
+- `src/pages/Leaderboard.tsx`
+- `src/pages/Profile.tsx`
+- `src/pages/Portfolio.tsx`
+- `src/pages/Wallet.tsx`
+
+With appropriate titles, descriptions, and canonical URLs.
+
+**5B. Add JSON-LD to MarketDetail**
+Add structured data for market pages:
+```json
+{ "@type": "Event", "name": "...", "description": "..." }
 ```
 
-**B. Fix MarketCard Link Mismatch**
-
-`MarketCard.tsx` line 57 links to `/market/${market.id}` but the canonical route is `/markets/:id`. The `/market/:id` route exists as a legacy redirect but causes unnecessary navigation. Change to `/markets/${market.id}`.
-
-**C. Add Route Guards on Player Routes**
-
-`src/App.tsx` lines 111-115: Dashboard, Portfolio, Activity, Wallet are not wrapped in `PlayerRoute`. The guard exists in `src/routes/route-guards.tsx` but is unused. Wrap all player routes.
-
-**D. Fix Feed.tsx Missing Error Handling**
-
-`fetchMarkets` silently swallows errors. Add try/catch with an error state and user-facing fallback.
+Files: `src/pages/MarketDetail.tsx`
 
 ---
-
-### Priority 2: Medium Fixes
-
-**E. Harden AuthContext Race Condition**
-
-In `AuthContext.tsx`, `onAuthStateChange` and `getSession` both call `setLoading(false)`. If `getSession` resolves before the listener fires, the user sees the app in an unauthenticated state briefly. Fix: use a flag to ensure `getSession` result is only used if the listener hasn't fired yet.
-
-**F. Deduplicate Realtime Refetches**
-
-`MarketDetail.tsx` subscribes to `market_outcomes`, `trades`, and `market_comments` and calls `fetchAll()` on each event — meaning a single trade triggers 2 full refetches. Debounce with a 300ms timer.
-
-**G. Add Loading/Error/Empty States Across Pages**
-
-Pages that need attention:
-- `Portfolio.tsx`, `Wallet.tsx`, `Leaderboard.tsx` — need error states for failed fetches
-- `MarketDetail.tsx` — needs error state if market fetch fails (not just "not found")
-- `Dashboard.tsx` — already handles no-user, needs fetch error state
-
-**H. SEO on Key Pages**
-
-Add `SEOHead` to pages that lack it:
-- `MarketDetail.tsx` — dynamic title/description from market data, JSON-LD for the market
-- `Leaderboard.tsx` — static SEO
-- `Markets.tsx` — static SEO
-- `Rules.tsx`, `Sources.tsx` — static SEO
-
-**I. Fix GuestContext Unnecessary DB Calls**
-
-When a user is authenticated, `GuestContext` still reads from `guest_sessions` on initial mount because `user` starts as `null` in `AuthContext` while `getSession` is pending. The guest init runs, then user loads, then guest clears. Fix: check `loading` from AuthContext before initializing guest.
-
-**J. Improve ErrorBoundary**
-
-Add route context logging. Reset error state on navigation (currently the error sticks even if user navigates away via browser back).
-
----
-
-### Priority 3: Structural Improvements
-
-**K. Centralize Supabase Realtime Pattern**
-
-Create `src/hooks/useRealtimeChannel.ts` — a hook that handles:
-- Unique channel naming
-- Proper cleanup
-- Reconnection on disconnect
-- Error logging
-
-Refactor all 5 realtime usages to use this hook.
-
-**L. Standardize Fetch Error Pattern**
-
-Create `src/lib/api.ts` with a wrapper:
-```ts
-async function safeFetch<T>(query: Promise<{data: T | null, error: any}>): Promise<{data: T | null, error: string | null}>
-```
-Use across all Supabase queries to normalize error handling.
-
-**M. Add SEO for Dynamic Market Pages**
-
-In `MarketDetail.tsx`, after market data loads, set:
-- Title: `{market.title} | Pagaza`
-- Description: market description or auto-generated
-- OG image: market image_url if available
-- JSON-LD: `Event` or `Thing` schema
-
-**N. Clean Up Dead/Redundant Code**
-
-- Remove `src/pages/About.tsx`, `src/pages/FAQ.tsx`, `src/pages/Trending.tsx`, `src/pages/ClosingSoon.tsx`, `src/pages/Resolved.tsx`, `src/pages/CategoryPage.tsx` — these are now redirect targets
-- Remove `src/pages/Challenges.tsx` if it's just redirected
-- Remove unused imports in MarketCard (`useState`, `useEffect`, `supabase`)
-
-**O. Pricing Algorithm Guardrails**
-
-In `src/lib/pricing.ts` (and `MarketCard.tsx` duplicate), add:
-- Guard against `b === 0` (division by zero)
-- Guard against empty pools array
-- Clamp prices to [0, 1] range
-- Handle NaN/Infinity from Math.exp overflow
-
----
-
-### Implementation Order
-
-1. **A + B + C** — Fix crash, fix link, add guards (unblocks the app)
-2. **D + E + I** — Error handling, auth race, guest race
-3. **F + G** — Debounce realtime, add page states
-4. **H + M** — SEO hardening
-5. **K + L** — Structural hooks/utilities
-6. **N + O** — Cleanup and algorithm guards
-
-### Files Changed (estimate)
-
-| Priority | Files | Type |
-|----------|-------|------|
-| A | 5 files (realtime) | Edit |
-| B | MarketCard.tsx | Edit |
-| C | App.tsx | Edit |
-| D | Feed.tsx | Edit |
-| E | AuthContext.tsx | Edit |
-| F | MarketDetail.tsx | Edit |
-| G | 4 page files | Edit |
-| H | 5 page files | Edit |
-| I | GuestContext.tsx | Edit |
-| J | ErrorBoundary.tsx | Edit |
-| K | 1 new hook | Create |
-| L | 1 new utility | Create |
-| N | ~6 files | Delete |
-| O | pricing.ts, MarketCard.tsx | Edit |
 
 ### Assumptions
+- PesaPal API uses their v3 REST API (OAuth2 + order submission + IPN callbacks)
+- IntaSend functions are kept but deprecated (not deleted) for existing transaction continuity
+- No database schema changes needed -- existing `transactions`, `wallets`, and `ledger_entries` tables support PesaPal
+- Admin approve/reject actions will use edge functions or direct service-role Supabase calls
+- The PesaPal consumer key/secret provided are for sandbox/testing
 
-- The `lmsrPrice` function in `MarketCard.tsx` is the canonical pricing logic (duplicated from `src/lib/pricing.ts`). Will keep `src/lib/pricing.ts` as the single source and update imports.
-- The `PlayerRoute` guard from `route-guards.tsx` is the correct auth gate for player routes.
-- The existing Admin route guard (checking `has_role`) is working correctly per the network logs.
-- No database schema changes are needed for this hardening pass.
-
+### Implementation Order
+1. Phase 1 (stability) -- unblocks everything
+2. Phase 2 (PesaPal) -- core payment pivot  
+3. Phase 3 (admin) -- operational tooling
+4. Phase 4 (cleanup) -- reduce surface area
+5. Phase 5 (SEO) -- growth layer
