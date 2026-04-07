@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
+import SEOHead from "@/components/SEOHead";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -216,6 +217,7 @@ const Wallet = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead title="Dashboard | Pagaza" path="/wallet" />
       <Navbar />
 
       {/* Hero header */}
