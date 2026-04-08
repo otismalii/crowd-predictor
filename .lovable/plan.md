@@ -1,124 +1,232 @@
 
-## Pagaza Betz Production Revamp
 
-### Phase 1: Critical Stability Fixes (5 files)
+# Pagaza Fintech-Grade Refactor Plan
 
-**1A. Fix `execute-trade` edge function LMSR overflow**
-Replace raw `Math.exp(q/b)` with max-subtraction pattern in `supabase/functions/execute-trade/index.ts`. Add guards for `b <= 0`, `NaN`/`Infinity` results, and a max shares-per-trade limit (10,000). The `lmsrCost` function needs to return `b * Math.log(sum) + maxQ` instead of `b * Math.log(sum)`.
+## A. Code Audit Summary
 
-**1B. Admin route guard in App.tsx**
-Import `AdminRoute` from `src/routes/route-guards.tsx` and wrap all `/admin/*` routes. Create the `AdminRoute` component using `useAdminGuard`:
+**Critical weaknesses found:**
+
+1. **No phone number on profiles** — phone is only captured per-transaction, not stored on the user profile. No uniqueness enforcement.
+2. **No phone number verification** — anyone can enter any phone number for withdrawals.
+3. **Auth has no email verification gate** — users can trade immediately without confirming email.
+4. **Wallet page is 553 lines** — profile, portfolio, deposit/withdraw, and transaction history are all crammed into one component.
+5. **Admin overview fetches predictions/matches** (legacy sports model) instead of markets/trades/treasury KPIs.
+6. **3 "Coming Soon" placeholder pages** — Bots, Uploads, Collaborations are empty shells taking up routes.
+7. **No ledger entries created on deposit approval** — treasury `approveTransaction` credits wallet but skips ledger.
+8. **Admin Users page has no wallet balance or transaction count** — makes user investigation impossible.
+9. **No eagle-themed status language** — resolution/settlement messages are generic.
+10. **Profile edit has no phone number field** — users cannot add their phone for withdrawals.
+
+---
+
+## B. Refactor Plan — 6 Phases
+
+### Phase 1: Auth & Profile Hardening (DB migration + 3 files)
+
+**DB Migration:**
+- Add `phone_number TEXT` column to `profiles` table with a UNIQUE constraint
+- Add `phone_verified BOOLEAN DEFAULT false` to `profiles`
+- Add `email_verified BOOLEAN DEFAULT false` to `profiles`
+
+**Auth.tsx changes:**
+- After signup confirmation screen, add a "phone number required" step before allowing access to wallet
+- Add a phone number field on the post-confirmation profile setup
+- Validate phone format (254XXXXXXXXX, 10+ digits)
+
+**ProfileEdit.tsx changes:**
+- Add phone number field with format validation
+- Show current phone number (masked: 254***678)
+- Prevent phone number changes once set (require admin)
+
+**Wallet.tsx withdrawal changes:**
+- Pull phone from `profiles.phone_number` instead of manual input
+- If no phone on profile, show "Add phone number in profile first" instead of phone input
+- Block withdrawal if `profiles.phone_number` is null
+
+**pesapal-withdraw edge function:**
+- Query `profiles.phone_number` from DB instead of accepting from request body
+- Reject if no phone on profile
+
+### Phase 2: Wallet Page Split & Eagle Theming (5 files)
+
+Split `Wallet.tsx` (553 lines) into focused sections:
+
+**Keep `Wallet.tsx` as the dashboard shell** (~150 lines) — layout, header, stats row only.
+
+**Extract to new components:**
+- `src/components/wallet/DepositWithdraw.tsx` — deposit/withdraw form with PesaPal flow
+- `src/components/wallet/PositionsPanel.tsx` — portfolio positions list with filtering
+- `src/components/wallet/TransactionHistory.tsx` — recent transactions list
+
+**Eagle-themed status language:**
+- Market resolved → "Eagle has landed" badge
+- High-confidence market → "Eagle vision" indicator
+- Dispute/conflict → "Turbulence detected" label
+- Successful payout → "Landing confirmed" toast
+- Apply these in `MarketStatusPill.tsx`, `ResolutionBadge.tsx`, toast messages, and settlement notifications
+
+### Phase 3: Admin Control Room Overhaul (6 files)
+
+**AdminOverviewPage.tsx — complete rewrite of stats:**
+- Replace predictions/matches counters with fintech KPIs:
+  - Total users, Active users (7d), Open markets, Total volume
+  - Pending deposits, Pending withdrawals, Net treasury balance
+  - Today's trades, Resolution queue depth
+- Add "Pending Actions" section showing counts of items needing admin attention
+- Add "System Health" indicators (PesaPal connectivity, last sync time)
+
+**AdminUsersPage.tsx enhancements:**
+- Add wallet balance column per user
+- Add transaction count column
+- Add phone number display (masked)
+- Add "Flag User" / "Suspend" toggle with reason capture
+- Add link to user's transaction history
+
+**AdminTreasuryPage.tsx fixes:**
+- Fix `approveTransaction` to create ledger entries (currently missing)
+- Add "Liabilities" card (sum of all user wallet balances = what platform owes)
+- Add "Platform Revenue" card (sum of house_fee ledger entries)
+- Add "Reserve Ratio" indicator (treasury net balance vs user liabilities)
+- Add confirmation dialog before approve/reject with reason field
+
+**AdminFraudPage.tsx enhancements:**
+- Add "Flag User" action button on each alert
+- Add "Block Transaction" action button
+- Add "Dismiss Alert" with reason capture
+- Add fraud alert history (not just current scan)
+
+**Delete placeholder pages (3 files):**
+- `AdminBotsPage.tsx` — remove from routes
+- `AdminUploadsPage.tsx` — remove from routes
+- `AdminCollaborationsPage.tsx` — remove from routes
+- Update `App.tsx` to remove these 3 routes
+- Update `AdminOverviewPage.tsx` to remove Bots, Uploads, Collabs from quick links
+
+### Phase 4: Trading & Resolution Hardening (3 files)
+
+**execute-trade edge function:**
+- Add idempotency check (prevent double-submit within 5s for same user+market+outcome+shares)
+- Add ledger entry for every trade (currently only `transactions` table, no ledger)
+- Validate market `closes_at` hasn't passed before allowing trade
+
+**MarketDetail.tsx improvements:**
+- Add fee disclosure before trade confirmation ("Cost: KES 52.30 incl. 0% fee")
+- Add position lock indicator for resolved markets
+- Show settlement status with eagle-themed language
+- Add "Market Rules" expandable section showing resolution criteria
+- Improve trade confirmation: show estimated price impact
+
+**Resolution system (AdminResolutionPage.tsx):**
+- Keep AdminDisputes and AdminSourceRegistry (they're functional)
+- Add resolution confidence indicator per market
+- Add "Admin Override" with mandatory reason field
+- Show resolution audit trail
+
+### Phase 5: Ledger & Treasury Integrity (2 files)
+
+**treasuryService.ts:**
+- Fix `approveTransaction` to create ledger entries:
+  ```
+  For deposits: ledger entry type "deposit", balance_after = wallet.balance + amount
+  For withdrawals: ledger entry already created at hold time, mark as "completed"
+  ```
+- Fix `rejectTransaction` for deposits: no ledger entry needed (no money moved)
+- Fix `rejectTransaction` for withdrawals: create refund ledger entry
+
+**execute-trade edge function:**
+- Add ledger entries for trade_buy and trade_sell
+- Include `balance_after` in every entry
+
+### Phase 6: UX Polish & Cleanup (8 files)
+
+**Mobile-first improvements:**
+- Add `pb-20` to main content containers (mobile nav covers bottom content)
+- Ensure all admin tables have horizontal scroll on mobile
+- Add touch-friendly tap targets (min 44px) on trade buttons
+
+**Empty states:**
+- All admin pages: show helpful empty states instead of blank tables
+- Markets page: "No markets yet — create one from the admin panel"
+
+**Error handling:**
+- Wrap all `fetchAll` patterns in try-catch with user-facing error toasts
+- Add retry buttons on error states
+
+**Performance:**
+- Remove unused imports across all files (Aurora, SplitText used sparingly)
+- Add `useMemo` for expensive computations in admin pages
+
+---
+
+## C. Target File Structure
+
 ```text
-<Route path="/admin" element={<AdminRoute><AdminOverviewPage /></AdminRoute>} />
+src/
+├── components/
+│   ├── admin/          (AdminOverview, AdminUsers, AdminMatches, etc.)
+│   ├── layout/         (Navbar, Footer, MobileNav, ProtectedRoute)
+│   ├── markets/        (MarketCard, MarketFilters, MarketGrid, etc.)
+│   ├── wallet/         (DepositWithdraw, PositionsPanel, TransactionHistory) ← NEW
+│   ├── skeletons/      (loading states)
+│   ├── reactbits/      (Aurora, GradientText, etc.)
+│   └── ui/             (shadcn primitives)
+├── contexts/           (AuthContext, GuestContext)
+├── hooks/              (useAdminGuard, usePullToRefresh, etc.)
+├── lib/                (pricing, ledger, format, utils, etc.)
+├── pages/
+│   ├── admin/          (Overview, Treasury, Fraud, Analytics, Markets, Users, Resolution)
+│   └── player/         (Dashboard, Activity)
+├── routes/             (route-guards)
+├── services/           (walletService, treasuryService, fraudService, etc.)
+└── integrations/       (supabase client + types)
 ```
-Then remove the duplicated inline `has_role` RPC checks from `AdminOverviewPage`, `AdminMarketsPage`, and all other admin pages -- they should just render content directly since the route guard handles auth.
 
-**1C. PWA iframe guard in main.tsx**
-Add before service worker registration:
-```text
-const isInIframe = window.self !== window.top
-const isPreviewHost = window.location.hostname.includes("id-preview--")
-if (isPreviewHost || isInIframe) {
-  navigator.serviceWorker?.getRegistrations().then(regs => regs.forEach(r => r.unregister()))
-}
-```
+**Files to delete:**
+- `src/pages/admin/AdminBotsPage.tsx`
+- `src/pages/admin/AdminUploadsPage.tsx`
+- `src/pages/admin/AdminCollaborationsPage.tsx`
 
-**1D. Fix Feed.tsx hero background**
-Replace the `heroBg` import with an inline CSS gradient fallback. Remove dependency on `src/assets/hero-bg.jpg`.
+**Files to create:**
+- `src/components/wallet/DepositWithdraw.tsx`
+- `src/components/wallet/PositionsPanel.tsx`
+- `src/components/wallet/TransactionHistory.tsx`
 
 ---
 
-### Phase 2: PesaPal Payment Integration (4 new files, 1 edit)
+## D. Security Hardening Checklist
 
-**2A. Add secrets**
-Store `PESAPAL_CONSUMER_KEY` (`5dmbgMfLGLVcQ7NQDyyVKuzIEshhQMkN`) and `PESAPAL_CONSUMER_SECRET` (`KvwEhJa6BV9muE5djcmfTFZKnvE=`).
-
-**2B. Create `supabase/functions/pesapal-deposit/index.ts`**
-- Authenticate user via JWT
-- Call PesaPal v3 OAuth2 (`https://pay.pesapal.com/v3/api/Auth/RequestToken`) to get bearer token
-- Register IPN callback URL
-- Submit order via `https://pay.pesapal.com/v3/api/Transactions/SubmitOrderRequest`
-- Create pending transaction in DB with PesaPal `order_tracking_id` as reference
-- Return redirect URL to client
-
-**2C. Create `supabase/functions/pesapal-callback/index.ts`**
-- Receive IPN notification from PesaPal
-- Query transaction status via `https://pay.pesapal.com/v3/api/Transactions/GetTransactionStatus`
-- On status=1 (completed): credit wallet, update transaction, create notification
-- On failed: mark transaction failed
-
-**2D. Create `supabase/functions/pesapal-withdraw/index.ts`**
-- Validate balance, deduct immediately
-- Create pending withdrawal transaction
-- Admin approves/rejects via treasury dashboard (no auto-disbursement yet)
-
-**2E. Update `src/pages/Wallet.tsx`**
-- Replace IntaSend STK push with PesaPal redirect flow
-- Deposit: call `pesapal-deposit`, redirect user to PesaPal payment page
-- Withdraw: submit request, show pending status
-- Keep transaction history and portfolio sections unchanged
+| Item | Status |
+|------|--------|
+| Admin routes guarded by `AdminRoute` | ✅ Already done |
+| `has_role` RPC for admin checks | ✅ Already done |
+| Phone uniqueness per account | 🔧 Phase 1 |
+| Phone pulled from profile, not request | 🔧 Phase 1 |
+| Ledger entries on all fund movements | 🔧 Phase 5 |
+| Trade idempotency guard | 🔧 Phase 4 |
+| Approval confirmation dialogs | 🔧 Phase 3 |
+| LMSR overflow protection | ✅ Already done |
+| PesaPal JWT validation | ✅ Already done |
+| RLS on all tables | ✅ Already done |
 
 ---
 
-### Phase 3: Admin Treasury & Fraud Hardening (4 files)
+## E. Non-Negotiable Checklist
 
-**3A. Treasury approve/reject actions**
-Add to `AdminTreasuryPage.tsx`:
-- "Approve" / "Reject" buttons on pending deposits and withdrawals
-- Approve deposit: update transaction status to completed, credit wallet
-- Reject deposit: update status to failed
-- Approve withdrawal: mark as processed
-- Reject withdrawal: refund wallet balance, update status
+| Requirement | Phase |
+|-------------|-------|
+| Auth is secure and predictable | 1 |
+| Email verification works | 1 (already via Supabase) |
+| Phone number required & unique | 1 |
+| Wallet is ledger-based | 5 |
+| Deposits/withdrawals auditable | 5 |
+| Treasury/liabilities visible | 3 |
+| Trades are safe and validated | 4 |
+| Oracle resolution is evidence-based | 4 |
+| Admin override is logged | 4 |
+| Fraud signals tracked | 3 |
+| Analytics meaningful | 3 |
+| UI feels premium and mobile-first | 2, 6 |
+| Empty/loading/error states polished | 6 |
+| Code modular and maintainable | 2 |
+| No placeholder pages | 3 |
 
-Add corresponding functions to `src/services/treasuryService.ts`:
-- `approveTransaction(txId)` 
-- `rejectTransaction(txId)`
-
-**3B. Enhanced fraud detection**
-Add to `src/services/fraudService.ts`:
-- Same phone number across multiple user accounts
-- Failed deposit spam detection (>3 failed in 1 hour)
-
-Add admin action buttons to `AdminFraudPage.tsx`:
-- "Flag User" button
-- "Block Transaction" button
-
-**3C. Admin users page enhancement**
-Update `AdminUsersPage.tsx` with:
-- Wallet balance display per user
-- Transaction count
-- Flag/suspend toggle
-
----
-
-### Phase 4: Dead Code Cleanup (delete ~6 files)
-
-Check imports and remove unused admin components:
-- `src/components/admin/AdminAPI.tsx`
-- `src/components/admin/AdminAuditLog.tsx`
-- `src/components/admin/AdminDisputes.tsx`
-- `src/components/admin/AdminIngestion.tsx`
-- `src/components/admin/AdminPredictions.tsx`
-- `src/components/admin/AdminSourceRegistry.tsx`
-
-Only delete if no other file imports them.
-
----
-
-### Phase 5: SEO (4 files)
-
-Add `<SEOHead>` to:
-- `Leaderboard.tsx`: title="Leaderboard | Pagaza"
-- `Portfolio.tsx`: title="Portfolio | Pagaza"
-- `Wallet.tsx`: title="Dashboard | Pagaza"
-- `MarketDetail.tsx`: Add JSON-LD structured data for the market
-
----
-
-### Technical Notes
-
-- PesaPal API base: `https://pay.pesapal.com/v3/api/` (production) -- the provided keys appear to be production keys
-- IntaSend functions are NOT deleted -- kept as deprecated fallback
-- No database schema changes required
-- All admin pages will use `useAdminGuard` hook consistently instead of inline RPC calls
-- Edge function LMSR fix is critical for preventing trade failures with large pool values
