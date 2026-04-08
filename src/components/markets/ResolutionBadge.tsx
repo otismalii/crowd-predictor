@@ -1,4 +1,4 @@
-import { CheckCircle2, AlertCircle } from "lucide-react";
+import { CheckCircle2, AlertCircle, Eye } from "lucide-react";
 
 interface ResolutionBadgeProps {
   source?: string | null;
@@ -14,8 +14,8 @@ const ResolutionBadge = ({ source, verified }: ResolutionBadgeProps) => {
         ? "bg-primary/10 text-primary border border-primary/20"
         : "bg-muted text-muted-foreground border border-border/30"
     }`}>
-      {verified ? <CheckCircle2 className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" />}
-      {source}
+      {verified ? <CheckCircle2 className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+      {verified ? "Eagle Vision" : source}
     </span>
   );
 };
