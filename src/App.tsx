@@ -42,11 +42,8 @@ const AdminOverviewPage = lazy(() => import("./pages/admin/AdminOverviewPage"));
 const AdminMarketsPage = lazy(() => import("./pages/admin/AdminMarketsPage"));
 const AdminMarketsNewPage = lazy(() => import("./pages/admin/AdminMarketsNewPage"));
 const AdminResolutionPage = lazy(() => import("./pages/admin/AdminResolutionPage"));
-const AdminBotsPage = lazy(() => import("./pages/admin/AdminBotsPage"));
 const AdminAnalyticsPage = lazy(() => import("./pages/admin/AdminAnalyticsPage"));
 const AdminUsersPage = lazy(() => import("./pages/admin/AdminUsersPage"));
-const AdminUploadsPage = lazy(() => import("./pages/admin/AdminUploadsPage"));
-const AdminCollaborationsPage = lazy(() => import("./pages/admin/AdminCollaborationsPage"));
 const AdminTreasuryPage = lazy(() => import("./pages/admin/AdminTreasuryPage"));
 const AdminFraudPage = lazy(() => import("./pages/admin/AdminFraudPage"));
 
@@ -122,11 +119,8 @@ const AnimatedRoutes = () => {
           <Route path="/admin/markets" element={<AnimatedPage><AdminRoute><AdminMarketsPage /></AdminRoute></AnimatedPage>} />
           <Route path="/admin/markets/new" element={<AnimatedPage><AdminRoute><AdminMarketsNewPage /></AdminRoute></AnimatedPage>} />
           <Route path="/admin/resolution" element={<AnimatedPage><AdminRoute><AdminResolutionPage /></AdminRoute></AnimatedPage>} />
-          <Route path="/admin/bots" element={<AnimatedPage><AdminRoute><AdminBotsPage /></AdminRoute></AnimatedPage>} />
           <Route path="/admin/analytics" element={<AnimatedPage><AdminRoute><AdminAnalyticsPage /></AdminRoute></AnimatedPage>} />
           <Route path="/admin/users" element={<AnimatedPage><AdminRoute><AdminUsersPage /></AdminRoute></AnimatedPage>} />
-          <Route path="/admin/uploads" element={<AnimatedPage><AdminRoute><AdminUploadsPage /></AdminRoute></AnimatedPage>} />
-          <Route path="/admin/collaborations" element={<AnimatedPage><AdminRoute><AdminCollaborationsPage /></AdminRoute></AnimatedPage>} />
           <Route path="/admin/treasury" element={<AnimatedPage><AdminRoute><AdminTreasuryPage /></AdminRoute></AnimatedPage>} />
           <Route path="/admin/fraud" element={<AnimatedPage><AdminRoute><AdminFraudPage /></AdminRoute></AnimatedPage>} />
 
