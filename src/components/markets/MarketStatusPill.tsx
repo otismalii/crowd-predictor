@@ -5,6 +5,13 @@ interface MarketStatusPillProps {
   size?: "sm" | "md";
 }
 
+const eagleLabels: Record<string, string> = {
+  resolved: "🦅 LANDED",
+  open: "LIVE",
+  closed: "CLOSED",
+  cancelled: "CANCELLED",
+};
+
 const MarketStatusPill = ({ status, size = "sm" }: MarketStatusPillProps) => {
   const colorClass = getStatusColor(status);
   const sizeClass = size === "sm" ? "text-[10px] px-2 py-0.5" : "text-xs px-2.5 py-1";
@@ -12,7 +19,7 @@ const MarketStatusPill = ({ status, size = "sm" }: MarketStatusPillProps) => {
   return (
     <span className={`${sizeClass} rounded-full font-semibold ${colorClass}`}>
       {status === "open" && <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary mr-1" />}
-      {status.toUpperCase()}
+      {eagleLabels[status] || status.toUpperCase()}
     </span>
   );
 };

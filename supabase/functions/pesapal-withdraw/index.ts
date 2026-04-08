@@ -26,12 +26,9 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
     }
 
-    const { amount, phone_number } = await req.json();
+    const { amount } = await req.json();
     if (!amount || amount < 10) {
       return new Response(JSON.stringify({ error: "Minimum withdrawal is KES 10" }), { status: 400, headers: corsHeaders });
-    }
-    if (!phone_number) {
-      return new Response(JSON.stringify({ error: "Phone number required" }), { status: 400, headers: corsHeaders });
     }
 
     const db = createClient(
@@ -39,14 +36,22 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
+    // Get phone number from profile (not from request body)
+    const { data: profile } = await db.from("profiles").select("phone_number").eq("id", user.id).single();
+    if (!profile?.phone_number) {
+      return new Response(JSON.stringify({ error: "No phone number on profile. Add your phone number in profile settings first." }), { status: 400, headers: corsHeaders });
+    }
+    const phone_number = profile.phone_number;
+
     const { data: wallet } = await db.from("wallets").select("id, balance").eq("user_id", user.id).single();
     if (!wallet || Number(wallet.balance) < amount) {
       return new Response(JSON.stringify({ error: "Insufficient balance" }), { status: 400, headers: corsHeaders });
     }
 
     // Deduct immediately (hold)
+    const newBalance = Number(wallet.balance) - amount;
     await db.from("wallets").update({
-      balance: Number(wallet.balance) - amount,
+      balance: newBalance,
       updated_at: new Date().toISOString(),
     }).eq("id", wallet.id);
 
@@ -68,7 +73,7 @@ serve(async (req) => {
       wallet_id: wallet.id,
       entry_type: "withdrawal",
       amount: -amount,
-      balance_after: Number(wallet.balance) - amount,
+      balance_after: newBalance,
       reference_id: tx?.id,
       description: `Withdrawal hold - pending admin approval`,
     });
@@ -77,8 +82,8 @@ serve(async (req) => {
     await db.from("notifications").insert({
       user_id: user.id,
       type: "withdrawal",
-      title: "Withdrawal Submitted",
-      message: `Your withdrawal of KES ${amount.toLocaleString()} is pending approval`,
+      title: "🦅 Withdrawal Submitted",
+      message: `Your withdrawal of KES ${amount.toLocaleString()} is pending approval. Landing confirmed soon.`,
       link: "/wallet",
     });
 

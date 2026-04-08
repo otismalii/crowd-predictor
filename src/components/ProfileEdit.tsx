@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Camera, Save, X } from "lucide-react";
+import { Camera, Save, X, Phone, Lock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import SpotlightCard from "@/components/reactbits/SpotlightCard";
 
@@ -23,9 +23,18 @@ const ProfileEdit = ({ profile, onClose, onSaved }: ProfileEditProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [username, setUsername] = useState(profile.username || "");
   const [bio, setBio] = useState(profile.bio || "");
+  const [phoneNumber, setPhoneNumber] = useState(profile.phone_number || "");
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url || "");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const phoneAlreadySet = !!profile.phone_number;
+
+  const validatePhone = (phone: string): boolean => {
+    if (!phone) return true; // optional if not set yet
+    const cleaned = phone.replace(/\s+/g, "");
+    return /^254\d{9}$/.test(cleaned);
+  };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -65,21 +74,38 @@ const ProfileEdit = ({ profile, onClose, onSaved }: ProfileEditProps) => {
       return;
     }
 
+    // Validate phone if being set for the first time
+    const cleanedPhone = phoneNumber.replace(/\s+/g, "");
+    if (cleanedPhone && !validatePhone(cleanedPhone)) {
+      toast({ title: "Invalid phone format", description: "Use format: 254XXXXXXXXX (12 digits)", variant: "destructive" });
+      return;
+    }
+
     setSaving(true);
+    const updateData: any = {
+      username: username.trim(),
+      bio: bio.trim(),
+      avatar_url: avatarUrl || null,
+    };
+
+    // Only allow setting phone if not already set
+    if (!phoneAlreadySet && cleanedPhone) {
+      updateData.phone_number = cleanedPhone;
+    }
+
     const { error } = await supabase
       .from("profiles")
-      .update({
-        username: username.trim(),
-        bio: bio.trim(),
-        avatar_url: avatarUrl || null,
-      })
+      .update(updateData)
       .eq("id", user.id);
 
     if (error) {
-      toast({ title: "Save failed", description: error.message, variant: "destructive" });
+      const msg = error.message?.includes("idx_profiles_phone_number_unique")
+        ? "This phone number is already linked to another account"
+        : error.message;
+      toast({ title: "Save failed", description: msg, variant: "destructive" });
     } else {
       toast({ title: "Profile updated! ✨" });
-      onSaved({ ...profile, username: username.trim(), bio: bio.trim(), avatar_url: avatarUrl });
+      onSaved({ ...profile, ...updateData });
     }
     setSaving(false);
   };
@@ -136,6 +162,36 @@ const ProfileEdit = ({ profile, onClose, onSaved }: ProfileEditProps) => {
               className="bg-background/50"
             />
             <p className="text-[11px] text-muted-foreground text-right">{username.length}/30</p>
+          </div>
+
+          {/* Phone Number */}
+          <div className="space-y-1.5">
+            <Label className="text-xs flex items-center gap-1.5">
+              <Phone className="h-3 w-3 text-primary" /> Phone Number
+              {phoneAlreadySet && <Lock className="h-3 w-3 text-muted-foreground" />}
+            </Label>
+            {phoneAlreadySet ? (
+              <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-border/30 bg-muted/20">
+                <Phone className="h-4 w-4 text-muted-foreground" />
+                <span className="font-display text-sm">
+                  {profile.phone_number.slice(0, 3)}***{profile.phone_number.slice(-3)}
+                </span>
+                <span className="text-[10px] text-muted-foreground ml-auto">Contact admin to change</span>
+              </div>
+            ) : (
+              <>
+                <Input
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value.replace(/[^0-9]/g, "").slice(0, 12))}
+                  placeholder="254712345678"
+                  className="bg-background/50 font-display"
+                  maxLength={12}
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Format: 254XXXXXXXXX · Required for withdrawals · Cannot be changed later
+                </p>
+              </>
+            )}
           </div>
 
           {/* Bio */}
