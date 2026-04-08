@@ -821,8 +821,11 @@ export type Database = {
           created_at: string
           current_streak: number
           email: string | null
+          email_verified: boolean
           followers_count: number
           id: string
+          phone_number: string | null
+          phone_verified: boolean
           reputation_score: number
           subscription_plan: Database["public"]["Enums"]["subscription_plan"]
           username: string | null
@@ -835,8 +838,11 @@ export type Database = {
           created_at?: string
           current_streak?: number
           email?: string | null
+          email_verified?: boolean
           followers_count?: number
           id: string
+          phone_number?: string | null
+          phone_verified?: boolean
           reputation_score?: number
           subscription_plan?: Database["public"]["Enums"]["subscription_plan"]
           username?: string | null
@@ -849,8 +855,11 @@ export type Database = {
           created_at?: string
           current_streak?: number
           email?: string | null
+          email_verified?: boolean
           followers_count?: number
           id?: string
+          phone_number?: string | null
+          phone_verified?: boolean
           reputation_score?: number
           subscription_plan?: Database["public"]["Enums"]["subscription_plan"]
           username?: string | null
