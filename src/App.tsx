@@ -9,6 +9,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { HelmetProvider } from "react-helmet-async";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import MobileNav from "@/components/layout/MobileNav";
+import InstallBanner from "@/components/InstallBanner";
 import { AnimatePresence, motion } from "framer-motion";
 import { lazy, Suspense } from "react";
 import { Navigate } from "react-router-dom";
@@ -46,6 +47,7 @@ const AdminAnalyticsPage = lazy(() => import("./pages/admin/AdminAnalyticsPage")
 const AdminUsersPage = lazy(() => import("./pages/admin/AdminUsersPage"));
 const AdminTreasuryPage = lazy(() => import("./pages/admin/AdminTreasuryPage"));
 const AdminFraudPage = lazy(() => import("./pages/admin/AdminFraudPage"));
+const AdminAuditPage = lazy(() => import("./pages/admin/AdminAuditPage"));
 
 // Lazy loads — misc
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -123,6 +125,7 @@ const AnimatedRoutes = () => {
           <Route path="/admin/users" element={<AnimatedPage><AdminRoute><AdminUsersPage /></AdminRoute></AnimatedPage>} />
           <Route path="/admin/treasury" element={<AnimatedPage><AdminRoute><AdminTreasuryPage /></AdminRoute></AnimatedPage>} />
           <Route path="/admin/fraud" element={<AnimatedPage><AdminRoute><AdminFraudPage /></AdminRoute></AnimatedPage>} />
+          <Route path="/admin/audit" element={<AnimatedPage><AdminRoute><AdminAuditPage /></AdminRoute></AnimatedPage>} />
 
           {/* ========== REDIRECTS ========== */}
           <Route path="/trending" element={<Navigate to="/markets?sort=trending" replace />} />
@@ -137,6 +140,7 @@ const AnimatedRoutes = () => {
         </Routes>
       </AnimatePresence>
       {!isAuthPage && <MobileNav />}
+      <InstallBanner />
     </>
   );
 };
