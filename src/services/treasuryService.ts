@@ -96,12 +96,12 @@ export async function fetchLedgerEntries(limit = 100) {
 }
 
 /**
- * Approve a pending transaction (deposit or withdrawal).
- * For deposits: credit wallet + create ledger entry.
- * For withdrawals: mark as processed (funds already held, ledger already created).
+ * Approve a pending transaction with mandatory reason + audit log.
  */
-export async function approveTransaction(tx: TransactionRow): Promise<{ error: string | null }> {
+export async function approveTransaction(tx: TransactionRow, reason?: string): Promise<{ error: string | null }> {
   try {
+    const currentUser = (await supabase.auth.getUser()).data.user;
+
     if (tx.type === "deposit") {
       const { data: wallet } = await supabase.from("wallets").select("id, balance").eq("id", tx.wallet_id).single();
       if (wallet) {
@@ -111,7 +111,6 @@ export async function approveTransaction(tx: TransactionRow): Promise<{ error: s
           updated_at: new Date().toISOString(),
         }).eq("id", wallet.id);
 
-        // Create ledger entry for deposit
         await supabase.from("ledger_entries").insert({
           user_id: tx.user_id,
           wallet_id: wallet.id,
@@ -123,12 +122,26 @@ export async function approveTransaction(tx: TransactionRow): Promise<{ error: s
         });
       }
     }
-    // For withdrawals: funds already held and ledger entry already created at hold time
-    
+
     await supabase.from("transactions").update({
       status: "completed",
       updated_at: new Date().toISOString(),
     }).eq("id", tx.id);
+
+    // Audit log
+    if (currentUser) {
+      await supabase.from("market_audit_log").insert({
+        action: "transaction_approved",
+        performed_by: currentUser.id,
+        details: {
+          transaction_id: tx.id,
+          type: tx.type,
+          amount: tx.amount,
+          user_id: tx.user_id,
+          reason: reason || "No reason provided",
+        },
+      });
+    }
 
     await supabase.from("notifications").insert({
       user_id: tx.user_id,
@@ -145,12 +158,12 @@ export async function approveTransaction(tx: TransactionRow): Promise<{ error: s
 }
 
 /**
- * Reject a pending transaction.
- * For withdrawals: refund the held balance + create refund ledger entry.
- * For deposits: no money moved, just update status.
+ * Reject a pending transaction with mandatory reason + audit log.
  */
 export async function rejectTransaction(tx: TransactionRow, reason?: string): Promise<{ error: string | null }> {
   try {
+    const currentUser = (await supabase.auth.getUser()).data.user;
+
     if (tx.type === "withdrawal") {
       const { data: wallet } = await supabase.from("wallets").select("id, balance").eq("id", tx.wallet_id).single();
       if (wallet) {
@@ -160,7 +173,6 @@ export async function rejectTransaction(tx: TransactionRow, reason?: string): Pr
           updated_at: new Date().toISOString(),
         }).eq("id", wallet.id);
 
-        // Refund ledger entry
         await supabase.from("ledger_entries").insert({
           user_id: tx.user_id,
           wallet_id: wallet.id,
@@ -178,6 +190,21 @@ export async function rejectTransaction(tx: TransactionRow, reason?: string): Pr
       description: (tx.description || "") + ` [REJECTED${reason ? `: ${reason}` : ""}]`,
       updated_at: new Date().toISOString(),
     }).eq("id", tx.id);
+
+    // Audit log
+    if (currentUser) {
+      await supabase.from("market_audit_log").insert({
+        action: "transaction_rejected",
+        performed_by: currentUser.id,
+        details: {
+          transaction_id: tx.id,
+          type: tx.type,
+          amount: tx.amount,
+          user_id: tx.user_id,
+          reason: reason || "No reason provided",
+        },
+      });
+    }
 
     await supabase.from("notifications").insert({
       user_id: tx.user_id,

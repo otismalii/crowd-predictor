@@ -7,11 +7,8 @@ const corsHeaders = {
 };
 
 const MAX_SHARES_PER_TRADE = 10000;
+const IDEMPOTENCY_WINDOW_MS = 5000;
 
-/**
- * Numerically stable LMSR using max-subtraction pattern.
- * Prevents overflow by subtracting max(q_i/b) before exponentiation.
- */
 function stableExps(pools: number[], b: number): { exps: number[]; maxQ: number } {
   const maxQ = Math.max(...pools);
   const exps = pools.map(q => Math.exp((q - maxQ) / b));
@@ -85,9 +82,35 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
+    // Phone number gate — require phone before trading
+    const { data: profile } = await db.from("profiles").select("phone_number").eq("id", userId).single();
+    if (!profile?.phone_number) {
+      return new Response(JSON.stringify({ error: "Add your phone number in profile settings before trading" }), { status: 400, headers: corsHeaders });
+    }
+
+    // Idempotency guard — reject duplicate trades within 5 seconds
+    const cutoff = new Date(Date.now() - IDEMPOTENCY_WINDOW_MS).toISOString();
+    const { data: recentTrades } = await db.from("trades")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("market_id", market_id)
+      .eq("outcome_id", outcome_id)
+      .eq("side", side)
+      .gte("created_at", cutoff)
+      .limit(1);
+
+    if (recentTrades && recentTrades.length > 0) {
+      return new Response(JSON.stringify({ error: "Duplicate trade detected. Please wait a moment." }), { status: 429, headers: corsHeaders });
+    }
+
     const { data: market } = await db.from("markets").select("*").eq("id", market_id).single();
     if (!market || market.status !== "open") {
       return new Response(JSON.stringify({ error: "Market not open" }), { status: 400, headers: corsHeaders });
+    }
+
+    // closes_at validation
+    if (market.closes_at && new Date(market.closes_at) < new Date()) {
+      return new Response(JSON.stringify({ error: "Market has closed for trading" }), { status: 400, headers: corsHeaders });
     }
 
     const { data: outcomes } = await db.from("market_outcomes")
@@ -119,8 +142,9 @@ serve(async (req) => {
         return new Response(JSON.stringify({ error: "Insufficient balance", required: cost, balance: wallet?.balance || 0 }), { status: 400, headers: corsHeaders });
       }
 
+      const newBalance = Number(wallet.balance) - cost;
       await db.from("wallets")
-        .update({ balance: wallet.balance - cost, updated_at: new Date().toISOString() })
+        .update({ balance: newBalance, updated_at: new Date().toISOString() })
         .eq("id", wallet.id);
 
       pools[outcomeIndex] += shares;
@@ -147,10 +171,10 @@ serve(async (req) => {
         });
       }
 
-      await db.from("trades").insert({
+      const { data: trade } = await db.from("trades").insert({
         user_id: userId, market_id, outcome_id, side: "buy",
         shares, price_per_share: pricePerShare, total_cost: cost,
-      });
+      }).select("id").single();
 
       await db.from("markets")
         .update({ total_volume: Number(market.total_volume) + cost })
@@ -160,6 +184,17 @@ serve(async (req) => {
         user_id: userId, wallet_id: wallet.id, type: "bet_stake",
         amount: cost, status: "completed",
         description: `Bought ${shares} shares of "${outcomes[outcomeIndex].label}"`,
+      });
+
+      // Ledger entry for buy
+      await db.from("ledger_entries").insert({
+        user_id: userId,
+        wallet_id: wallet.id,
+        entry_type: "trade_buy",
+        amount: -cost,
+        balance_after: newBalance,
+        reference_id: trade?.id || null,
+        description: `Buy ${shares} shares "${outcomes[outcomeIndex].label}" @ ${pricePerShare.toFixed(4)}`,
       });
 
     } else if (side === "sell") {
@@ -175,9 +210,11 @@ serve(async (req) => {
       cost = -returnAmt;
 
       const { data: wallet } = await db.from("wallets").select("id, balance").eq("user_id", userId).single();
+      let newBalance = 0;
       if (wallet) {
+        newBalance = Number(wallet.balance) + returnAmt;
         await db.from("wallets")
-          .update({ balance: Number(wallet.balance) + returnAmt, updated_at: new Date().toISOString() })
+          .update({ balance: newBalance, updated_at: new Date().toISOString() })
           .eq("id", wallet.id);
       }
 
@@ -198,16 +235,27 @@ serve(async (req) => {
         }).eq("id", pos.id);
       }
 
-      await db.from("trades").insert({
+      const { data: trade } = await db.from("trades").insert({
         user_id: userId, market_id, outcome_id, side: "sell",
         shares, price_per_share: pricePerShare, total_cost: returnAmt,
-      });
+      }).select("id").single();
 
       if (wallet) {
         await db.from("transactions").insert({
           user_id: userId, wallet_id: wallet.id, type: "bet_win",
           amount: returnAmt, status: "completed",
           description: `Sold ${shares} shares of "${outcomes[outcomeIndex].label}"`,
+        });
+
+        // Ledger entry for sell
+        await db.from("ledger_entries").insert({
+          user_id: userId,
+          wallet_id: wallet.id,
+          entry_type: "trade_sell",
+          amount: returnAmt,
+          balance_after: newBalance,
+          reference_id: trade?.id || null,
+          description: `Sell ${shares} shares "${outcomes[outcomeIndex].label}" @ ${pricePerShare.toFixed(4)}`,
         });
       }
     } else {

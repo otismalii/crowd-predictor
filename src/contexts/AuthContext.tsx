@@ -2,15 +2,34 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
+interface UserProfile {
+  id: string;
+  username: string | null;
+  email: string | null;
+  phone_number: string | null;
+  phone_verified: boolean;
+  email_verified: boolean;
+  avatar_url: string | null;
+  reputation_score: number;
+  accuracy_rate: number;
+  current_streak: number;
+  best_streak: number;
+  followers_count: number;
+  subscription_plan: string;
+  bio: string | null;
+}
+
 interface AuthContextType {
   session: Session | null;
   user: User | null;
+  profile: UserProfile | null;
   loading: boolean;
   signUp: (email: string, password: string, username: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: any }>;
   updatePassword: (password: string) => Promise<{ error: any }>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -18,7 +37,21 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const fetchProfile = async (userId: string) => {
+    try {
+      const { data } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .single();
+      if (data) setProfile(data as UserProfile);
+    } catch {
+      // Profile may not exist yet
+    }
+  };
 
   useEffect(() => {
     let listenerFired = false;
@@ -28,19 +61,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+
+      if (session?.user) {
+        // Defer profile fetch to avoid blocking auth state
+        setTimeout(() => fetchProfile(session.user.id), 0);
+      } else {
+        setProfile(null);
+      }
     });
 
-    // Only use getSession result if the listener hasn't fired yet
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!listenerFired) {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        if (session?.user) {
+          fetchProfile(session.user.id);
+        }
       }
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const refreshProfile = async () => {
+    if (user) await fetchProfile(user.id);
+  };
 
   const signUp = async (email: string, password: string, username: string) => {
     const { error } = await supabase.auth.signUp({
@@ -76,7 +122,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, loading, signUp, signIn, signOut, resetPassword, updatePassword }}>
+    <AuthContext.Provider value={{ session, user, profile, loading, signUp, signIn, signOut, resetPassword, updatePassword, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );
