@@ -14,14 +14,25 @@ import Footer from "@/components/layout/Footer";
 import SEOHead from "@/components/SEOHead";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CardContent } from "@/components/ui/card";
 import SpotlightCard from "@/components/reactbits/SpotlightCard";
 import AnimatedCounter from "@/components/reactbits/AnimatedCounter";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import {
   Landmark, ArrowDownLeft, ArrowUpRight, RefreshCw, Search,
-  Clock, DollarSign, Wallet, CheckCircle2, XCircle,
+  Clock, DollarSign, Wallet, CheckCircle2, XCircle, Shield,
 } from "lucide-react";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
@@ -35,6 +46,10 @@ const AdminTreasuryPage = () => {
   const [activeTab, setActiveTab] = useState<"transactions" | "ledger">("transactions");
   const [txFilter, setTxFilter] = useState({ status: "all", type: "all", search: "" });
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  // Confirmation dialog state
+  const [confirmDialog, setConfirmDialog] = useState<{ tx: TransactionRow; action: "approve" | "reject" } | null>(null);
+  const [confirmReason, setConfirmReason] = useState("");
 
   useEffect(() => { fetchData(); }, []);
 
@@ -63,23 +78,30 @@ const AdminTreasuryPage = () => {
     });
   };
 
-  const handleApprove = async (tx: TransactionRow) => {
+  const handleConfirmAction = async () => {
+    if (!confirmDialog) return;
+    const { tx, action } = confirmDialog;
     setActionLoading(tx.id);
-    const { error } = await approveTransaction(tx);
-    if (error) toast({ title: "Error", description: error, variant: "destructive" });
-    else toast({ title: "✅ Transaction approved" });
+
+    if (action === "approve") {
+      const { error } = await approveTransaction(tx, confirmReason);
+      if (error) toast({ title: "Error", description: error, variant: "destructive" });
+      else toast({ title: "🦅 Transaction approved" });
+    } else {
+      const { error } = await rejectTransaction(tx, confirmReason);
+      if (error) toast({ title: "Error", description: error, variant: "destructive" });
+      else toast({ title: "❌ Transaction rejected" });
+    }
+
     setActionLoading(null);
+    setConfirmDialog(null);
+    setConfirmReason("");
     fetchData();
   };
 
-  const handleReject = async (tx: TransactionRow) => {
-    setActionLoading(tx.id);
-    const { error } = await rejectTransaction(tx);
-    if (error) toast({ title: "Error", description: error, variant: "destructive" });
-    else toast({ title: "❌ Transaction rejected" });
-    setActionLoading(null);
-    fetchData();
-  };
+  const reserveRatio = summary && summary.totalWalletBalances > 0
+    ? ((summary.netBalance / summary.totalWalletBalances) * 100)
+    : 0;
 
   const getStatusColor = (status: string) => ({
     completed: "bg-primary/20 text-primary",
@@ -89,7 +111,7 @@ const AdminTreasuryPage = () => {
   }[status] || "bg-muted text-muted-foreground");
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20">
       <SEOHead title="Admin - Treasury" path="/admin/treasury" />
       <Navbar />
 
@@ -114,31 +136,47 @@ const AdminTreasuryPage = () => {
 
       <div className="container py-6 space-y-6">
         {summary && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            {[
-              { label: "Total Inflow", value: summary.totalInflow, icon: ArrowDownLeft, color: "text-primary" },
-              { label: "Total Outflow", value: summary.totalOutflow, icon: ArrowUpRight, color: "text-destructive" },
-              { label: "Net Balance", value: summary.netBalance, icon: DollarSign, color: summary.netBalance >= 0 ? "text-primary" : "text-destructive" },
-              { label: "Pending Deposits", value: summary.pendingDeposits, icon: Clock, color: "text-accent" },
-              { label: "Pending Withdrawals", value: summary.pendingWithdrawals, icon: Clock, color: "text-accent" },
-              { label: "User Balances", value: summary.totalWalletBalances, icon: Wallet, color: "text-foreground" },
-            ].map(({ label, value, icon: Icon, color }, i) => (
-              <motion.div key={label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {[
+                { label: "Total Inflow", value: summary.totalInflow, icon: ArrowDownLeft, color: "text-primary" },
+                { label: "Total Outflow", value: summary.totalOutflow, icon: ArrowUpRight, color: "text-destructive" },
+                { label: "Net Balance", value: summary.netBalance, icon: DollarSign, color: summary.netBalance >= 0 ? "text-primary" : "text-destructive" },
+                { label: "Platform Revenue", value: summary.platformRevenue, icon: Shield, color: "text-primary" },
+                { label: "Pending Deposits", value: summary.pendingDeposits, icon: Clock, color: "text-accent" },
+                { label: "Pending Withdrawals", value: summary.pendingWithdrawals, icon: Clock, color: "text-accent" },
+                { label: "User Liabilities", value: summary.totalWalletBalances, icon: Wallet, color: "text-foreground" },
+              ].map(({ label, value, icon: Icon, color }, i) => (
+                <motion.div key={label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
+                  <SpotlightCard spotlightColor="rgba(120, 255, 120, 0.08)" className="h-full">
+                    <CardContent className="p-3">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <Icon className={`h-3.5 w-3.5 ${color}`} />
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">{label}</span>
+                      </div>
+                      <div className={`font-display text-lg font-bold tabular-nums ${color}`}>
+                        <AnimatedCounter value={Math.round(Math.abs(value))} fontSize={18} duration={0.8} />
+                        <span className="text-xs font-normal text-muted-foreground ml-0.5"> KES</span>
+                      </div>
+                    </CardContent>
+                  </SpotlightCard>
+                </motion.div>
+              ))}
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.21 }}>
                 <SpotlightCard spotlightColor="rgba(120, 255, 120, 0.08)" className="h-full">
                   <CardContent className="p-3">
                     <div className="flex items-center gap-1.5 mb-1">
-                      <Icon className={`h-3.5 w-3.5 ${color}`} />
-                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">{label}</span>
+                      <Shield className="h-3.5 w-3.5 text-primary" />
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Reserve Ratio</span>
                     </div>
-                    <div className={`font-display text-lg font-bold tabular-nums ${color}`}>
-                      <AnimatedCounter value={Math.round(Math.abs(value))} fontSize={18} duration={0.8} />
-                      <span className="text-xs font-normal text-muted-foreground ml-0.5"> KES</span>
+                    <div className={`font-display text-lg font-bold tabular-nums ${reserveRatio >= 100 ? "text-primary" : reserveRatio >= 50 ? "text-accent" : "text-destructive"}`}>
+                      {reserveRatio.toFixed(1)}%
                     </div>
                   </CardContent>
                 </SpotlightCard>
               </motion.div>
-            ))}
-          </div>
+            </div>
+          </>
         )}
 
         <div className="flex gap-0.5 p-0.5 bg-muted/50 rounded-xl border border-border/30 w-fit">
@@ -146,7 +184,7 @@ const AdminTreasuryPage = () => {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`relative px-4 py-2 rounded-lg text-xs font-medium transition-all ${
+              className={`relative px-4 py-2 rounded-lg text-xs font-medium transition-all min-h-[44px] ${
                 activeTab === tab ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -238,7 +276,7 @@ const AdminTreasuryPage = () => {
                                 size="sm"
                                 className="h-7 w-7 p-0 text-primary hover:bg-primary/10"
                                 disabled={actionLoading === tx.id}
-                                onClick={() => handleApprove(tx)}
+                                onClick={() => { setConfirmDialog({ tx, action: "approve" }); setConfirmReason(""); }}
                                 title="Approve"
                               >
                                 <CheckCircle2 className="h-4 w-4" />
@@ -248,7 +286,7 @@ const AdminTreasuryPage = () => {
                                 size="sm"
                                 className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10"
                                 disabled={actionLoading === tx.id}
-                                onClick={() => handleReject(tx)}
+                                onClick={() => { setConfirmDialog({ tx, action: "reject" }); setConfirmReason(""); }}
                                 title="Reject"
                               >
                                 <XCircle className="h-4 w-4" />
@@ -306,6 +344,41 @@ const AdminTreasuryPage = () => {
           </div>
         )}
       </div>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={!!confirmDialog} onOpenChange={() => setConfirmDialog(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmDialog?.action === "approve" ? "🦅 Approve Transaction" : "❌ Reject Transaction"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmDialog?.action === "approve"
+                ? `Approve ${confirmDialog.tx.type} of KES ${Number(confirmDialog.tx.amount).toLocaleString()}?`
+                : `Reject ${confirmDialog?.tx.type} of KES ${Number(confirmDialog?.tx.amount || 0).toLocaleString()}? ${confirmDialog?.tx.type === "withdrawal" ? "Funds will be refunded." : ""}`
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Textarea
+            value={confirmReason}
+            onChange={e => setConfirmReason(e.target.value)}
+            placeholder="Reason (required for audit trail)..."
+            rows={2}
+            className="mt-2"
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmAction}
+              disabled={!confirmReason.trim() || !!actionLoading}
+              className={confirmDialog?.action === "reject" ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}
+            >
+              {confirmDialog?.action === "approve" ? "Approve" : "Reject"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <Footer />
     </div>
   );

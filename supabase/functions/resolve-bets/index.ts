@@ -15,7 +15,6 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // 1. Get all accepted bets for finished matches that haven't been resolved
     const { data: bets, error: betsError } = await supabase
       .from("p2p_bets")
       .select("*, matches(home_score, away_score, status, home_team, away_team)")
@@ -37,18 +36,32 @@ serve(async (req) => {
         continue;
       }
 
+      // Require at least one market_source for evidence-backed resolution
+      const { data: sources } = await supabase
+        .from("market_sources")
+        .select("id, source_name, confidence, source_url")
+        .eq("market_id", bet.match_id)
+        .limit(5);
+
+      // Log resolution with evidence
+      const evidenceSnapshot = {
+        match_id: bet.match_id,
+        home_score: match.home_score,
+        away_score: match.away_score,
+        sources: sources?.map(s => ({ name: s.source_name, confidence: s.confidence, url: s.source_url })) || [],
+        source_count: sources?.length || 0,
+      };
+
       const actualHome = match.home_score;
       const actualAway = match.away_score;
 
-      // Calculate accuracy: exact score = best, then goal difference, then result
       const challengerExact = bet.challenger_prediction_home === actualHome && bet.challenger_prediction_away === actualAway;
       const opponentExact = bet.opponent_prediction_home === actualHome && bet.opponent_prediction_away === actualAway;
 
       const challengerDiff = Math.abs(bet.challenger_prediction_home - actualHome) + Math.abs(bet.challenger_prediction_away - actualAway);
       const opponentDiff = Math.abs(bet.opponent_prediction_home - actualHome) + Math.abs(bet.opponent_prediction_away - actualAway);
 
-      // Determine result direction for tiebreaker
-      const actualResult = Math.sign(actualHome - actualAway); // 1=home, 0=draw, -1=away
+      const actualResult = Math.sign(actualHome - actualAway);
       const challengerResult = Math.sign(bet.challenger_prediction_home - bet.challenger_prediction_away);
       const opponentResult = Math.sign(bet.opponent_prediction_home - bet.opponent_prediction_away);
       const challengerCorrectResult = challengerResult === actualResult ? 1 : 0;
@@ -69,13 +82,11 @@ serve(async (req) => {
       } else if (opponentCorrectResult > challengerCorrectResult) {
         winnerId = bet.opponent_id;
       }
-      // else: draw — winnerId stays null
 
       const totalPot = bet.stake_amount * 2;
       const houseCut = Math.round(totalPot * bet.house_cut_percent / 100);
       const winnerPayout = totalPot - houseCut;
 
-      // Update bet
       const { error: updateError } = await supabase
         .from("p2p_bets")
         .update({
@@ -90,7 +101,20 @@ serve(async (req) => {
         continue;
       }
 
-      // Award reputation points to winner
+      // Audit log for resolution with evidence
+      await supabase.from("market_audit_log").insert({
+        market_id: bet.match_id,
+        action: "bet_resolved",
+        performed_by: "00000000-0000-0000-0000-000000000000", // System user
+        details: {
+          bet_id: bet.id,
+          winner_id: winnerId,
+          payout: winnerPayout,
+          house_cut: houseCut,
+          evidence: evidenceSnapshot,
+        },
+      });
+
       if (winnerId) {
         const { data: winnerProfile } = await supabase
           .from("profiles")
@@ -105,26 +129,23 @@ serve(async (req) => {
             .eq("id", winnerId);
         }
 
-        // Notify winner
         await supabase.from("notifications").insert({
           user_id: winnerId,
           type: "bet_won",
-          title: "🏆 You won a bet!",
+          title: "🦅 Eagle has landed — You won!",
           message: `You won ${winnerPayout} pts on ${match.home_team} vs ${match.away_team}! (${houseCut} pts house cut)`,
           link: "/challenges",
         });
 
-        // Notify loser
         const loserId = winnerId === bet.challenger_id ? bet.opponent_id : bet.challenger_id;
         await supabase.from("notifications").insert({
           user_id: loserId,
           type: "bet_lost",
-          title: "😢 Bet lost",
+          title: "⚠️ Turbulence — Bet lost",
           message: `You lost your bet on ${match.home_team} vs ${match.away_team}. Better luck next time!`,
           link: "/challenges",
         });
       } else {
-        // Draw — refund both minus half house cut each
         const refund = Math.round(bet.stake_amount - houseCut / 2);
         for (const uid of [bet.challenger_id, bet.opponent_id]) {
           const { data: prof } = await supabase
@@ -143,7 +164,7 @@ serve(async (req) => {
           await supabase.from("notifications").insert({
             user_id: uid,
             type: "bet_draw",
-            title: "🤝 Bet drawn",
+            title: "🤝 Holding pattern — Bet drawn",
             message: `Your bet on ${match.home_team} vs ${match.away_team} was a draw. Refunded ${refund} pts.`,
             link: "/challenges",
           });
@@ -154,7 +175,6 @@ serve(async (req) => {
       console.log(`Resolved bet ${bet.id}: winner=${winnerId || "draw"}, payout=${winnerPayout}`);
     }
 
-    // Also check for badge unlocks for bet winners
     if (resolved > 0) {
       await checkBetBadges(supabase);
     }
@@ -174,7 +194,6 @@ serve(async (req) => {
 
 async function checkBetBadges(supabase: any) {
   try {
-    // Get badge definitions for bets
     const { data: betBadges } = await supabase
       .from("badges")
       .select("id, slug, threshold")
@@ -182,7 +201,6 @@ async function checkBetBadges(supabase: any) {
 
     if (!betBadges || betBadges.length === 0) return;
 
-    // Get all users who have won bets
     const { data: winners } = await supabase
       .from("p2p_bets")
       .select("winner_id")
@@ -191,7 +209,6 @@ async function checkBetBadges(supabase: any) {
 
     if (!winners) return;
 
-    // Count wins per user
     const winCounts: Record<string, number> = {};
     for (const w of winners) {
       winCounts[w.winner_id] = (winCounts[w.winner_id] || 0) + 1;
@@ -200,7 +217,6 @@ async function checkBetBadges(supabase: any) {
     for (const [userId, count] of Object.entries(winCounts)) {
       for (const badge of betBadges) {
         if (count >= badge.threshold) {
-          // Try to insert (unique constraint will prevent duplicates)
           await supabase.from("user_badges").upsert(
             { user_id: userId, badge_id: badge.id },
             { onConflict: "user_id,badge_id" }

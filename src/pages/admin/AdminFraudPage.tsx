@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { scanForFraudAlerts, type FraudAlert } from "@/services/fraudService";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -6,9 +8,10 @@ import SEOHead from "@/components/SEOHead";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
 import {
   ShieldAlert, RefreshCw, AlertTriangle, AlertCircle,
-  Ban, Clock, Eye,
+  Ban, Clock, Eye, Flag, XCircle,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
@@ -30,9 +33,12 @@ const typeLabels: Record<string, string> = {
 };
 
 const AdminFraudPage = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [alerts, setAlerts] = useState<FraudAlert[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterSeverity, setFilterSeverity] = useState<string>("all");
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   useEffect(() => { runScan(); }, []);
 
@@ -43,12 +49,57 @@ const AdminFraudPage = () => {
     setLoading(false);
   };
 
+  const handleFlagUser = async (alert: FraudAlert) => {
+    if (!user) return;
+    setActionLoading(alert.id);
+    await supabase.from("market_audit_log").insert({
+      action: "user_flagged",
+      performed_by: user.id,
+      details: {
+        flagged_user_id: alert.user_id,
+        username: alert.username,
+        reason: `Fraud alert: ${alert.description}`,
+        alert_type: alert.type,
+        severity: alert.severity,
+      },
+    });
+    toast({ title: "🚩 User flagged", description: `@${alert.username || alert.user_id.slice(0, 8)} flagged in audit log` });
+    setActionLoading(null);
+  };
+
+  const handleBlockTransaction = async (alert: FraudAlert) => {
+    if (!user || !alert.metadata?.transaction_id) return;
+    setActionLoading(alert.id);
+    
+    const txId = alert.metadata.transaction_id || (alert.metadata.transaction_ids?.[0]);
+    if (txId) {
+      await supabase.from("transactions").update({
+        status: "failed",
+        description: `[BLOCKED] Fraud: ${alert.description}`,
+        updated_at: new Date().toISOString(),
+      }).eq("id", txId);
+
+      await supabase.from("market_audit_log").insert({
+        action: "transaction_blocked",
+        performed_by: user.id,
+        details: {
+          transaction_id: txId,
+          reason: alert.description,
+          alert_type: alert.type,
+        },
+      });
+
+      toast({ title: "🚫 Transaction blocked" });
+    }
+    setActionLoading(null);
+  };
+
   const filtered = filterSeverity === "all" ? alerts : alerts.filter(a => a.severity === filterSeverity);
   const criticalCount = alerts.filter(a => a.severity === "critical").length;
   const highCount = alerts.filter(a => a.severity === "high").length;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20">
       <SEOHead title="Admin - Fraud Detection" path="/admin/fraud" />
       <Navbar />
       <div className="border-b border-border/30">
@@ -94,7 +145,7 @@ const AdminFraudPage = () => {
             <button
               key={sev}
               onClick={() => setFilterSeverity(sev)}
-              className={`relative px-3 py-1.5 rounded-lg text-xs font-medium transition-all capitalize ${
+              className={`relative px-3 py-1.5 rounded-lg text-xs font-medium transition-all capitalize min-h-[44px] ${
                 filterSeverity === sev ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -141,6 +192,29 @@ const AdminFraudPage = () => {
                             <Clock className="h-3 w-3" />
                             {formatDistanceToNow(new Date(alert.created_at), { addSuffix: true })}
                           </span>
+                        </div>
+                        {/* Action buttons */}
+                        <div className="flex items-center gap-2 mt-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs h-7 gap-1"
+                            disabled={actionLoading === alert.id}
+                            onClick={() => handleFlagUser(alert)}
+                          >
+                            <Flag className="h-3 w-3" /> Flag User
+                          </Button>
+                          {(alert.metadata?.transaction_id || alert.metadata?.transaction_ids) && (
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              className="text-xs h-7 gap-1"
+                              disabled={actionLoading === alert.id}
+                              onClick={() => handleBlockTransaction(alert)}
+                            >
+                              <XCircle className="h-3 w-3" /> Block Tx
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>
