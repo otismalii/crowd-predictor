@@ -128,6 +128,24 @@ const TradePanel = ({
     );
   }
 
+  // Phone gate — surfaced inline so users don't waste a click
+  if (!profile?.phone_number) {
+    return (
+      <SpotlightCard className="p-6 text-center" spotlightColor="rgba(120, 255, 120, 0.05)">
+        <Lock className="mx-auto mb-3 h-6 w-6 text-accent" />
+        <p className="font-display text-sm font-bold tracking-wider mb-1">Verify to trade</p>
+        <p className="text-xs text-muted-foreground mb-4">
+          Add your M-Pesa phone number — required for payouts and KYC.
+        </p>
+        <Link to={`/profile/${user.id}`}>
+          <Button className="w-full neon-glow min-h-[44px]">
+            Add phone number →
+          </Button>
+        </Link>
+      </SpotlightCard>
+    );
+  }
+
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
       <SpotlightCard spotlightColor="rgba(120, 255, 120, 0.1)">
@@ -243,6 +261,19 @@ const TradePanel = ({
           </Button>
         </CardContent>
       </SpotlightCard>
+
+      {successData && (
+        <TradeSuccessDialog
+          open={!!successData}
+          onOpenChange={(o) => !o && setSuccessData(null)}
+          side={successData.side}
+          shares={successData.shares}
+          pricePerShare={successData.pricePerShare}
+          totalCost={successData.totalCost}
+          outcomeLabel={successData.outcomeLabel}
+          newPricePct={successData.newPricePct}
+        />
+      )}
     </motion.div>
   );
 };
