@@ -5,17 +5,25 @@ import { useToast } from "@/hooks/use-toast";
 import { CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Phone, AlertCircle } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Phone, AlertCircle, Lock } from "lucide-react";
 import { motion } from "framer-motion";
 import SpotlightCard from "@/components/reactbits/SpotlightCard";
 import { Link } from "react-router-dom";
 
 interface DepositWithdrawProps {
-  wallet: { id: string; balance: number; currency: string } | null;
+  wallet: {
+    id: string;
+    balance: number;
+    currency: string;
+    locked_balance?: number;
+    daily_withdrawal_total?: number;
+  } | null;
   phoneNumber: string | null;
   onComplete: () => void;
 }
 
+const DAILY_WITHDRAWAL_CAP = 50000; // KES — matches lock_for_withdrawal RPC
 const quickAmounts = [50, 100, 500, 1000, 5000];
 
 const DepositWithdraw = ({ wallet, phoneNumber, onComplete }: DepositWithdrawProps) => {
@@ -24,6 +32,11 @@ const DepositWithdraw = ({ wallet, phoneNumber, onComplete }: DepositWithdrawPro
   const [amount, setAmount] = useState("");
   const [processing, setProcessing] = useState(false);
   const [walletAction, setWalletAction] = useState<"deposit" | "withdraw">("deposit");
+
+  const lockedBalance = Number(wallet?.locked_balance || 0);
+  const dailyUsed = Number(wallet?.daily_withdrawal_total || 0);
+  const dailyRemaining = Math.max(0, DAILY_WITHDRAWAL_CAP - dailyUsed);
+  const dailyPct = Math.min(100, (dailyUsed / DAILY_WITHDRAWAL_CAP) * 100);
 
   const handleDeposit = async () => {
     if (!user || !wallet || !amount) return;
@@ -67,6 +80,14 @@ const DepositWithdraw = ({ wallet, phoneNumber, onComplete }: DepositWithdrawPro
       toast({ title: "Insufficient balance", variant: "destructive" });
       return;
     }
+    if (numAmount > dailyRemaining) {
+      toast({
+        title: "Daily limit reached",
+        description: `Only KES ${dailyRemaining.toLocaleString()} remaining of your KES ${DAILY_WITHDRAWAL_CAP.toLocaleString()} daily limit`,
+        variant: "destructive",
+      });
+      return;
+    }
     setProcessing(true);
     try {
       const { error } = await supabase.functions.invoke("pesapal-withdraw", {
@@ -94,7 +115,7 @@ const DepositWithdraw = ({ wallet, phoneNumber, onComplete }: DepositWithdrawPro
             <button
               key={key}
               onClick={() => setWalletAction(key)}
-              className={`relative flex-1 py-2 rounded-lg text-xs font-semibold transition-colors ${
+              className={`relative flex-1 py-2 rounded-lg text-xs font-semibold transition-colors min-h-[44px] ${
                 walletAction === key ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -105,6 +126,18 @@ const DepositWithdraw = ({ wallet, phoneNumber, onComplete }: DepositWithdrawPro
             </button>
           ))}
         </div>
+
+        {/* On-hold display (always visible if there's a lock) */}
+        {lockedBalance > 0 && (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-accent/30 bg-accent/5">
+            <Lock className="h-3.5 w-3.5 text-accent flex-shrink-0" />
+            <div className="flex-1 text-xs">
+              <span className="text-muted-foreground">On hold: </span>
+              <span className="font-display font-bold text-accent">KES {lockedBalance.toLocaleString()}</span>
+            </div>
+            <span className="text-[10px] text-muted-foreground">Pending withdrawal</span>
+          </div>
+        )}
 
         {/* Phone number display */}
         {walletAction === "withdraw" && (
@@ -158,15 +191,26 @@ const DepositWithdraw = ({ wallet, phoneNumber, onComplete }: DepositWithdrawPro
         </div>
 
         {walletAction === "withdraw" && wallet && (
-          <p className="text-xs text-muted-foreground">
-            Available: <span className="text-primary font-bold">KES {wallet.balance.toLocaleString()}</span>
-          </p>
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">
+              Available: <span className="text-primary font-bold">KES {wallet.balance.toLocaleString()}</span>
+            </p>
+            <div>
+              <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
+                <span>Daily limit used</span>
+                <span className="tabular-nums">
+                  KES {dailyUsed.toLocaleString()} / {DAILY_WITHDRAWAL_CAP.toLocaleString()}
+                </span>
+              </div>
+              <Progress value={dailyPct} className="h-1" />
+            </div>
+          </div>
         )}
 
         <Button
           onClick={walletAction === "deposit" ? handleDeposit : handleWithdraw}
           disabled={processing || !amount || (walletAction === "withdraw" && !phoneNumber)}
-          className={`w-full h-11 text-sm font-display tracking-wider ${
+          className={`w-full h-11 text-sm font-display tracking-wider min-h-[44px] ${
             walletAction === "deposit"
               ? "neon-glow"
               : "neon-glow-accent bg-accent text-accent-foreground hover:bg-accent/90"

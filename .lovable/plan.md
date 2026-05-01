@@ -1,152 +1,147 @@
+# Pagaza Trust & Polish Refactor — Correction Plan
 
-
-# Pagaza Fintech-Grade Refactor — Implementation Plan
-
-This is a large-scope hardening across 6 workstreams. Each phase is ordered by dependency and criticality.
+This plan starts from what's visibly broken and works outward. Most of the fintech backbone (ledger entries, idempotency, phone gate, closes_at validation, audit log, treasury reasons) is **already wired** from prior phases — verified in `execute-trade/index.ts`, `treasuryService.ts`, and the `ledger_entries` / `market_audit_log` tables. This plan fixes the remaining trust gaps users actually see and feel.
 
 ---
 
-## Phase 1: Ledger Integrity & Trade Hardening
+## Priority 1 — Trust-Critical (ship first, low risk)
 
-**Problem:** `execute-trade` creates `transactions` rows but no `ledger_entries`. Treasury approve/reject works but lacks idempotency. No `closes_at` validation.
+### 1.1 Remove "Admin" from public navigation
+**Problem:** `Navbar.tsx` lines 39-42 + 60 add an `Admin` link to the visible nav whenever `has_role` returns true. Even for admins this leaks the existence of an admin surface to anyone shoulder-surfing or screenshotting. Non-admins never see it, but the route remains discoverable via `/admin`.
 
-**Changes:**
+**Fix:**
+- Drop the `Admin` entry from `allLinks` entirely.
+- Move admin entry behind the user dropdown (under the `User` icon), only rendered when `isAdmin === true`.
+- Keep `AdminRoute` guard intact (already enforced via `useAdminGuard`).
 
-1. **`supabase/functions/execute-trade/index.ts`** — After wallet debit/credit, insert `ledger_entries` with `entry_type: "trade_buy"` or `"trade_sell"`, `balance_after`, and `reference_id` pointing to the trade. Add `closes_at` check: reject trades if `market.closes_at < now()`. Add 5-second idempotency guard: query `trades` for same `user_id + market_id + outcome_id + side` within last 5 seconds, reject if found.
+### 1.2 Replace static "50¢ / 33¢" prices with honest liquidity states
+**Problem:** Markets with zero trades show identical flat prices because every outcome starts at `pool_shares = 100`. This makes the platform look broken/fake.
 
-2. **`src/services/treasuryService.ts`** — Add confirmation reason parameter to `approveTransaction` and `rejectTransaction`. Log to `market_audit_log` on every approve/reject with admin user ID and reason.
+**Fix in `MarketCard.tsx` and `TradePanel.tsx`:**
+- Compute `hasLiquidity = market.total_volume > 0` (not pool size — pools start seeded).
+- When `!hasLiquidity`: render outcome rows with a muted "—" instead of `{pct}¢`, plus a small label "Awaiting first trade" under the title.
+- When `hasLiquidity`: keep current LMSR-derived percentages.
+- Add a 24h price-delta indicator (▲/▼ vs. price 24h ago) by querying recent `trades` for that market — small, but signals a live market.
 
-3. **DB migration** — Add `market_audit_log` entry type for treasury actions (no schema change needed, audit log table already exists).
+### 1.3 Surface "Verify phone before trading" inline
+**Problem:** Trade rejection happens server-side with a toast only after the user clicks Buy. Wasted intent.
 
----
-
-## Phase 2: Auth & Profile Enforcement
-
-**Problem:** Users can trade without verified email. No gate for phone number before wallet access. Profile phone field exists but no enforcement on trading.
-
-**Changes:**
-
-1. **`src/contexts/AuthContext.tsx`** — Add `profile` to context state. After auth state change, fetch profile and expose `profile.phone_number`, `profile.email_verified` on context.
-
-2. **`src/components/layout/ProtectedRoute.tsx`** — Add an `onboarding` check: if user has no `phone_number` on profile, redirect to a phone capture step on `/wallet` or show inline prompt.
-
-3. **`src/components/ProfileEdit.tsx`** — Lock phone number field if already set (show disabled input with masked number). Add format validation regex for `254XXXXXXXXX`.
-
-4. **`src/pages/MarketDetail.tsx`** — Before executing trade, check if user has phone number on profile. If not, show toast: "Add your phone number in profile settings before trading."
-
----
-
-## Phase 3: Admin Control Room Expansion
-
-**Problem:** Admin Users page has no wallet/transaction data. No audit log viewer. No admin earnings/fees dashboard. No marketing table.
-
-**Changes:**
-
-1. **`src/components/admin/AdminUsers.tsx`** — Fetch wallets and transaction counts alongside profiles. Add columns: wallet balance, transaction count, phone number (masked). Add "Flag User" button that inserts a fraud alert with `type: "manual_flag"`.
-
-2. **`src/pages/admin/AdminOverviewPage.tsx`** — Add "Platform Revenue" card showing sum of `house_fee` ledger entries. Add "Reserve Ratio" indicator (net treasury balance / total user liabilities).
-
-3. **New: `src/pages/admin/AdminAuditPage.tsx`** — Query `market_audit_log` table with filters (action type, date range, admin user). Display in a table with action, market, admin, details, timestamp.
-
-4. **`src/App.tsx`** — Add route `/admin/audit` pointing to `AdminAuditPage`.
-
-5. **`src/pages/admin/AdminFraudPage.tsx`** — Add "Flag User" and "Block Transaction" action buttons on each alert. Flag User inserts into a new `user_flags` concept (stored in `market_audit_log` with `action: "user_flagged"`). Block Transaction updates the transaction status to `"blocked"`.
-
-6. **`src/pages/admin/AdminTreasuryPage.tsx`** — Add "Platform Revenue" and "Reserve Ratio" cards. Add confirmation dialog (AlertDialog) before approve/reject with mandatory reason textarea.
+**Fix in `TradePanel.tsx`:**
+- Read `profile.phone_number` from `AuthContext`.
+- If missing, replace the Buy/Sell buttons with a single CTA: "Add phone number to trade →" linking to `/profile/edit`.
+- Show a small lock icon + helper text explaining why (KYC / withdrawal continuity).
 
 ---
 
-## Phase 4: Resolution & AI Oracle Refinement
+## Priority 2 — Ledger & Wallet Truth
 
-**Problem:** Resolution is manual-only with no confidence scoring or evidence requirements. AI oracle concept referenced but not implemented.
+### 2.1 Make the ledger the user-visible source of truth
+**Current state:** `ledger_entries` is written on every trade, deposit approval, and withdrawal rejection, but the wallet UI still reads from the `wallets.balance` cache.
 
-**Changes:**
+**Fix:**
+- In `TransactionHistory.tsx`, switch the data source from `transactions` to `ledger_entries` (joined with `transactions` for M-Pesa receipt display when `entry_type` is deposit/withdrawal). This gives users a single immutable timeline.
+- Use `getEntryLabel()` and `isCredit()` from `src/lib/ledger.ts` (already exists) for consistent labeling.
+- Show running `balance_after` in each row — users can audit their own balance history.
+- Add a "Reconciliation" badge on the wallet header: green dot if `wallets.balance === latest ledger balance_after`, amber otherwise (with admin-alerting toast).
 
-1. **`src/pages/admin/AdminResolutionPage.tsx`** — Add a "Resolution Queue" section showing markets with `status: "closed"` that haven't been resolved yet. For each, show: title, closes_at, source count, average confidence from `market_sources`.
+### 2.2 Withdrawal lock visibility
+**Problem:** `lock_for_withdrawal()` RPC moves balance to `locked_balance`, but the wallet UI doesn't show locked funds clearly.
 
-2. **`src/components/admin/AdminDisputes.tsx`** — Add resolution confidence indicator per dispute's market. Show audit trail from `market_audit_log` for that market.
+**Fix in `WalletBalance.tsx` + `DepositWithdraw.tsx`:**
+- Show `Available: KES X` (= `balance`) and, if `locked_balance > 0`, a second line `On hold: KES Y` (with tooltip: "Pending withdrawal — released if rejected").
+- Daily withdrawal cap progress bar: "KES 12,000 / 50,000 used today" sourced from `daily_withdrawal_total`.
 
-3. **`supabase/functions/resolve-bets/index.ts`** — Add validation: require at least one `market_sources` entry before allowing resolution. Log resolution evidence (source URLs, confidence scores) in `market_audit_log`. Ensure AI-suggested resolutions are queued with `status: "pending_review"` rather than auto-finalizing.
+### 2.3 PesaPal withdrawal: write the lock + ledger entry atomically
+**Problem:** `pesapal-withdraw` records a `ledger_entries` row but should call `lock_for_withdrawal()` RPC instead of touching `wallets.balance` directly.
 
-4. **Admin override** — In resolution UI, add "Admin Override" button with mandatory reason textarea. Creates `market_audit_log` entry with `action: "admin_override"` and the reason.
-
----
-
-## Phase 5: UX Polish, PWA & Performance
-
-**Problem:** MarketDetail.tsx is 1007 lines. No install prompt for PWA. Missing SEO on several pages. No offline fallback. Comment moderation nonexistent.
-
-**Changes:**
-
-1. **`src/pages/MarketDetail.tsx`** — Extract trade panel into `src/components/markets/TradePanel.tsx` (~200 lines). Extract comment section into `src/components/markets/CommentThread.tsx` (~150 lines). Add eagle-themed settlement language: "Eagle has landed" for resolved markets, "Turbulence detected" for disputed.
-
-2. **`public/sw.js`** — Add offline fallback: cache app shell and show offline page for failed navigations. Add `navigateFallbackDenylist` for `/~oauth`.
-
-3. **`src/main.tsx`** — Already has iframe/preview guard. Add install prompt detection: listen for `beforeinstallprompt` event, expose via context for an install banner component.
-
-4. **New: `src/components/InstallBanner.tsx`** — Bottom banner on mobile: "Install Pagaza for faster access" with Install button. Dismissible, shows only once per session.
-
-5. **SEO** — Add `<SEOHead>` with JSON-LD to `MarketDetail.tsx` (BettingOdds schema), `Profile.tsx`, `Sources.tsx`.
-
-6. **Comment moderation** — Add admin delete capability in `CommentThread.tsx` (admin can delete any comment, not just own). Check `has_role` RPC before showing delete button for non-owners.
-
-7. **Mobile polish** — Ensure all pages have `pb-20` for bottom nav clearance. Add `min-h-[44px]` to all interactive buttons. Add horizontal scroll wrapper to admin tables.
+**Fix:** In `supabase/functions/pesapal-withdraw/index.ts`, replace direct balance mutation with `db.rpc("lock_for_withdrawal", { p_user_id, p_amount })`. On `treasuryService.approveTransaction` for withdrawals, call a new `release_lock_to_paid` flow (deduct from `locked_balance`, ledger `withdrawal` entry). On reject, call existing `release_withdrawal_lock`.
 
 ---
 
-## Phase 6: Image Assets & Branding
+## Priority 3 — Notifications & Real-Time Feedback
 
-**Problem:** No favicon/logo assets. No OG images for social sharing. Eagle branding is text-only.
+### 3.1 Notification delivery polish
+**Problem:** `NotificationBell` exists but notifications are written ad-hoc. Users miss key fintech events.
 
-**Changes:**
+**Fix:**
+- Standardize notification triggers in three edge functions: `execute-trade` (on settlement), `pesapal-callback` (deposit confirmed), `resolve-bets` (market resolved).
+- Each notification gets: `type` (one of: `trade`, `deposit`, `withdrawal`, `resolution`, `dispute`), `title`, `message`, `link`. Already a table — just ensure consistency.
+- Add realtime subscription in `NotificationBell.tsx` using `supabase.channel('notifications:user_id=eq.X')` so the bell badge updates without refresh.
 
-1. **Generate assets** — Use AI image generation to create: favicon (eagle silhouette, neon green on dark), OG share image (1200x630, dark premium with eagle + "Pagaza" text), PWA icons (192x192, 512x512).
-
-2. **`index.html`** — Update favicon link, add OG meta tags with generated image path, add Apple touch icon.
-
-3. **`public/manifest.json`** — Update icons array with generated PWA icons. Set `theme_color` to match dark primary (`#0a0a12`), `background_color` to match.
-
-4. **`src/components/SEOHead.tsx`** — Add default OG image fallback. Add `twitter:card` meta tag.
+### 3.2 Trade success: show eagle-themed confirmation modal
+Replace the post-trade toast with an `AlertDialog` showing: shares bought, price paid, new % odds, and a "View position" button → `/portfolio`. Adds perceived weight to the action.
 
 ---
 
-## Database Changes Required
+## Priority 4 — Admin Polish (already 80% done)
 
-1. **No new tables needed** — All audit logging uses existing `market_audit_log`. User flagging stored as audit entries.
-2. **No schema migrations** — Phone number columns already added in prior phase.
+### 4.1 Audit log searchability
+`AdminAuditPage.tsx` exists but lacks filters. Add: action-type dropdown (deposit/withdrawal/override/flag), date-range picker, admin-user filter, and CSV export button (client-side blob).
 
-## Files Created
-- `src/pages/admin/AdminAuditPage.tsx`
-- `src/components/markets/TradePanel.tsx`
-- `src/components/markets/CommentThread.tsx`
-- `src/components/InstallBanner.tsx`
-- Generated image assets in `public/`
+### 4.2 Treasury reconciliation panel
+Add to `AdminTreasuryPage.tsx`: a "Ledger Sanity" card that runs a single SQL aggregate (sum of all `ledger_entries.amount` per user vs. `wallets.balance`) and flags any mismatch. Read-only — surfaces drift before it becomes a crisis.
+
+### 4.3 Pending action queue on Admin Overview
+`AdminOverviewPage.tsx` already shows KPIs. Add three click-through tiles at the top:
+- Pending deposits (count + total KES) → `/admin/treasury?status=pending&type=deposit`
+- Pending withdrawals (count + total KES) → `/admin/treasury?status=pending&type=withdrawal`
+- Markets awaiting resolution → `/admin/resolution`
+
+---
+
+## Priority 5 — Mobile & PWA Polish
+
+- `Navbar.tsx` hides admin link from desktop but mobile menu still shows it — apply the same dropdown pattern there.
+- Add `OfflineIndicator.tsx` (already exists) to root layout in `App.tsx` if not mounted.
+- Verify `InstallBanner.tsx` only fires once per session (use `sessionStorage` flag).
+- Audit all `pb-20` clearances on pages that use the bottom `MobileNav`.
+
+---
 
 ## Files Modified
-- `supabase/functions/execute-trade/index.ts` (ledger entries + idempotency + closes_at check)
-- `supabase/functions/resolve-bets/index.ts` (evidence requirements + audit logging)
-- `src/services/treasuryService.ts` (confirmation reasons + audit logging)
-- `src/contexts/AuthContext.tsx` (profile in context)
-- `src/components/admin/AdminUsers.tsx` (wallet + tx columns + flag action)
-- `src/pages/admin/AdminOverviewPage.tsx` (revenue + reserve ratio cards)
-- `src/pages/admin/AdminTreasuryPage.tsx` (confirmation dialogs + revenue cards)
-- `src/pages/admin/AdminFraudPage.tsx` (action buttons)
-- `src/pages/admin/AdminResolutionPage.tsx` (resolution queue)
-- `src/pages/MarketDetail.tsx` (split + eagle branding + phone check)
-- `src/components/ProfileEdit.tsx` (phone lock)
-- `src/App.tsx` (audit route)
-- `src/main.tsx` (install prompt)
-- `index.html` (OG tags + favicon)
-- `public/manifest.json` (icons + theme)
-- `public/sw.js` (offline fallback)
-- `src/components/SEOHead.tsx` (OG defaults)
 
-## Security Checklist
-- Trade idempotency prevents double-spend
-- Ledger entries on every money movement
-- Phone required before trading/withdrawing
-- Admin actions require reason + audit trail
-- AI oracle cannot auto-finalize without evidence
-- Comment moderation for admins
-- Resolution requires source evidence
+- `src/components/layout/Navbar.tsx` — remove admin from public nav, move under user menu
+- `src/components/MarketCard.tsx` — no-liquidity state, 24h delta
+- `src/components/markets/TradePanel.tsx` — phone gate inline CTA + success modal
+- `src/components/wallet/TransactionHistory.tsx` — switch to `ledger_entries` source
+- `src/components/wallet/DepositWithdraw.tsx` — show locked balance + daily cap
+- `src/components/WalletBalance.tsx` — surface available vs. on-hold
+- `src/components/NotificationBell.tsx` — realtime subscription
+- `src/pages/admin/AdminAuditPage.tsx` — filters + CSV export
+- `src/pages/admin/AdminTreasuryPage.tsx` — reconciliation card
+- `src/pages/admin/AdminOverviewPage.tsx` — pending-action tiles
+- `supabase/functions/pesapal-withdraw/index.ts` — use `lock_for_withdrawal` RPC
+- `src/services/treasuryService.ts` — release-lock flow on withdrawal approve
 
+## Files Created
+
+- `src/components/markets/PriceDelta.tsx` — small ▲/▼ % component
+- `src/components/wallet/ReconciliationBadge.tsx`
+- `src/components/markets/TradeSuccessDialog.tsx`
+
+## What's NOT in scope (already shipped)
+
+- Ledger entries on trades ✅ (verified in `execute-trade/index.ts` lines 190, 251)
+- 5s idempotency guard ✅ (line 92)
+- Phone gate server-side ✅ (line 87)
+- `closes_at` enforcement ✅ (line 112)
+- LMSR numerical stability ✅ (`stableExps`)
+- Treasury approve/reject reasons + audit log ✅ (`treasuryService.ts`)
+- Admin route guard centralization ✅ (`useAdminGuard`)
+
+## Database changes
+
+None. All new functionality uses existing tables (`ledger_entries`, `market_audit_log`, `notifications`, `wallets.locked_balance`).
+
+## Acceptance checklist
+
+- [ ] Admin link not visible in public nav (desktop + mobile)
+- [ ] Empty markets show "Awaiting first trade" instead of fake 50¢
+- [ ] Users without phone see inline CTA, not a server-side error
+- [ ] Wallet history reads from `ledger_entries` with running balance
+- [ ] Locked withdrawal funds visible to user
+- [ ] Daily withdrawal cap progress visible
+- [ ] Notification bell updates in realtime
+- [ ] Trade success dialog replaces toast
+- [ ] Admin overview shows pending-action click-throughs
+- [ ] Reconciliation card flags ledger drift

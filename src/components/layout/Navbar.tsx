@@ -3,6 +3,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useGuest } from "@/contexts/GuestContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { LogOut, Trophy, User, Menu, X, Home, Shield, Wallet, BarChart3 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import NotificationBell from "@/components/NotificationBell";
@@ -50,8 +58,6 @@ const Navbar = () => {
     return location.pathname.startsWith(path);
   };
 
-  const allLinks = isAdmin ? [...navLinks, { to: "/admin", label: "Admin", icon: Shield }] : navLinks;
-
   return (
     <nav
       className={`sticky top-0 z-50 border-b transition-all duration-300 ${
@@ -74,9 +80,9 @@ const Navbar = () => {
           </span>
         </Link>
 
-        {/* Desktop nav */}
+        {/* Desktop nav — admin link removed from public surface */}
         <div className="hidden items-center gap-0.5 md:flex">
-          {allLinks.map((link) => (
+          {navLinks.map((link) => (
             <Link
               key={link.to}
               to={link.to}
@@ -104,21 +110,34 @@ const Navbar = () => {
           <ThemeToggle />
 
           {user ? (
-            <div className="flex items-center gap-0.5 ml-1">
-              <Link
-                to={`/profile/${user.id}`}
-                className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                  location.pathname.startsWith("/profile")
-                    ? "text-primary bg-primary/5"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                }`}
-              >
-                <User className="h-4 w-4" />
-              </Link>
-              <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-muted-foreground hover:text-destructive h-8 w-8 p-0">
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="ml-1 h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
+                  <User className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel className="text-xs">Account</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => navigate(`/profile/${user.id}`)} className="cursor-pointer">
+                  <User className="h-4 w-4 mr-2" /> Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/wallet")} className="cursor-pointer">
+                  <Wallet className="h-4 w-4 mr-2" /> Wallet
+                </DropdownMenuItem>
+                {isAdmin && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => navigate("/admin")} className="cursor-pointer text-primary">
+                      <Shield className="h-4 w-4 mr-2" /> Control Room
+                    </DropdownMenuItem>
+                  </>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive focus:text-destructive">
+                  <LogOut className="h-4 w-4 mr-2" /> Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <Button onClick={() => navigate("/auth")} size="sm" className="ml-1 neon-glow h-8">
               Sign In
@@ -147,7 +166,7 @@ const Navbar = () => {
             className="overflow-hidden border-t border-border/50 bg-background/95 backdrop-blur-xl md:hidden"
           >
             <div className="flex flex-col gap-1 p-3">
-              {allLinks.map((link) => (
+              {navLinks.map((link) => (
                 <Link
                   key={link.to}
                   to={link.to}
@@ -162,6 +181,7 @@ const Navbar = () => {
               ))}
               {user ? (
                 <>
+                  <div className="my-1 h-px bg-border/50" />
                   <Link
                     to={`/profile/${user.id}`}
                     onClick={() => setMobileOpen(false)}
@@ -169,6 +189,15 @@ const Navbar = () => {
                   >
                     <User className="h-4 w-4" />Profile
                   </Link>
+                  {isAdmin && (
+                    <Link
+                      to="/admin"
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm text-primary hover:bg-primary/10"
+                    >
+                      <Shield className="h-4 w-4" />Control Room
+                    </Link>
+                  )}
                   <button
                     onClick={() => { handleSignOut(); setMobileOpen(false); }}
                     className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm text-destructive hover:bg-destructive/10"

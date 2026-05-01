@@ -7,10 +7,11 @@ import { CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import { ArrowUpRight, ArrowDownLeft, Wallet, CheckCircle2 } from "lucide-react";
+import { ArrowUpRight, ArrowDownLeft, Wallet, CheckCircle2, Lock } from "lucide-react";
 import { motion } from "framer-motion";
 import SpotlightCard from "@/components/reactbits/SpotlightCard";
 import { lmsrCost, lmsrSellReturn } from "@/lib/pricing";
+import TradeSuccessDialog from "@/components/markets/TradeSuccessDialog";
 
 interface TradePanelProps {
   marketId: string;
@@ -34,6 +35,10 @@ const TradePanel = ({
   const [side, setSide] = useState<"buy" | "sell">("buy");
   const [shares, setShares] = useState("");
   const [executing, setExecuting] = useState(false);
+  const [successData, setSuccessData] = useState<{
+    side: "buy" | "sell"; shares: number; pricePerShare: number; totalCost: number;
+    outcomeLabel: string; newPricePct: number | null;
+  } | null>(null);
 
   const pools = outcomes.map(o => Number(o.pool_shares));
   const b = liquidityParam;
@@ -56,7 +61,7 @@ const TradePanel = ({
   const handleTrade = async () => {
     if (!user || !selectedOutcome || numShares <= 0) return;
 
-    // Phone gate
+    // Phone gate (defense-in-depth — also enforced server-side)
     if (!profile?.phone_number) {
       toast({ title: "Phone required", description: "Add your phone number in profile settings before trading.", variant: "destructive" });
       return;
@@ -69,9 +74,16 @@ const TradePanel = ({
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      toast({
-        title: side === "buy" ? "🦅 Shares acquired!" : "🦅 Shares sold!",
-        description: `${numShares} shares at KES ${data.price_per_share?.toFixed(2)} each`,
+
+      const outcomeLabel = outcomes.find(o => o.id === selectedOutcome)?.label || "";
+      const newPrice = data?.new_prices?.find((p: any) => p.outcome_id === selectedOutcome)?.price ?? null;
+      setSuccessData({
+        side,
+        shares: numShares,
+        pricePerShare: data?.price_per_share || 0,
+        totalCost: data?.cost || 0,
+        outcomeLabel,
+        newPricePct: newPrice !== null ? Math.round(newPrice * 100) : null,
       });
       setShares("");
       onTradeComplete();
@@ -112,6 +124,24 @@ const TradePanel = ({
       <SpotlightCard className="p-6 text-center" spotlightColor="rgba(120, 255, 120, 0.08)">
         <p className="text-sm text-muted-foreground mb-3">Sign in to trade</p>
         <Link to="/auth"><Button className="neon-glow">Sign In</Button></Link>
+      </SpotlightCard>
+    );
+  }
+
+  // Phone gate — surfaced inline so users don't waste a click
+  if (!profile?.phone_number) {
+    return (
+      <SpotlightCard className="p-6 text-center" spotlightColor="rgba(120, 255, 120, 0.05)">
+        <Lock className="mx-auto mb-3 h-6 w-6 text-accent" />
+        <p className="font-display text-sm font-bold tracking-wider mb-1">Verify to trade</p>
+        <p className="text-xs text-muted-foreground mb-4">
+          Add your M-Pesa phone number — required for payouts and KYC.
+        </p>
+        <Link to={`/profile/${user.id}`}>
+          <Button className="w-full neon-glow min-h-[44px]">
+            Add phone number →
+          </Button>
+        </Link>
       </SpotlightCard>
     );
   }
@@ -231,6 +261,19 @@ const TradePanel = ({
           </Button>
         </CardContent>
       </SpotlightCard>
+
+      {successData && (
+        <TradeSuccessDialog
+          open={!!successData}
+          onOpenChange={(o) => !o && setSuccessData(null)}
+          side={successData.side}
+          shares={successData.shares}
+          pricePerShare={successData.pricePerShare}
+          totalCost={successData.totalCost}
+          outcomeLabel={successData.outcomeLabel}
+          newPricePct={successData.newPricePct}
+        />
+      )}
     </motion.div>
   );
 };

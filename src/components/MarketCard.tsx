@@ -41,6 +41,8 @@ const MarketCard = ({ market, matchTeams }: MarketCardProps) => {
   const prices = market.outcomes.map((_, i) => lmsrPrice(pools, i, b));
 
   const isResolved = market.status === "resolved";
+  // Honest liquidity state — markets seed pool_shares=100 per outcome, so use total_volume as the truth signal
+  const hasLiquidity = Number(market.total_volume) > 0 || isResolved;
   const spotlightColor = isResolved
     ? "rgba(120, 255, 120, 0.05)"
     : market.status === "open"
@@ -90,6 +92,11 @@ const MarketCard = ({ market, matchTeams }: MarketCardProps) => {
               {market.description && (
                 <p className="text-xs text-muted-foreground mt-0.5">{market.description}</p>
               )}
+              {!hasLiquidity && market.status === "open" && (
+                <p className="mt-1 text-[10px] uppercase tracking-wider text-accent font-semibold">
+                  Awaiting first trade
+                </p>
+              )}
             </div>
 
             {/* Outcome bars */}
@@ -107,21 +114,23 @@ const MarketCard = ({ market, matchTeams }: MarketCardProps) => {
                         ? "border-border/20 bg-muted/20 opacity-50"
                         : "border-border/30 bg-muted/20 hover:bg-muted/40"
                     }`}>
-                      {/* Background fill bar */}
-                      <div
-                        className={`absolute left-0 top-0 bottom-0 rounded-lg transition-all ${
-                          isWinner ? "bg-primary/15" : "bg-primary/5"
-                        }`}
-                        style={{ width: `${pct}%` }}
-                      />
+                      {/* Background fill bar — only render when there's real liquidity */}
+                      {hasLiquidity && (
+                        <div
+                          className={`absolute left-0 top-0 bottom-0 rounded-lg transition-all ${
+                            isWinner ? "bg-primary/15" : "bg-primary/5"
+                          }`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      )}
                       <span className={`relative text-xs font-semibold z-10 ${isWinner ? "text-primary" : ""}`}>
                         {outcome.label}
                         {isWinner && <CheckCircle2 className="inline h-3 w-3 ml-1" />}
                       </span>
                       <span className={`relative text-sm font-display font-bold z-10 ${
-                        isWinner ? "text-primary" : pct > 50 ? "text-primary" : "text-muted-foreground"
+                        isWinner ? "text-primary" : hasLiquidity && pct > 50 ? "text-primary" : "text-muted-foreground"
                       }`}>
-                        {pct}¢
+                        {hasLiquidity ? `${pct}¢` : "—"}
                       </span>
                     </div>
                   </div>
