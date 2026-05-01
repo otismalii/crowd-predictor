@@ -26,10 +26,11 @@ import PullToRefresh from "@/components/PullToRefresh";
 import DepositWithdraw from "@/components/wallet/DepositWithdraw";
 import TransactionHistory from "@/components/wallet/TransactionHistory";
 import PositionsPanel from "@/components/wallet/PositionsPanel";
+import ReconciliationBadge from "@/components/wallet/ReconciliationBadge";
+import type { LedgerEntry } from "@/lib/ledger";
 
 // --- Types ---
-interface WalletData { id: string; balance: number; currency: string; }
-interface Transaction { id: string; type: string; amount: number; status: string; description: string | null; mpesa_receipt: string | null; created_at: string; }
+interface WalletData { id: string; balance: number; currency: string; locked_balance?: number; daily_withdrawal_total?: number; }
 interface PositionRow { outcome_id: string; market_id: string; shares: number; avg_price: number; total_cost: number; }
 interface OutcomeRow { id: string; label: string; pool_shares: number; is_winner: boolean | null; market_id: string; }
 interface MarketRow { id: string; title: string; status: string; liquidity_param: number; total_volume: number; closes_at: string | null; }
@@ -42,7 +43,7 @@ const Wallet = () => {
   const [profile, setProfile] = useState<any>(null);
   const [editingProfile, setEditingProfile] = useState(false);
   const [wallet, setWallet] = useState<WalletData | null>(null);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [ledgerEntries, setLedgerEntries] = useState<LedgerEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
 
@@ -69,15 +70,15 @@ const Wallet = () => {
   const fetchAll = useCallback(async () => {
     if (!user) return;
     try {
-      const [walletRes, txRes, posRes, profileRes] = await Promise.all([
+      const [walletRes, ledgerRes, posRes, profileRes] = await Promise.all([
         supabase.from("wallets").select("*").eq("user_id", user.id).single() as any,
-        supabase.from("transactions").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50) as any,
+        supabase.from("ledger_entries").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(100) as any,
         supabase.from("positions").select("outcome_id, market_id, shares, avg_price, total_cost").eq("user_id", user.id).gt("shares", 0) as any,
         supabase.from("profiles").select("*").eq("id", user.id).single() as any,
       ]);
 
       if (walletRes.data) setWallet(walletRes.data);
-      if (txRes.data) setTransactions(txRes.data);
+      if (ledgerRes.data) setLedgerEntries(ledgerRes.data);
       if (profileRes.data) setProfile(profileRes.data);
 
       const positions: PositionRow[] = posRes.data || [];
@@ -253,7 +254,7 @@ const Wallet = () => {
                   onComplete={fetchAll}
                 />
               </motion.div>
-              <TransactionHistory transactions={transactions} />
+              <TransactionHistory entries={ledgerEntries} />
             </div>
           </div>
         )}
