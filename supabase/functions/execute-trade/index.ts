@@ -103,6 +103,20 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Duplicate trade detected. Please wait a moment." }), { status: 429, headers: corsHeaders });
     }
 
+    // Risk evaluation (per-trade cap + velocity)
+    const riskRes = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/evaluate-risk`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}` },
+      body: JSON.stringify({ user_id: userId, action: "trade", amount: shares }),
+    });
+    const riskJson = await riskRes.json().catch(() => ({}));
+    if (riskJson?.data?.action && riskJson.data.action !== "allow") {
+      return new Response(JSON.stringify({ error: riskJson.data.reason, risk_action: riskJson.data.action }), { status: 403, headers: corsHeaders });
+    }
+
+    const correlationId = crypto.randomUUID();
+    const idempotencyKey = `${userId}:trade:${market_id}:${outcome_id}:${side}:${Date.now()}`;
+
     const { data: market } = await db.from("markets").select("*").eq("id", market_id).single();
     if (!market || market.status !== "open") {
       return new Response(JSON.stringify({ error: "Market not open" }), { status: 400, headers: corsHeaders });
@@ -186,14 +200,16 @@ serve(async (req) => {
         description: `Bought ${shares} shares of "${outcomes[outcomeIndex].label}"`,
       });
 
-      // Ledger entry for buy
+      // Event envelope + ledger entry for buy
+      const { data: ev } = await db.from("event_log").insert({
+        event_type: "trade.buy", aggregate_type: "trade", aggregate_id: trade?.id,
+        actor_id: userId, idempotency_key: idempotencyKey,
+        payload: { market_id, outcome_id, shares, cost, correlation_id: correlationId },
+      }).select("id").single();
       await db.from("ledger_entries").insert({
-        user_id: userId,
-        wallet_id: wallet.id,
-        entry_type: "trade_buy",
-        amount: -cost,
-        balance_after: newBalance,
-        reference_id: trade?.id || null,
+        user_id: userId, wallet_id: wallet.id, entry_type: "trade_buy",
+        amount: -cost, balance_after: newBalance,
+        reference_id: trade?.id || null, idempotency_key: `${idempotencyKey}:ledger`, event_id: ev?.id,
         description: `Buy ${shares} shares "${outcomes[outcomeIndex].label}" @ ${pricePerShare.toFixed(4)}`,
       });
 
@@ -247,14 +263,16 @@ serve(async (req) => {
           description: `Sold ${shares} shares of "${outcomes[outcomeIndex].label}"`,
         });
 
-        // Ledger entry for sell
+        // Event envelope + ledger entry for sell
+        const { data: ev } = await db.from("event_log").insert({
+          event_type: "trade.sell", aggregate_type: "trade", aggregate_id: trade?.id,
+          actor_id: userId, idempotency_key: idempotencyKey,
+          payload: { market_id, outcome_id, shares, return: returnAmt, correlation_id: correlationId },
+        }).select("id").single();
         await db.from("ledger_entries").insert({
-          user_id: userId,
-          wallet_id: wallet.id,
-          entry_type: "trade_sell",
-          amount: returnAmt,
-          balance_after: newBalance,
-          reference_id: trade?.id || null,
+          user_id: userId, wallet_id: wallet.id, entry_type: "trade_sell",
+          amount: returnAmt, balance_after: newBalance,
+          reference_id: trade?.id || null, idempotency_key: `${idempotencyKey}:ledger`, event_id: ev?.id,
           description: `Sell ${shares} shares "${outcomes[outcomeIndex].label}" @ ${pricePerShare.toFixed(4)}`,
         });
       }

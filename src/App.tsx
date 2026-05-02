@@ -48,6 +48,9 @@ const AdminUsersPage = lazy(() => import("./pages/admin/AdminUsersPage"));
 const AdminTreasuryPage = lazy(() => import("./pages/admin/AdminTreasuryPage"));
 const AdminFraudPage = lazy(() => import("./pages/admin/AdminFraudPage"));
 const AdminAuditPage = lazy(() => import("./pages/admin/AdminAuditPage"));
+const AdminReconciliationPage = lazy(() => import("./pages/admin/AdminReconciliationPage"));
+const AdminEventStreamPage = lazy(() => import("./pages/admin/AdminEventStreamPage"));
+const AdminLiquidityPage = lazy(() => import("./pages/admin/AdminLiquidityPage"));
 
 // Lazy loads — misc
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -126,6 +129,9 @@ const AnimatedRoutes = () => {
           <Route path="/admin/treasury" element={<AnimatedPage><AdminRoute><AdminTreasuryPage /></AdminRoute></AnimatedPage>} />
           <Route path="/admin/fraud" element={<AnimatedPage><AdminRoute><AdminFraudPage /></AdminRoute></AnimatedPage>} />
           <Route path="/admin/audit" element={<AnimatedPage><AdminRoute><AdminAuditPage /></AdminRoute></AnimatedPage>} />
+          <Route path="/admin/reconciliation" element={<AnimatedPage><AdminRoute><AdminReconciliationPage /></AdminRoute></AnimatedPage>} />
+          <Route path="/admin/events" element={<AnimatedPage><AdminRoute><AdminEventStreamPage /></AdminRoute></AnimatedPage>} />
+          <Route path="/admin/liquidity" element={<AnimatedPage><AdminRoute><AdminLiquidityPage /></AdminRoute></AnimatedPage>} />
 
           {/* ========== REDIRECTS ========== */}
           <Route path="/trending" element={<Navigate to="/markets?sort=trending" replace />} />
