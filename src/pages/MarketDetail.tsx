@@ -19,6 +19,7 @@ import TeamBadge from "@/components/TeamBadge";
 import { lmsrPrice } from "@/lib/pricing";
 import PriceChart from "@/components/PriceChart";
 import TradePanel from "@/components/markets/TradePanel";
+import TrendSummary from "@/components/markets/TrendSummary";
 import CommentThread from "@/components/markets/CommentThread";
 
 interface MarketOutcome {
@@ -174,6 +175,7 @@ const MarketDetail = () => {
           </div>
           <h1 className="font-display text-xl sm:text-2xl font-bold tracking-wider text-foreground">{market.title}</h1>
           {market.description && <p className="text-sm text-muted-foreground mt-1">{market.description}</p>}
+          <div className="mt-3"><TrendSummary marketId={market.id} /></div>
           <div className="flex flex-wrap items-center gap-3 mt-3">
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/30 px-2.5 py-1.5 rounded-lg">
               <BarChart3 className="h-3 w-3 text-primary" /><span className="font-bold text-foreground">{Math.round(market.total_volume).toLocaleString()}</span> KES
