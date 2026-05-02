@@ -938,6 +938,42 @@ export type Database = {
           },
         ]
       }
+      market_trends: {
+        Row: {
+          computed_at: string
+          details: Json | null
+          id: string
+          market_id: string
+          price_delta: number
+          trade_count: number
+          unique_traders: number
+          volume_delta: number
+          window: string
+        }
+        Insert: {
+          computed_at?: string
+          details?: Json | null
+          id?: string
+          market_id: string
+          price_delta?: number
+          trade_count?: number
+          unique_traders?: number
+          volume_delta?: number
+          window: string
+        }
+        Update: {
+          computed_at?: string
+          details?: Json | null
+          id?: string
+          market_id?: string
+          price_delta?: number
+          trade_count?: number
+          unique_traders?: number
+          volume_delta?: number
+          window?: string
+        }
+        Relationships: []
+      }
       markets: {
         Row: {
           alt_text: string | null
@@ -962,6 +998,7 @@ export type Database = {
           tags: string[] | null
           title: string
           total_volume: number
+          treasury_subsidy: number
         }
         Insert: {
           alt_text?: string | null
@@ -986,6 +1023,7 @@ export type Database = {
           tags?: string[] | null
           title: string
           total_volume?: number
+          treasury_subsidy?: number
         }
         Update: {
           alt_text?: string | null
@@ -1010,6 +1048,7 @@ export type Database = {
           tags?: string[] | null
           title?: string
           total_volume?: number
+          treasury_subsidy?: number
         }
         Relationships: [
           {
@@ -1212,6 +1251,54 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_failures: {
+        Row: {
+          amount: number | null
+          attempts: number
+          created_at: string
+          error_message: string | null
+          id: string
+          next_retry_at: string
+          operation: string
+          payload: Json | null
+          provider: string
+          reference: string | null
+          resolved_at: string | null
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          amount?: number | null
+          attempts?: number
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          next_retry_at?: string
+          operation: string
+          payload?: Json | null
+          provider: string
+          reference?: string | null
+          resolved_at?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number | null
+          attempts?: number
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          next_retry_at?: string
+          operation?: string
+          payload?: Json | null
+          provider?: string
+          reference?: string | null
+          resolved_at?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       positions: {
         Row: {
           avg_price: number
@@ -1368,6 +1455,84 @@ export type Database = {
           risk_score?: number
           subscription_plan?: Database["public"]["Enums"]["subscription_plan"]
           username?: string | null
+        }
+        Relationships: []
+      }
+      reconciliation_runs: {
+        Row: {
+          created_at: string
+          details: Json | null
+          drift: number
+          id: string
+          ledger_balance: number
+          run_at: string
+          status: string
+          user_id: string | null
+          wallet_balance: number
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          drift?: number
+          id?: string
+          ledger_balance?: number
+          run_at?: string
+          status?: string
+          user_id?: string | null
+          wallet_balance?: number
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          drift?: number
+          id?: string
+          ledger_balance?: number
+          run_at?: string
+          status?: string
+          user_id?: string | null
+          wallet_balance?: number
+        }
+        Relationships: []
+      }
+      risk_signals: {
+        Row: {
+          action_taken: string | null
+          created_at: string
+          details: Json | null
+          id: string
+          metric_value: number | null
+          severity: string
+          signal_type: string
+          threshold: number | null
+          user_id: string
+          window_end: string | null
+          window_start: string
+        }
+        Insert: {
+          action_taken?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          metric_value?: number | null
+          severity?: string
+          signal_type: string
+          threshold?: number | null
+          user_id: string
+          window_end?: string | null
+          window_start?: string
+        }
+        Update: {
+          action_taken?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          metric_value?: number | null
+          severity?: string
+          signal_type?: string
+          threshold?: number | null
+          user_id?: string
+          window_end?: string | null
+          window_start?: string
         }
         Relationships: []
       }
@@ -1816,6 +1981,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      derived_balance: { Args: { p_user_id: string }; Returns: number }
       fn_settle_trade: {
         Args: {
           p_amount: number
@@ -1827,6 +1993,13 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      has_any_role: {
+        Args: {
+          _roles: Database["public"]["Enums"]["app_role"][]
+          _user_id: string
+        }
+        Returns: boolean
       }
       has_role: {
         Args: {
