@@ -1,14 +1,20 @@
 {
-  "name": "Pagaza",
+  "name": "Pagaza — Prediction Markets",
   "short_name": "Pagaza",
-  "description": "Kenya's premier prediction market platform",
+  "description": "Kenya's prediction market exchange. Trade real-world outcomes with M-Pesa.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#0a0a12",
   "theme_color": "#0a0a12",
   "orientation": "portrait-primary",
+  "lang": "en-KE",
   "icons": [
-    { "src": "/logo-512.png", "sizes": "512x512", "type": "image/png" }
+    { "src": "/logo-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ],
-  "categories": ["finance", "games"]
+  "categories": ["finance"],
+  "shortcuts": [
+    { "name": "Markets", "url": "/markets", "icons": [{ "src": "/logo-512.png", "sizes": "512x512" }] },
+    { "name": "Wallet", "url": "/wallet", "icons": [{ "src": "/logo-512.png", "sizes": "512x512" }] }
+  ]
 }
