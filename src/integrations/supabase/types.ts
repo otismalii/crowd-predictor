@@ -1845,7 +1845,14 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "moderator" | "user"
+      app_role:
+        | "admin"
+        | "moderator"
+        | "user"
+        | "verified_user"
+        | "risk_flagged"
+        | "market_operator"
+        | "super_admin"
       bet_status: "pending" | "accepted" | "declined" | "resolved" | "cancelled"
       market_status:
         | "open"
@@ -2013,7 +2020,15 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "moderator", "user"],
+      app_role: [
+        "admin",
+        "moderator",
+        "user",
+        "verified_user",
+        "risk_flagged",
+        "market_operator",
+        "super_admin",
+      ],
       bet_status: ["pending", "accepted", "declined", "resolved", "cancelled"],
       market_status: [
         "open",
