@@ -103,6 +103,20 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Duplicate trade detected. Please wait a moment." }), { status: 429, headers: corsHeaders });
     }
 
+    // Risk evaluation (per-trade cap + velocity)
+    const riskRes = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/evaluate-risk`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}` },
+      body: JSON.stringify({ user_id: userId, action: "trade", amount: shares }),
+    });
+    const riskJson = await riskRes.json().catch(() => ({}));
+    if (riskJson?.data?.action && riskJson.data.action !== "allow") {
+      return new Response(JSON.stringify({ error: riskJson.data.reason, risk_action: riskJson.data.action }), { status: 403, headers: corsHeaders });
+    }
+
+    const correlationId = crypto.randomUUID();
+    const idempotencyKey = `${userId}:trade:${market_id}:${outcome_id}:${side}:${Date.now()}`;
+
     const { data: market } = await db.from("markets").select("*").eq("id", market_id).single();
     if (!market || market.status !== "open") {
       return new Response(JSON.stringify({ error: "Market not open" }), { status: 400, headers: corsHeaders });
