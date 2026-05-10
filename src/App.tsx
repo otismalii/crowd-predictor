@@ -37,6 +37,7 @@ const PlayerActivity = lazy(() => import("./pages/player/Activity"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Wallet = lazy(() => import("./pages/Wallet"));
 const Portfolio = lazy(() => import("./pages/Portfolio"));
+const Watchlist = lazy(() => import("./pages/Watchlist"));
 
 // Lazy loads — admin
 const AdminOverviewPage = lazy(() => import("./pages/admin/AdminOverviewPage"));
