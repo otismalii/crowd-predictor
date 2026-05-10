@@ -37,6 +37,7 @@ const PlayerActivity = lazy(() => import("./pages/player/Activity"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Wallet = lazy(() => import("./pages/Wallet"));
 const Portfolio = lazy(() => import("./pages/Portfolio"));
+const Watchlist = lazy(() => import("./pages/Watchlist"));
 
 // Lazy loads — admin
 const AdminOverviewPage = lazy(() => import("./pages/admin/AdminOverviewPage"));
@@ -118,6 +119,7 @@ const AnimatedRoutes = () => {
           <Route path="/activity" element={<AnimatedPage><PlayerRoute><PlayerActivity /></PlayerRoute></AnimatedPage>} />
           <Route path="/profile/:id" element={<AnimatedPage><Profile /></AnimatedPage>} />
           <Route path="/wallet" element={<AnimatedPage><PlayerRoute><Wallet /></PlayerRoute></AnimatedPage>} />
+          <Route path="/watchlist" element={<AnimatedPage><PlayerRoute><Watchlist /></PlayerRoute></AnimatedPage>} />
 
           {/* ========== ADMIN (guarded by AdminRoute) ========== */}
           <Route path="/admin" element={<AnimatedPage><AdminRoute><AdminOverviewPage /></AdminRoute></AnimatedPage>} />

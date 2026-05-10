@@ -14,38 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      ai_insights: {
-        Row: {
-          ai_summary: string
-          community_prediction: string | null
-          created_at: string
-          id: string
-          match_id: string
-        }
-        Insert: {
-          ai_summary: string
-          community_prediction?: string | null
-          created_at?: string
-          id?: string
-          match_id: string
-        }
-        Update: {
-          ai_summary?: string
-          community_prediction?: string | null
-          created_at?: string
-          id?: string
-          match_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ai_insights_match_id_fkey"
-            columns: ["match_id"]
-            isOneToOne: false
-            referencedRelation: "matches"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       audit_logs: {
         Row: {
           action: string
@@ -112,125 +80,6 @@ export type Database = {
         }
         Relationships: []
       }
-      casino_sessions: {
-        Row: {
-          created_at: string
-          device_meta: Json | null
-          ended_at: string | null
-          game_type: string
-          house_edge: number
-          id: string
-          payout: number
-          result: string
-          rng_proof: string | null
-          stake: number
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          device_meta?: Json | null
-          ended_at?: string | null
-          game_type: string
-          house_edge?: number
-          id?: string
-          payout?: number
-          result?: string
-          rng_proof?: string | null
-          stake: number
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          device_meta?: Json | null
-          ended_at?: string | null
-          game_type?: string
-          house_edge?: number
-          id?: string
-          payout?: number
-          result?: string
-          rng_proof?: string | null
-          stake?: number
-          user_id?: string
-        }
-        Relationships: []
-      }
-      crash_bets: {
-        Row: {
-          amount: number
-          cashout_at: number | null
-          created_at: string
-          id: string
-          payout: number | null
-          round_id: string
-          status: string
-          user_id: string
-        }
-        Insert: {
-          amount: number
-          cashout_at?: number | null
-          created_at?: string
-          id?: string
-          payout?: number | null
-          round_id: string
-          status?: string
-          user_id: string
-        }
-        Update: {
-          amount?: number
-          cashout_at?: number | null
-          created_at?: string
-          id?: string
-          payout?: number | null
-          round_id?: string
-          status?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "crash_bets_round_id_fkey"
-            columns: ["round_id"]
-            isOneToOne: false
-            referencedRelation: "crash_rounds"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      crash_rounds: {
-        Row: {
-          client_seed: string
-          crash_point: number
-          crashed_at: string | null
-          created_at: string
-          id: string
-          server_seed: string | null
-          server_seed_hash: string
-          started_at: string | null
-          status: string
-        }
-        Insert: {
-          client_seed?: string
-          crash_point: number
-          crashed_at?: string | null
-          created_at?: string
-          id?: string
-          server_seed?: string | null
-          server_seed_hash: string
-          started_at?: string | null
-          status?: string
-        }
-        Update: {
-          client_seed?: string
-          crash_point?: number
-          crashed_at?: string | null
-          created_at?: string
-          id?: string
-          server_seed?: string | null
-          server_seed_hash?: string
-          started_at?: string | null
-          status?: string
-        }
-        Relationships: []
-      }
       event_log: {
         Row: {
           actor_id: string | null
@@ -263,247 +112,6 @@ export type Database = {
           payload?: Json
         }
         Relationships: []
-      }
-      fantasy_fixtures: {
-        Row: {
-          away_score: number | null
-          away_team: string
-          created_at: string
-          gameweek: number
-          home_score: number | null
-          home_team: string
-          id: string
-          kickoff_at: string | null
-          league_id: string
-          status: string
-        }
-        Insert: {
-          away_score?: number | null
-          away_team: string
-          created_at?: string
-          gameweek?: number
-          home_score?: number | null
-          home_team: string
-          id?: string
-          kickoff_at?: string | null
-          league_id: string
-          status?: string
-        }
-        Update: {
-          away_score?: number | null
-          away_team?: string
-          created_at?: string
-          gameweek?: number
-          home_score?: number | null
-          home_team?: string
-          id?: string
-          kickoff_at?: string | null
-          league_id?: string
-          status?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fantasy_fixtures_league_id_fkey"
-            columns: ["league_id"]
-            isOneToOne: false
-            referencedRelation: "fantasy_leagues"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      fantasy_leagues: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          ends_at: string | null
-          entry_fee: number
-          id: string
-          league_type: string
-          max_teams: number
-          name: string
-          prize_pool: number
-          season: string
-          starts_at: string | null
-          status: string
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          ends_at?: string | null
-          entry_fee?: number
-          id?: string
-          league_type?: string
-          max_teams?: number
-          name: string
-          prize_pool?: number
-          season?: string
-          starts_at?: string | null
-          status?: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          ends_at?: string | null
-          entry_fee?: number
-          id?: string
-          league_type?: string
-          max_teams?: number
-          name?: string
-          prize_pool?: number
-          season?: string
-          starts_at?: string | null
-          status?: string
-        }
-        Relationships: []
-      }
-      fantasy_players: {
-        Row: {
-          age: number | null
-          assists: number | null
-          clean_sheets: number | null
-          club: string
-          created_at: string
-          fantasy_points: number | null
-          fitness: string | null
-          form_rating: number | null
-          goals: number | null
-          id: string
-          minutes_season: number | null
-          player_id: string
-          player_name: string
-          position: string
-          price_m: number | null
-          red_cards: number | null
-          yellow_cards: number | null
-        }
-        Insert: {
-          age?: number | null
-          assists?: number | null
-          clean_sheets?: number | null
-          club: string
-          created_at?: string
-          fantasy_points?: number | null
-          fitness?: string | null
-          form_rating?: number | null
-          goals?: number | null
-          id?: string
-          minutes_season?: number | null
-          player_id: string
-          player_name: string
-          position: string
-          price_m?: number | null
-          red_cards?: number | null
-          yellow_cards?: number | null
-        }
-        Update: {
-          age?: number | null
-          assists?: number | null
-          clean_sheets?: number | null
-          club?: string
-          created_at?: string
-          fantasy_points?: number | null
-          fitness?: string | null
-          form_rating?: number | null
-          goals?: number | null
-          id?: string
-          minutes_season?: number | null
-          player_id?: string
-          player_name?: string
-          position?: string
-          price_m?: number | null
-          red_cards?: number | null
-          yellow_cards?: number | null
-        }
-        Relationships: []
-      }
-      fantasy_scores: {
-        Row: {
-          breakdown: Json | null
-          created_at: string
-          fixture_id: string
-          id: string
-          points: number
-          team_id: string
-        }
-        Insert: {
-          breakdown?: Json | null
-          created_at?: string
-          fixture_id: string
-          id?: string
-          points?: number
-          team_id: string
-        }
-        Update: {
-          breakdown?: Json | null
-          created_at?: string
-          fixture_id?: string
-          id?: string
-          points?: number
-          team_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fantasy_scores_fixture_id_fkey"
-            columns: ["fixture_id"]
-            isOneToOne: false
-            referencedRelation: "fantasy_fixtures"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fantasy_scores_team_id_fkey"
-            columns: ["team_id"]
-            isOneToOne: false
-            referencedRelation: "fantasy_teams"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      fantasy_teams: {
-        Row: {
-          captain_id: string | null
-          created_at: string
-          id: string
-          league_id: string
-          players: Json
-          team_name: string
-          total_points: number
-          transfers_remaining: number
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          captain_id?: string | null
-          created_at?: string
-          id?: string
-          league_id: string
-          players?: Json
-          team_name: string
-          total_points?: number
-          transfers_remaining?: number
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          captain_id?: string | null
-          created_at?: string
-          id?: string
-          league_id?: string
-          players?: Json
-          team_name?: string
-          total_points?: number
-          transfers_remaining?: number
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fantasy_teams_league_id_fkey"
-            columns: ["league_id"]
-            isOneToOne: false
-            referencedRelation: "fantasy_leagues"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       follows: {
         Row: {
@@ -1132,125 +740,6 @@ export type Database = {
         }
         Relationships: []
       }
-      p2p_bets: {
-        Row: {
-          challenger_id: string
-          challenger_prediction_away: number
-          challenger_prediction_home: number
-          created_at: string
-          house_cut_percent: number
-          id: string
-          match_id: string
-          opponent_id: string
-          opponent_prediction_away: number | null
-          opponent_prediction_home: number | null
-          resolved_at: string | null
-          stake_amount: number
-          status: Database["public"]["Enums"]["bet_status"]
-          winner_id: string | null
-        }
-        Insert: {
-          challenger_id: string
-          challenger_prediction_away: number
-          challenger_prediction_home: number
-          created_at?: string
-          house_cut_percent?: number
-          id?: string
-          match_id: string
-          opponent_id: string
-          opponent_prediction_away?: number | null
-          opponent_prediction_home?: number | null
-          resolved_at?: string | null
-          stake_amount?: number
-          status?: Database["public"]["Enums"]["bet_status"]
-          winner_id?: string | null
-        }
-        Update: {
-          challenger_id?: string
-          challenger_prediction_away?: number
-          challenger_prediction_home?: number
-          created_at?: string
-          house_cut_percent?: number
-          id?: string
-          match_id?: string
-          opponent_id?: string
-          opponent_prediction_away?: number | null
-          opponent_prediction_home?: number | null
-          resolved_at?: string | null
-          stake_amount?: number
-          status?: Database["public"]["Enums"]["bet_status"]
-          winner_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "p2p_bets_match_id_fkey"
-            columns: ["match_id"]
-            isOneToOne: false
-            referencedRelation: "matches"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      p2p_challenges: {
-        Row: {
-          admin_resolution: string | null
-          challenger_id: string
-          created_at: string
-          dispute_evidence: string | null
-          dispute_reason: string | null
-          escrow_locked: boolean
-          id: string
-          match_id: string | null
-          opponent_id: string | null
-          outcome_source: string | null
-          resolved_at: string | null
-          resolved_by: string | null
-          rules: string
-          stake: number
-          status: Database["public"]["Enums"]["p2p_status"]
-          updated_at: string
-          winner_id: string | null
-        }
-        Insert: {
-          admin_resolution?: string | null
-          challenger_id: string
-          created_at?: string
-          dispute_evidence?: string | null
-          dispute_reason?: string | null
-          escrow_locked?: boolean
-          id?: string
-          match_id?: string | null
-          opponent_id?: string | null
-          outcome_source?: string | null
-          resolved_at?: string | null
-          resolved_by?: string | null
-          rules: string
-          stake: number
-          status?: Database["public"]["Enums"]["p2p_status"]
-          updated_at?: string
-          winner_id?: string | null
-        }
-        Update: {
-          admin_resolution?: string | null
-          challenger_id?: string
-          created_at?: string
-          dispute_evidence?: string | null
-          dispute_reason?: string | null
-          escrow_locked?: boolean
-          id?: string
-          match_id?: string | null
-          opponent_id?: string | null
-          outcome_source?: string | null
-          resolved_at?: string | null
-          resolved_by?: string | null
-          rules?: string
-          stake?: number
-          status?: Database["public"]["Enums"]["p2p_status"]
-          updated_at?: string
-          winner_id?: string | null
-        }
-        Relationships: []
-      }
       payment_failures: {
         Row: {
           amount: number | null
@@ -1346,57 +835,6 @@ export type Database = {
             columns: ["outcome_id"]
             isOneToOne: false
             referencedRelation: "market_outcomes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      predictions: {
-        Row: {
-          analysis: string | null
-          confidence: number
-          created_at: string
-          id: string
-          match_id: string
-          predicted_away_score: number
-          predicted_home_score: number
-          status: Database["public"]["Enums"]["prediction_status"]
-          user_id: string
-        }
-        Insert: {
-          analysis?: string | null
-          confidence?: number
-          created_at?: string
-          id?: string
-          match_id: string
-          predicted_away_score: number
-          predicted_home_score: number
-          status?: Database["public"]["Enums"]["prediction_status"]
-          user_id: string
-        }
-        Update: {
-          analysis?: string | null
-          confidence?: number
-          created_at?: string
-          id?: string
-          match_id?: string
-          predicted_away_score?: number
-          predicted_home_score?: number
-          status?: Database["public"]["Enums"]["prediction_status"]
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "predictions_match_id_fkey"
-            columns: ["match_id"]
-            isOneToOne: false
-            referencedRelation: "matches"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "predictions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1834,13 +1272,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "votes_prediction_id_fkey"
-            columns: ["prediction_id"]
-            isOneToOne: false
-            referencedRelation: "predictions"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "votes_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -1902,6 +1333,30 @@ export type Database = {
           locked_reason?: string | null
           pending_balance?: number
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      watchlist: {
+        Row: {
+          alert_price: number | null
+          created_at: string
+          id: string
+          market_id: string
+          user_id: string
+        }
+        Insert: {
+          alert_price?: number | null
+          created_at?: string
+          id?: string
+          market_id: string
+          user_id: string
+        }
+        Update: {
+          alert_price?: number | null
+          created_at?: string
+          id?: string
+          market_id?: string
           user_id?: string
         }
         Relationships: []
