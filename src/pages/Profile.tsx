@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { User, Target, TrendingUp, Users, Calendar, Zap, Pencil } from "lucide-react";
+import { Target, TrendingUp, Users, Calendar, Zap, Pencil, ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "@/components/layout/Navbar";
@@ -14,13 +14,10 @@ import GradientText from "@/components/reactbits/GradientText";
 import AnimatedCounter from "@/components/reactbits/AnimatedCounter";
 import SplitText from "@/components/reactbits/SplitText";
 import Aurora from "@/components/reactbits/Aurora";
-import TeamBadge from "@/components/TeamBadge";
 import FollowButton from "@/components/FollowButton";
 import StreakBadge from "@/components/StreakBadge";
 import ProfileEdit from "@/components/ProfileEdit";
 import AchievementBadges from "@/components/AchievementBadges";
-import CreateBetDialog from "@/components/CreateBetDialog";
-import { Skeleton } from "@/components/ui/skeleton";
 import ProfileSkeleton from "@/components/skeletons/ProfileSkeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -28,7 +25,7 @@ const Profile = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const [profile, setProfile] = useState<any>(null);
-  const [predictions, setPredictions] = useState<any[]>([]);
+  const [trades, setTrades] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
 
@@ -40,10 +37,15 @@ const Profile = () => {
     setEditing(false);
     Promise.all([
       supabase.from("profiles").select("*").eq("id", id).single(),
-      supabase.from("predictions").select("*, matches(home_team, away_team, league)").eq("user_id", id).order("created_at", { ascending: false }).limit(20),
-    ]).then(([profileRes, predRes]) => {
+      supabase
+        .from("trades")
+        .select("id, side, shares, price_per_share, total_cost, created_at, market_id, markets(title), market_outcomes:outcome_id(label)")
+        .eq("user_id", id)
+        .order("created_at", { ascending: false })
+        .limit(20),
+    ]).then(([profileRes, tradeRes]) => {
       if (profileRes.data) setProfile(profileRes.data);
-      setPredictions(predRes.data || []);
+      setTrades((tradeRes.data as any[]) || []);
       setLoading(false);
     });
   }, [id]);
@@ -77,9 +79,6 @@ const Profile = () => {
     { icon: Users, label: "Followers", value: profile.followers_count, suffix: "", color: "text-primary" },
   ];
 
-  const correctCount = predictions.filter(p => p.status === "correct").length;
-  const totalPredictions = predictions.length;
-
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -105,7 +104,6 @@ const Profile = () => {
               transition={{ duration: 0.4 }}
             >
               <SpotlightCard className="mb-8 overflow-hidden" spotlightColor="rgba(120, 255, 120, 0.1)">
-                {/* Banner */}
                 <div className="relative h-28 overflow-hidden">
                   <Aurora className="opacity-50" />
                   <div className="absolute inset-0 bg-gradient-to-b from-transparent to-card" />
@@ -155,7 +153,6 @@ const Profile = () => {
                     <AchievementBadges userId={id!} compact />
                   </motion.div>
 
-                  {/* Actions */}
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -172,14 +169,10 @@ const Profile = () => {
                         <Pencil className="h-3.5 w-3.5 mr-1.5" /> Edit Profile
                       </Button>
                     ) : (
-                      <>
-                        <FollowButton targetUserId={id!} onFollowChange={refreshProfile} />
-                        <CreateBetDialog opponentId={id!} />
-                      </>
+                      <FollowButton targetUserId={id!} onFollowChange={refreshProfile} />
                     )}
                   </motion.div>
 
-                  {/* Streak display */}
                   {(profile.current_streak > 0 || profile.best_streak > 0) && (
                     <motion.div
                       initial={{ opacity: 0 }}
@@ -191,7 +184,6 @@ const Profile = () => {
                     </motion.div>
                   )}
 
-                  {/* Stats */}
                   <div className="mt-6 grid grid-cols-3 gap-6 w-full max-w-sm">
                     {stats.map((s, i) => (
                       <motion.div
@@ -218,7 +210,6 @@ const Profile = () => {
                 </CardContent>
               </SpotlightCard>
 
-              {/* Achievement Badges */}
               <div className="mt-6">
                 <AchievementBadges userId={id!} />
               </div>
@@ -226,7 +217,7 @@ const Profile = () => {
           )}
         </AnimatePresence>
 
-        {/* Prediction history */}
+        {/* Recent trades */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -234,76 +225,71 @@ const Profile = () => {
         >
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-display text-xl font-bold tracking-wider">
-              <SplitText text="RECENT PREDICTIONS" splitType="words" delay={0.1} />
+              <SplitText text="RECENT TRADES" splitType="words" delay={0.1} />
             </h2>
-            {totalPredictions > 0 && (
-              <span className="text-xs text-muted-foreground">
-                <span className="text-primary font-semibold">{correctCount}</span>/{totalPredictions} correct
-              </span>
+            {trades.length > 0 && (
+              <span className="text-xs text-muted-foreground">{trades.length} shown</span>
             )}
           </div>
 
           <div className="space-y-3">
-            {predictions.length === 0 ? (
+            {trades.length === 0 ? (
               <SpotlightCard className="p-10 text-center" spotlightColor="rgba(120, 255, 120, 0.08)">
                 <Zap className="mx-auto mb-3 h-10 w-10 text-primary/20" />
-                <p className="text-muted-foreground font-display">No predictions yet</p>
-                <p className="text-xs text-muted-foreground mt-1">Predictions will appear here once made.</p>
+                <p className="text-muted-foreground font-display">No trades yet</p>
+                <p className="text-xs text-muted-foreground mt-1">Trades will appear here once placed.</p>
               </SpotlightCard>
             ) : (
-              predictions.map((p, i) => (
-                <motion.div
-                  key={p.id}
-                  initial={{ opacity: 0, x: -12 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.5 + i * 0.04 }}
-                >
-                  <Link to={`/market/${p.match_id}`}>
-                    <SpotlightCard
-                      className="hover:border-primary/20 transition-all group cursor-pointer"
-                      spotlightColor={
-                        p.status === "correct" ? "rgba(120, 255, 120, 0.15)" :
-                        p.status === "incorrect" ? "rgba(255, 80, 80, 0.1)" :
-                        "rgba(120, 255, 120, 0.08)"
-                      }
-                    >
-                      <CardContent className="flex items-center justify-between p-4">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs text-accent font-semibold uppercase tracking-wider">{p.matches?.league}</p>
-                          <div className="flex items-center gap-2 mt-1.5">
-                            <TeamBadge teamName={p.matches?.home_team || ""} size="sm" />
-                            <p className="text-sm font-display font-bold group-hover:text-primary transition-colors truncate">
-                              {p.matches?.home_team}{" "}
-                              <span className="text-primary">{p.predicted_home_score}</span>
-                              <span className="text-muted-foreground mx-1">-</span>
-                              <span className="text-primary">{p.predicted_away_score}</span>
-                              {" "}{p.matches?.away_team}
+              trades.map((t, i) => {
+                const isBuy = t.side === "buy";
+                return (
+                  <motion.div
+                    key={t.id}
+                    initial={{ opacity: 0, x: -12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.5 + i * 0.04 }}
+                  >
+                    <Link to={`/market/${t.market_id}`}>
+                      <SpotlightCard
+                        className="hover:border-primary/20 transition-all group cursor-pointer"
+                        spotlightColor={isBuy ? "rgba(120, 255, 120, 0.12)" : "rgba(255, 120, 120, 0.1)"}
+                      >
+                        <CardContent className="flex items-center justify-between p-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              {isBuy ? (
+                                <ArrowUpRight className="h-3.5 w-3.5 text-primary shrink-0" />
+                              ) : (
+                                <ArrowDownLeft className="h-3.5 w-3.5 text-destructive shrink-0" />
+                              )}
+                              <p className="text-sm font-display font-bold group-hover:text-primary transition-colors truncate">
+                                {t.markets?.title || "Market"}
+                              </p>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1 truncate">
+                              <span className={isBuy ? "text-primary" : "text-destructive"}>
+                                {isBuy ? "BUY" : "SELL"}
+                              </span>{" "}
+                              {Number(t.shares).toFixed(0)} × {t.market_outcomes?.label || "—"}
+                              {" @ "}
+                              <span className="tabular-nums">{Number(t.price_per_share).toFixed(2)} KES</span>
                             </p>
-                            <TeamBadge teamName={p.matches?.away_team || ""} size="sm" />
+                            <div className="flex items-center gap-2 mt-1.5">
+                              <Calendar className="h-3 w-3 text-muted-foreground" />
+                              <p className="text-[11px] text-muted-foreground">
+                                {format(new Date(t.created_at), "MMM d, yyyy")}
+                              </p>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2 mt-1.5">
-                            <Calendar className="h-3 w-3 text-muted-foreground" />
-                            <p className="text-[11px] text-muted-foreground">{format(new Date(p.created_at), "MMM d, yyyy")}</p>
-                            <span className="text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
-                              🎯 {p.confidence}/5
-                            </span>
-                          </div>
-                        </div>
-                        <motion.span
-                          whileHover={{ scale: 1.1 }}
-                          className={`text-xs px-3 py-1 rounded-full font-semibold ${
-                            p.status === "correct" ? "bg-primary/20 text-primary" :
-                            p.status === "incorrect" ? "bg-destructive/20 text-destructive" :
-                            "bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          {p.status}
-                        </motion.span>
-                      </CardContent>
-                    </SpotlightCard>
-                  </Link>
-                </motion.div>
-              ))
+                          <span className="text-xs px-3 py-1 rounded-full font-semibold bg-primary/10 text-primary tabular-nums">
+                            {Number(t.total_cost).toFixed(0)} KES
+                          </span>
+                        </CardContent>
+                      </SpotlightCard>
+                    </Link>
+                  </motion.div>
+                );
+              })
             )}
           </div>
         </motion.div>
