@@ -87,7 +87,7 @@ const MarketDetail = () => {
     const [mRes, oRes, tRes] = await Promise.all([
       supabase.from("markets").select("*, matches(home_team, away_team, league, kickoff, home_score, away_score)").eq("id", id!).single() as any,
       supabase.from("market_outcomes").select("*").eq("market_id", id!).order("sort_order") as any,
-      supabase.from("trades").select("*, profiles:user_id(username)").eq("market_id", id!).order("created_at", { ascending: false }).limit(30) as any,
+      (supabase as any).rpc("get_market_recent_trades", { p_market_id: id!, p_limit: 30 }),
     ]);
     if (mRes.data) {
       setMarket(mRes.data);
@@ -97,7 +97,10 @@ const MarketDetail = () => {
       }
     }
     if (oRes.data) { setOutcomes(oRes.data); if (!selectedOutcome && oRes.data.length > 0) setSelectedOutcome(oRes.data[0].id); }
-    if (tRes.data) setTrades(tRes.data);
+    if (tRes.data) {
+      // RPC returns flat rows with `username`; shape into the prior nested form expected by the UI.
+      setTrades((tRes.data as any[]).map((r) => ({ ...r, profiles: { username: r.username } })));
+    }
     if (user) {
       const [posRes, walletRes] = await Promise.all([
         supabase.from("positions").select("outcome_id, shares, avg_price, total_cost").eq("market_id", id!).eq("user_id", user.id) as any,
