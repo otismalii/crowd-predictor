@@ -1248,38 +1248,6 @@ export type Database = {
         }
         Relationships: []
       }
-      votes: {
-        Row: {
-          created_at: string
-          id: string
-          prediction_id: string
-          user_id: string
-          vote_type: Database["public"]["Enums"]["vote_type"]
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          prediction_id: string
-          user_id: string
-          vote_type: Database["public"]["Enums"]["vote_type"]
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          prediction_id?: string
-          user_id?: string
-          vote_type?: Database["public"]["Enums"]["vote_type"]
-        }
-        Relationships: [
-          {
-            foreignKeyName: "votes_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       wallets: {
         Row: {
           balance: number
@@ -1419,6 +1387,33 @@ export type Database = {
       }
     }
     Functions: {
+      admin_list_profiles: {
+        Args: never
+        Returns: {
+          accuracy_rate: number
+          avatar_url: string | null
+          best_streak: number
+          bio: string | null
+          created_at: string
+          current_streak: number
+          email: string | null
+          email_verified: boolean
+          followers_count: number
+          id: string
+          phone_number: string | null
+          phone_verified: boolean
+          reputation_score: number
+          risk_score: number
+          subscription_plan: Database["public"]["Enums"]["subscription_plan"]
+          username: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       credit_balance: {
         Args: { p_amount: number; p_balance_type?: string; p_user_id: string }
         Returns: boolean
@@ -1448,6 +1443,47 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      get_market_recent_trades: {
+        Args: { p_limit?: number; p_market_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          market_id: string
+          outcome_id: string
+          price_per_share: number
+          shares: number
+          side: string
+          total_cost: number
+          username: string
+        }[]
+      }
+      get_own_profile: {
+        Args: never
+        Returns: {
+          accuracy_rate: number
+          avatar_url: string | null
+          best_streak: number
+          bio: string | null
+          created_at: string
+          current_streak: number
+          email: string | null
+          email_verified: boolean
+          followers_count: number
+          id: string
+          phone_number: string | null
+          phone_verified: boolean
+          reputation_score: number
+          risk_score: number
+          subscription_plan: Database["public"]["Enums"]["subscription_plan"]
+          username: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       has_any_role: {
         Args: {
