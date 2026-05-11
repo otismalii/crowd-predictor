@@ -40,16 +40,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = async (_userId: string) => {
     try {
-      const { data } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .single();
-      if (data) setProfile(data as UserProfile);
-    } catch {
-      // Profile may not exist yet
+      // Use SECURITY DEFINER RPC so the owner can read their own email/phone
+      // (column-level REVOKE blocks direct SELECT on those fields).
+      const { data, error } = await (supabase as any).rpc("get_own_profile");
+      if (error) { console.warn("[auth] get_own_profile failed:", error.message); return; }
+      const row = Array.isArray(data) ? data[0] : data;
+      if (row) setProfile(row as UserProfile);
+    } catch (e) {
+      console.warn("[auth] fetchProfile error:", e);
     }
   };
 
