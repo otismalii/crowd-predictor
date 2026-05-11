@@ -1,197 +1,103 @@
+# Full System Audit — Pagaza
 
-# Pagaza LDX v14 — Refactor Plan (Vite + Supabase adaptation)
-
-Adapted from your 10-phase spec. The stack is **Vite + React SPA + Supabase Edge Functions** — no Next.js, no Redis, no LOGIK. Where the spec assumes those, we substitute:
-
-- `/server/*` → `supabase/functions/<name>/index.ts` grouped by domain
-- Redis Streams → Supabase Realtime broadcast channels + `event_log` table (already exists)
-- LOGIK / AI signals → user-driven **Market Intelligence** (volume velocity, price drift, trader concentration) computed in `compute-trends`
+A structured audit across four layers: **database security**, **edge functions / money flow**, **frontend correctness**, and **operational hygiene**. Each finding has severity (🔴 critical / 🟠 high / 🟡 medium / 🔵 low) and a concrete fix.
 
 ---
 
-## Phase 0 — Freeze & Inventory
+## 1. Database & RLS
 
-- Confirm baseline: snapshot current state via git history (Lovable auto-syncs to GitHub).
-- Produce a **legacy inventory report** (Phase 1 input). No deletes yet.
+### 🔴 Critical
+1. **`profiles.email` / `phone_number` publicly readable** — `Profiles are viewable by everyone USING (true)`. Anyone (incl. anon) can scrape emails/phones.
+   - Fix: drop public SELECT; add `authenticated`-only policy; `REVOKE SELECT (email, phone_number)` from anon/authenticated; add SECURITY DEFINER RPCs `get_own_profile()` and `admin_list_profiles()`.
+2. **`trades` & `positions` publicly readable** — all users' trade history and portfolios exposed. Fix: replace `USING (true)` with `auth.uid() = user_id` + admin role policy.
+3. **`market_disputes` publicly readable** — exposes user_id, evidence, admin_response. Fix: owner-only SELECT + admin policy.
+4. **`notifications` — any user can insert into any inbox** — `Authenticated can insert notifications WITH CHECK (auth.uid() IS NOT NULL)`. Fix: drop that policy entirely (service role insert remains).
+5. **`user_badges` — any user can award themselves badges** — same pattern. Fix: drop public INSERT policy; only service role.
+6. **`guest_sessions` UPDATE unrestricted** — `USING (true) WITH CHECK (true)`. Anyone can drain credits / hijack sessions. Fix: drop policy; only service role can update.
+7. **Avatars storage bucket — no ownership check on INSERT/UPDATE/DELETE** — any authenticated user can overwrite anyone's avatar. Fix: enforce `(storage.foldername(name))[1] = auth.uid()::text`.
 
-## Phase 1 — Legacy Cleanup (delete obvious dead code)
+### 🟠 High
+8. **Privileged SECURITY DEFINER functions executable by `anon` / `authenticated`** — `deduct_balance`, `credit_balance`, `lock_for_withdrawal`, `release_withdrawal_lock`, `fn_settle_trade`, `derived_balance`, `deduct_balance_idempotent`. Any signed-in user could call these from the client. Fix: `REVOKE EXECUTE ... FROM PUBLIC, anon, authenticated`. Keep `has_role` / `has_any_role` executable (used in RLS).
+9. **Leaked password protection disabled** in Supabase Auth. Fix: enable in Auth → Email settings (dashboard toggle, not SQL).
+10. **`wallets` UPDATE policy too permissive** — `auth.uid() = user_id` lets users update their own wallet balance directly from the client. Fix: drop the public UPDATE policy; only service role updates wallets (edge functions already do this).
 
-**Edge functions to delete** (superseded by PesaPal flow):
-- `supabase/functions/mpesa-callback/`
-- `supabase/functions/mpesa-deposit/`
-- `supabase/functions/mpesa-withdraw/`
-
-**Frontend to delete** (unused):
-- `src/components/CreateBetDialog.tsx` (P2P legacy, only used in `Profile.tsx` — strip its usage)
-- Strip P2P references from `src/pages/Profile.tsx`
-
-**Database tables to drop** (zero app references — only appear in generated `types.ts`):
-- `ai_insights`, `casino_sessions`, `crash_bets`, `crash_rounds`
-- `fantasy_fixtures`, `fantasy_leagues`, `fantasy_players`, `fantasy_scores`, `fantasy_teams`
-- `p2p_bets`, `p2p_challenges` (after stripping UI)
-- `predictions` (legacy match-score predictions, replaced by markets)
-
-**Ambiguous — flag, don't delete**: `notifications`, `support_tickets`, `follows`, `badges` (kept; still referenced).
-
-## Phase 2 — Frontend Domain Restructure
-
-Target tree (rename + relocate, no rewrites):
-
-```text
-src/
-  pages/
-    Home.tsx              (was Feed.tsx — trending + movers + volatility)
-    Markets.tsx
-    MarketDetail.tsx
-    Portfolio.tsx
-    Watchlist.tsx         (NEW)
-    Wallet.tsx
-    Leaderboard.tsx
-    Profile.tsx
-    admin/*               (unchanged grouping)
-  components/
-    market/               (MarketCard, MarketHeader, OrderBook*, TradePanel, MarketOddsBar, MarketStatusPill, PriceChart→MarketPriceChart, PriceDelta, ResolutionBadge, SocialShare, TrendSummary, TradeSuccessDialog, CommentThread, MarketFilters, MarketGrid)
-    feed/                 (MarketFeed, TrendingMarkets, MoversList, VolatilityList) — NEW
-    intelligence/         (TrendSummary moves here, VolumePulse, TraderConcentration) — NEW, replaces sentiment
-    portfolio/            (existing)
-    wallet/               (existing)
-    leaderboard/          (existing)
-    admin/                (existing)
-    layout/               (existing)
-    ui/                   (shadcn, unchanged)
-    reactbits/            (unchanged)
-    skeletons/            (unchanged)
-    common/               (ErrorBoundary, PageLoader, OfflineIndicator, InstallBanner, ThemeProvider, ThemeToggle, SEOHead)
-```
-
-`OrderBook` is **new** — a depth-style view of LMSR-implied liquidity per outcome (not a true order book, since LMSR has no matching engine; we render synthetic depth bands).
-
-## Phase 3 — Edge Function Domain Reorg
-
-Rename/group edge functions (each remains one `index.ts` per Supabase rules):
-
-```text
-supabase/functions/
-  _shared/                envelope.ts, validation.ts (NEW: zod schemas), pricing.ts (NEW: shared LMSR math)
-  markets-manage/         (was manage-markets)
-  markets-resolve/        (was resolve-bets)
-  markets-sync/           (was sync-matches)
-  trade-execute/          (was execute-trade)
-  pay-deposit/            (was pesapal-deposit)
-  pay-callback/           (was pesapal-callback)
-  pay-withdraw/           (was pesapal-withdraw)
-  pay-retry/              (was retry-payments)
-  risk-evaluate/          (was evaluate-risk)
-  ledger-reconcile/       (was reconcile-ledger)
-  intel-compute-trends/   (was compute-trends) — extended with volume velocity, concentration, drift
-  seo-sitemap/            (was generate-sitemap)
-```
-
-Renames require updating `supabase.functions.invoke()` call sites across `src/`. We will produce a single mapping commit.
-
-## Phase 4 — Event Contract Formalization
-
-`event_log` table already exists. We formalize the envelope so every money-moving function emits exactly one canonical event before state changes.
-
-**Stream / aggregate types** (all via `event_log.aggregate_type` + `event_type`):
-
-```text
-market.created | market.updated | market.resolved | market.paused
-trade.placed   | trade.failed
-price.updated  | liquidity.changed
-deposit.requested | deposit.completed | deposit.failed
-withdraw.requested | withdraw.approved | withdraw.completed | withdraw.failed
-risk.flagged   | reconciliation.completed
-intel.trend.updated
-```
-
-Add `src/lib/events.ts` (typed event reader) and a Supabase Realtime subscription helper that pipes `event_log` inserts into per-aggregate channels for live UI (admin event stream page already exists).
-
-## Phase 5 — Market Intelligence (replaces "sentiment / LOGIK")
-
-Extend `intel-compute-trends` (cron, 15m) to compute and write to `market_trends`:
-
-- **Volume velocity**: 1h/24h volume_delta vs prior window
-- **Price drift**: outcome price change magnitude
-- **Trader concentration**: unique_traders / trade_count (HHI-like)
-- **Volatility band**: rolling stddev of implied price
-- **Movers ranking**: precomputed top-N by category
-
-Frontend uses these via a new `src/services/intelligenceService.ts`:
-- Home: `TrendingMarkets`, `MoversList`, `VolatilityList`
-- MarketDetail: `TrendSummary` (already exists, expanded)
-- Admin: surfaced in `AdminLiquidityPage`
-
-No AI / Gemini calls — pure derived statistics. Honors `mem://core: No AI-driven insights`.
-
-## Phase 6 — Database Migrations
-
-One migration covers Phases 1 + 4 + 5:
-
-1. `DROP TABLE` legacy: ai_insights, casino_sessions, crash_*, fantasy_*, p2p_*, predictions (with `CASCADE` only for known dependents; verified none).
-2. Add indexes on `event_log (aggregate_type, aggregate_id, created_at desc)` and `event_log (actor_id, created_at desc)` for live tail performance.
-3. Add `market_trends` indexes on `(market_id, window, computed_at desc)`.
-4. Add `watchlist` table (NEW for `/watchlist` page):
-   - `user_id`, `market_id`, `created_at`, `alert_price` nullable
-   - RLS: users CRUD own rows only.
-
-## Phase 7 — Admin Dashboard Polish
-
-Admin tree already exists; add:
-- `AdminEventStreamPage` already exists — wire to new envelope events
-- `AdminRiskPage` (NEW) — surface `risk_signals` with action buttons (already partially in fraud page; merge)
-- Confirmation modals + mandatory reason field on every destructive action (already enforced by `mem://security/admin-audit-protocol`)
-
-## Phase 8 — Monetization Hook (deferred wiring)
-
-Add `_shared/fees.ts`:
-- `platformCut(amount, type)` returning fee + net
-- Every trade/withdraw emits a `fee.collected` event into `event_log`
-- No UI changes yet — purely backend instrumentation so revenue reporting is later trivial.
-
-(Pagaza currently runs 0% platform fee per `TradePanel`. We instrument the hook now, leave rate at 0, flip later via config.)
-
-## Phase 9 — Performance Pass
-
-- Lazy-load `MarketDetail` chart bundle (already partial; verify)
-- Memoize `MarketCard` and `MarketGrid` rows
-- Replace per-card subqueries with batched `fetchMarketOutcomes(ids)` (already in `marketService`; audit call sites)
-- Add HTTP cache headers on `seo-sitemap`
-- Audit duplicate Realtime channels (one channel per aggregate, not per component)
-
-## Phase 10 — Testing Checklist
-
-Add `src/test/` coverage + Deno tests for edge functions:
-- Trade execute: happy path, insufficient balance, duplicate idempotency, phone-gate
-- Resolution: blocked without market_sources + audit log (trigger already enforces — add test)
-- Deposit/withdraw: pesapal callback signature handling, retry queue
-- Reconciliation: drift detection
-- Risk: velocity thresholds
+### 🟡 Medium
+11. **`votes` table still exists** but `predictions` was dropped — orphaned. Drop `votes`.
+12. **`source_registry` warn** — RLS only has admin ALL; verify no implicit grants. Mark ignored (already correct).
+13. **`realtime.messages` has no policies** — any authed user can subscribe to any topic. Lovable cannot modify the `realtime` schema; surface to user to configure in dashboard.
 
 ---
 
-## Execution order (single sprint, sequential commits)
+## 2. Edge Functions & Money Flow
 
-1. Migration: drop legacy tables, add `watchlist`, add indexes
-2. Delete mpesa-* edge functions + `CreateBetDialog` + strip P2P from Profile
-3. Edge function renames + update all `invoke()` call sites + extract `_shared/pricing.ts` & `_shared/validation.ts`
-4. Frontend restructure: move files into `market/`, `feed/`, `intelligence/`, `common/`; add `Watchlist.tsx`; rename `Feed.tsx` → `Home.tsx`
-5. Extend `intel-compute-trends` with new metrics + UI surfaces (TrendingMarkets, MoversList, VolatilityList)
-6. Event envelope: ensure every money-moving function emits canonical events; add `src/lib/events.ts`
-7. Admin polish + fees instrumentation (0% rate)
-8. Performance + tests
+### 🟠 High
+14. **`pesapal-withdraw` does not use the shared envelope helpers** — inconsistent with other money-moving functions; missing `serviceClient()` standardization. Refactor to `_shared/envelope.ts`.
+15. **`evaluate-risk` called via service-role bearer from `pesapal-withdraw`** — passes service role JWT in `Authorization` header to a public function. Should be internal-only invoke or signed call. Acceptable, but document.
+16. **`execute-trade` & `pesapal-withdraw` rely on RPCs that will be revoked from authenticated.** Since they use `serviceClient()` (service role), they continue to work after fix #8. Verify all callers.
+
+### 🟡 Medium
+17. **No global rate limit on `pesapal-deposit`, `manage-markets`** — risk-evaluate covers trades/withdraws only. Add per-IP token bucket or rely on Supabase rate limits.
+18. **`config.toml`** — `manage-markets` has `verify_jwt = false` but enforces admin role server-side. Acceptable but flip to `verify_jwt = true` to fail closed.
 
 ---
 
-## Out of scope (per your answers)
+## 3. Frontend Correctness
 
-- Next.js migration
-- Redis Streams / Upstash
-- LOGIK signal integration
-- Any new AI/Gemini calls
+### 🟠 High (caused by DB fixes above)
+19. **`select("*")` on `profiles` will break** after column REVOKE in 5 places: `AuthContext`, `Wallet`, `Profile`, `player/Dashboard`, `admin/AdminUsersPage`. Switch to:
+    - Own profile → `rpc('get_own_profile')`
+    - Other user → explicit columns excluding email/phone
+    - Admin list → `rpc('admin_list_profiles')`
+20. **`trades` / `positions` public reads** — confirm no anonymous view consumes them. `MarketDetail` may need a public aggregate (volume, last price). Move aggregation server-side via a SECURITY DEFINER view (`public_market_stats`) returning only counts and last price, no user_ids.
 
-## Risks
+### 🟡 Medium
+21. **`AuthContext` swallows errors silently** in `fetchProfile`. Add console.warn; surface a toast only on persistent failure.
+22. **No CSRF / origin check on edge functions** that mutate state — they trust the JWT, which is correct for Supabase, but `pesapal-callback` is public; verify provider signature.
 
-- Edge function renames will break any external webhooks pointing at old URLs. **PesaPal callback URL** is set in their dashboard to `pesapal-callback` — we keep a thin alias function during transition or update the dashboard. Plan: **keep `pesapal-callback` name** (skip that rename) to avoid coordinating with PesaPal.
-- Dropping `predictions` table: confirmed zero app references but verify no analytics depend on it before drop.
-- `notifications` table will need event-log-driven population once envelope is fully wired (follow-up, not this sprint).
+### 🔵 Low
+23. **Duplicate skeletons** — `ChallengesSkeleton` is unused since predictions was dropped. Delete.
+24. **`votes` types lingering** in `src/integrations/supabase/types.ts` until next regen.
+
+---
+
+## 4. Operational Hygiene
+
+### 🟡 Medium
+25. **No automated test for RLS policies.** Add a small `_test` suite (Deno) that signs in as 2 fake users and asserts they cannot read each other's trades/positions/notifications.
+26. **Service worker `public/sw.js`** — confirm PWA guard is in place (already memorized).
+27. **Sitemap regeneration** — `generate-sitemap` exists; ensure it's scheduled (cron job in `system_jobs`).
+
+---
+
+## Remediation Sprint Plan
+
+Execute in this order, one migration per phase so RLS and code roll out together:
+
+| Phase | Scope | Risk |
+|---|---|---|
+| **A** | DB: fixes 1–6 (RLS tightening) + 8 (revoke EXECUTE) | High — must update frontend in same release |
+| **B** | Frontend: fix #19 (RPC + explicit column selects) | Medium |
+| **C** | Storage policy fix #7 (avatars ownership) | Low |
+| **D** | DB: fix #10 (wallets UPDATE), fix #11 (drop `votes`) | Low |
+| **E** | Edge functions: refactor #14 + tighten #18 | Low |
+| **F** | Public aggregates view for `trades`/`positions` (#20) if needed by `MarketDetail` | Medium |
+| **G** | Manual dashboard actions: enable leaked-password protection (#9), realtime policies (#13) | User-action |
+| **H** | Cleanup: delete unused skeletons (#23), add RLS Deno tests (#25) | Low |
+
+---
+
+## What I Will NOT Touch
+
+- `auth`, `storage`, `realtime`, `supabase_functions`, `vault` schemas (reserved).
+- Working PesaPal callback flow.
+- Existing immutable ledger semantics.
+
+---
+
+## Open Questions Before Phase A
+
+1. `MarketDetail` currently reads `trades` for "recent trade" feed. Do you want a public anonymized feed (counts + last price) preserved, or restrict trade list to the trader only?
+2. `Leaderboard` reads aggregated profile data — should display names + avatars stay public (yes, expected), and is **username** considered sensitive? (Assumption: no.)
+3. OK to drop the orphaned `votes` table?
+
+If you approve, I'll start with Phase A + B as a single coordinated change (DB migration + frontend RPC swap) since they're tightly coupled.
