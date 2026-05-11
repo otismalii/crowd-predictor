@@ -74,12 +74,13 @@ const Wallet = () => {
         supabase.from("wallets").select("*").eq("user_id", user.id).single() as any,
         supabase.from("ledger_entries").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(100) as any,
         supabase.from("positions").select("outcome_id, market_id, shares, avg_price, total_cost").eq("user_id", user.id).gt("shares", 0) as any,
-        supabase.from("profiles").select("*").eq("id", user.id).single() as any,
+        (supabase as any).rpc("get_own_profile"),
       ]);
 
       if (walletRes.data) setWallet(walletRes.data);
       if (ledgerRes.data) setLedgerEntries(ledgerRes.data);
-      if (profileRes.data) setProfile(profileRes.data);
+      const ownProfile = Array.isArray(profileRes.data) ? profileRes.data[0] : profileRes.data;
+      if (ownProfile) setProfile(ownProfile);
 
       const positions: PositionRow[] = posRes.data || [];
       if (positions.length === 0) { setPortfolioItems([]); setLoading(false); return; }
