@@ -17,10 +17,10 @@ const AdminUsersPage = () => {
   const fetchData = async () => {
     setLoading(true);
     const [profilesRes, rolesRes] = await Promise.all([
-      supabase.from("profiles").select("*").order("created_at", { ascending: false }).limit(500),
+      (supabase as any).rpc("admin_list_profiles"),
       supabase.from("user_roles").select("user_id, role").eq("role", "admin"),
     ]);
-    setProfiles(profilesRes.data || []);
+    setProfiles((profilesRes.data as any[]) || []);
     setAdminIds((rolesRes.data || []).map((r: any) => r.user_id));
     setLoading(false);
   };
