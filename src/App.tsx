@@ -12,6 +12,12 @@ import MobileNav from "@/components/layout/MobileNav";
 import InstallBanner from "@/components/InstallBanner";
 import { AnimatePresence, motion } from "framer-motion";
 import { lazy, Suspense } from "react";
+import { useParams } from "react-router-dom";
+
+const MarketAliasRedirect = () => {
+  const { id } = useParams();
+  return <Navigate to={`/markets/${id}`} replace />;
+};
 import { Navigate } from "react-router-dom";
 import PageLoader from "@/components/PageLoader";
 import { PlayerRoute, AdminRoute } from "@/routes/route-guards";
@@ -104,7 +110,7 @@ const AnimatedRoutes = () => {
           <Route path="/" element={<AnimatedPage><Feed /></AnimatedPage>} />
           <Route path="/markets" element={<AnimatedPage><Markets /></AnimatedPage>} />
           <Route path="/markets/:id" element={<AnimatedPage><MarketDetail /></AnimatedPage>} />
-          <Route path="/market/:id" element={<Navigate to="/markets/:id" replace />} />
+          <Route path="/market/:id" element={<MarketAliasRedirect />} />
           <Route path="/leaderboard" element={<AnimatedPage><Leaderboard /></AnimatedPage>} />
           <Route path="/rules" element={<AnimatedPage><Rules /></AnimatedPage>} />
           <Route path="/sources" element={<AnimatedPage><Sources /></AnimatedPage>} />
