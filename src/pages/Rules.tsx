@@ -1,21 +1,72 @@
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import SEOHead from "@/components/SEOHead";
-import { Shield, CheckCircle2, AlertTriangle, Scale, Eye } from "lucide-react";
+import { Shield, CheckCircle2, AlertTriangle, Scale, Eye, HelpCircle, Info } from "lucide-react";
+
+const FAQS = [
+  {
+    q: "What is Pagaza?",
+    a: "Pagaza is Kenya's prediction market exchange. You buy and sell shares in real-world outcomes — politics, sports, the economy — and prices reflect the crowd's probability estimate.",
+  },
+  {
+    q: "Is this gambling?",
+    a: "No. Pagaza is a forecasting platform that uses an LMSR (Logarithmic Market Scoring Rule) market maker. During beta, all trading uses virtual KES — no real-money payouts.",
+  },
+  {
+    q: "How do markets resolve?",
+    a: "Each market has a written resolution rule and an evidence panel. Admins resolve markets only after attaching a verifiable source snapshot, and every resolution is logged in an immutable audit trail.",
+  },
+  {
+    q: "Why do I need a +254 phone?",
+    a: "A verified Kenyan phone number is required to trade and to withdraw. This keeps the platform local-first and prevents abuse via duplicate accounts.",
+  },
+  {
+    q: "How do I deposit and withdraw?",
+    a: "Deposits and withdrawals run through PesaPal / M-Pesa. Withdrawals are reviewed by an admin before payout to prevent fraud.",
+  },
+  {
+    q: "Who built Pagaza?",
+    a: "Pagaza is built by LionByte, a Kenyan team focused on transparent, source-backed prediction markets for East Africa.",
+  },
+];
 
 const Rules = () => (
   <div className="min-h-screen bg-background">
-    <SEOHead title="Platform Rules" description="How Pagaza markets work: resolution rules, dispute process, and trading guidelines." path="/rules" />
+    <SEOHead
+      title="Rules & FAQ"
+      description="How Pagaza markets work: resolution rules, dispute process, trading guidelines, and frequently asked questions."
+      path="/rules"
+      jsonLd={{
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: FAQS.map((f) => ({
+          "@type": "Question",
+          name: f.q,
+          acceptedAnswer: { "@type": "Answer", text: f.a },
+        })),
+      }}
+    />
     <Navbar />
     <div className="container py-8 max-w-3xl">
-      <h1 className="font-display text-3xl font-bold tracking-wider mb-6">
-        <Shield className="inline h-8 w-8 text-primary mr-2" />
-        Platform <span className="text-primary">Rules</span>
+      <div className="ke-flag-bar h-1 w-24 mb-6 rounded-full" aria-hidden="true" />
+      <h1 className="font-display text-3xl md:text-4xl font-bold mb-2">
+        Rules & <span className="text-primary">FAQ</span>
       </h1>
+      <p className="text-muted-foreground mb-10">Everything you need to know about how Pagaza works.</p>
 
-      <div className="space-y-8 text-sm text-muted-foreground">
-        <section>
-          <h2 className="font-display text-lg font-bold text-foreground mb-3 flex items-center gap-2">
+      <div className="space-y-10 text-sm text-muted-foreground">
+        <section id="about">
+          <h2 className="font-display text-xl font-semibold text-foreground mb-3 flex items-center gap-2">
+            <Info className="h-5 w-5 text-primary" /> About Pagaza
+          </h2>
+          <p>
+            Pagaza is a Kenya-first prediction market: a place to forecast outcomes of public events using a transparent
+            market-maker. Built by LionByte. Mobile-first. M-Pesa native. Source-backed.
+          </p>
+        </section>
+
+        <section id="resolution">
+          <h2 className="font-display text-xl font-semibold text-foreground mb-3 flex items-center gap-2">
             <CheckCircle2 className="h-5 w-5 text-primary" /> Market Resolution
           </h2>
           <ul className="space-y-2 list-disc list-inside">
@@ -27,22 +78,22 @@ const Rules = () => (
           </ul>
         </section>
 
-        <section>
-          <h2 className="font-display text-lg font-bold text-foreground mb-3 flex items-center gap-2">
+        <section id="trading">
+          <h2 className="font-display text-xl font-semibold text-foreground mb-3 flex items-center gap-2">
             <Scale className="h-5 w-5 text-accent" /> Trading Rules
           </h2>
           <ul className="space-y-2 list-disc list-inside">
             <li>All trading uses virtual currency (KES) during beta.</li>
-            <li>Prices are determined by the LMSR (Logarithmic Market Scoring Rule) algorithm.</li>
-            <li>You buy shares in outcomes you believe will occur. Share prices reflect probability.</li>
-            <li>Winning shares pay out at 1 KES per share. Losing shares become worthless.</li>
+            <li>Prices are determined by the LMSR market-maker — share price = probability.</li>
+            <li>You buy shares in outcomes you expect. Winning shares pay 1 KES; losing shares pay 0.</li>
             <li>No trading after market close time.</li>
+            <li>Trading and withdrawals require a verified +254 Kenyan phone number.</li>
           </ul>
         </section>
 
-        <section>
-          <h2 className="font-display text-lg font-bold text-foreground mb-3 flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-destructive" /> Disputes
+        <section id="disputes">
+          <h2 className="font-display text-xl font-semibold text-foreground mb-3 flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-accent" /> Disputes
           </h2>
           <ul className="space-y-2 list-disc list-inside">
             <li>You can dispute a market resolution within 48 hours of settlement.</li>
@@ -52,8 +103,8 @@ const Rules = () => (
           </ul>
         </section>
 
-        <section>
-          <h2 className="font-display text-lg font-bold text-foreground mb-3 flex items-center gap-2">
+        <section id="fair-play">
+          <h2 className="font-display text-xl font-semibold text-foreground mb-3 flex items-center gap-2">
             <Eye className="h-5 w-5 text-primary" /> Fair Play
           </h2>
           <ul className="space-y-2 list-disc list-inside">
@@ -62,6 +113,20 @@ const Rules = () => (
             <li>Guest sessions are limited to prevent abuse.</li>
             <li>All admin actions are logged and auditable.</li>
           </ul>
+        </section>
+
+        <section id="faq">
+          <h2 className="font-display text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
+            <HelpCircle className="h-5 w-5 text-primary" /> Frequently Asked Questions
+          </h2>
+          <div className="space-y-4">
+            {FAQS.map((f) => (
+              <div key={f.q} className="rounded-lg border border-border bg-card p-4">
+                <h3 className="font-display text-base font-semibold text-foreground mb-2">{f.q}</h3>
+                <p>{f.a}</p>
+              </div>
+            ))}
+          </div>
         </section>
       </div>
     </div>
