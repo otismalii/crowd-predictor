@@ -104,7 +104,7 @@ const AnimatedRoutes = () => {
           <Route path="/" element={<AnimatedPage><Feed /></AnimatedPage>} />
           <Route path="/markets" element={<AnimatedPage><Markets /></AnimatedPage>} />
           <Route path="/markets/:id" element={<AnimatedPage><MarketDetail /></AnimatedPage>} />
-          <Route path="/market/:id" element={<AnimatedPage><MarketDetail /></AnimatedPage>} />
+          <Route path="/market/:id" element={<Navigate to="/markets/:id" replace />} />
           <Route path="/leaderboard" element={<AnimatedPage><Leaderboard /></AnimatedPage>} />
           <Route path="/rules" element={<AnimatedPage><Rules /></AnimatedPage>} />
           <Route path="/sources" element={<AnimatedPage><Sources /></AnimatedPage>} />
@@ -135,7 +135,7 @@ const AnimatedRoutes = () => {
           <Route path="/admin/events" element={<AnimatedPage><AdminRoute><AdminEventStreamPage /></AdminRoute></AnimatedPage>} />
           <Route path="/admin/liquidity" element={<AnimatedPage><AdminRoute><AdminLiquidityPage /></AdminRoute></AnimatedPage>} />
 
-          {/* ========== REDIRECTS ========== */}
+          {/* ========== LEGACY REDIRECTS (kept for inbound links / shares) ========== */}
           <Route path="/trending" element={<Navigate to="/markets?sort=trending" replace />} />
           <Route path="/closing-soon" element={<Navigate to="/markets?sort=closing" replace />} />
           <Route path="/resolved" element={<Navigate to="/markets?filter=resolved" replace />} />
