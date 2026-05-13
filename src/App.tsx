@@ -12,16 +12,15 @@ import MobileNav from "@/components/layout/MobileNav";
 import InstallBanner from "@/components/InstallBanner";
 import { AnimatePresence, motion } from "framer-motion";
 import { lazy, Suspense } from "react";
-import { useParams } from "react-router-dom";
+import { Navigate, useParams } from "react-router-dom";
+import PageLoader from "@/components/PageLoader";
+import { PlayerRoute, AdminRoute } from "@/routes/route-guards";
+import OfflineIndicator from "@/components/OfflineIndicator";
 
 const MarketAliasRedirect = () => {
   const { id } = useParams();
   return <Navigate to={`/markets/${id}`} replace />;
 };
-import { Navigate } from "react-router-dom";
-import PageLoader from "@/components/PageLoader";
-import { PlayerRoute, AdminRoute } from "@/routes/route-guards";
-import OfflineIndicator from "@/components/OfflineIndicator";
 
 // Eager loads — critical path
 import Feed from "./pages/Feed";
