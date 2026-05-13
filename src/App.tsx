@@ -12,10 +12,15 @@ import MobileNav from "@/components/layout/MobileNav";
 import InstallBanner from "@/components/InstallBanner";
 import { AnimatePresence, motion } from "framer-motion";
 import { lazy, Suspense } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useParams } from "react-router-dom";
 import PageLoader from "@/components/PageLoader";
 import { PlayerRoute, AdminRoute } from "@/routes/route-guards";
 import OfflineIndicator from "@/components/OfflineIndicator";
+
+const MarketAliasRedirect = () => {
+  const { id } = useParams();
+  return <Navigate to={`/markets/${id}`} replace />;
+};
 
 // Eager loads — critical path
 import Feed from "./pages/Feed";
@@ -104,7 +109,7 @@ const AnimatedRoutes = () => {
           <Route path="/" element={<AnimatedPage><Feed /></AnimatedPage>} />
           <Route path="/markets" element={<AnimatedPage><Markets /></AnimatedPage>} />
           <Route path="/markets/:id" element={<AnimatedPage><MarketDetail /></AnimatedPage>} />
-          <Route path="/market/:id" element={<AnimatedPage><MarketDetail /></AnimatedPage>} />
+          <Route path="/market/:id" element={<MarketAliasRedirect />} />
           <Route path="/leaderboard" element={<AnimatedPage><Leaderboard /></AnimatedPage>} />
           <Route path="/rules" element={<AnimatedPage><Rules /></AnimatedPage>} />
           <Route path="/sources" element={<AnimatedPage><Sources /></AnimatedPage>} />
@@ -135,7 +140,7 @@ const AnimatedRoutes = () => {
           <Route path="/admin/events" element={<AnimatedPage><AdminRoute><AdminEventStreamPage /></AdminRoute></AnimatedPage>} />
           <Route path="/admin/liquidity" element={<AnimatedPage><AdminRoute><AdminLiquidityPage /></AdminRoute></AnimatedPage>} />
 
-          {/* ========== REDIRECTS ========== */}
+          {/* ========== LEGACY REDIRECTS (kept for inbound links / shares) ========== */}
           <Route path="/trending" element={<Navigate to="/markets?sort=trending" replace />} />
           <Route path="/closing-soon" element={<Navigate to="/markets?sort=closing" replace />} />
           <Route path="/resolved" element={<Navigate to="/markets?filter=resolved" replace />} />
