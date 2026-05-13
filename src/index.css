@@ -4,91 +4,103 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+  Pagaza — Flag Bold theme
+  Palette: KE flag (black / green / red) + bone ivory.
+  Dark = default. Light = accessible alternate.
+*/
+
 @layer base {
   :root {
-    --background: 210 20% 96%;
-    --foreground: 240 10% 10%;
+    /* Light mode — bone surfaces, KE-green primary, KE-red accent. */
+    --background: 40 20% 97%;
+    --foreground: 0 0% 8%;
 
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 10%;
+    --card-foreground: 0 0% 8%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 10%;
+    --popover-foreground: 0 0% 8%;
 
-    --primary: 142 72% 38%;
-    --primary-foreground: 0 0% 100%;
+    /* KE flag green #006644 */
+    --primary: 154 100% 20%;
+    --primary-foreground: 0 0% 98%;
 
-    --secondary: 240 5% 92%;
-    --secondary-foreground: 240 10% 20%;
+    --secondary: 40 12% 92%;
+    --secondary-foreground: 0 0% 12%;
 
-    --muted: 210 12% 90%;
-    --muted-foreground: 215 10% 45%;
+    --muted: 40 10% 90%;
+    --muted-foreground: 0 0% 38%;
 
-    --accent: 38 92% 50%;
-    --accent-foreground: 0 0% 100%;
+    /* KE flag red #bb0a1e */
+    --accent: 354 90% 39%;
+    --accent-foreground: 0 0% 98%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 354 90% 39%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 214 20% 84%;
-    --input: 214 20% 84%;
-    --ring: 142 72% 38%;
+    --border: 40 10% 86%;
+    --input: 40 10% 86%;
+    --ring: 154 100% 20%;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
 
-    --sidebar-background: 210 15% 94%;
-    --sidebar-foreground: 240 10% 10%;
-    --sidebar-primary: 142 72% 38%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 12% 90%;
-    --sidebar-accent-foreground: 240 10% 10%;
-    --sidebar-border: 214 20% 84%;
-    --sidebar-ring: 142 72% 38%;
+    --sidebar-background: 40 18% 95%;
+    --sidebar-foreground: 0 0% 10%;
+    --sidebar-primary: 154 100% 20%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 40 10% 90%;
+    --sidebar-accent-foreground: 0 0% 10%;
+    --sidebar-border: 40 10% 86%;
+    --sidebar-ring: 154 100% 20%;
 
-    --neon-glow: 0 0 12px hsl(142 72% 38% / 0.3), 0 0 24px hsl(142 72% 38% / 0.15);
-    --neon-glow-accent: 0 0 12px hsl(38 92% 50% / 0.3), 0 0 24px hsl(38 92% 50% / 0.15);
+    --flag-glint: 0 0 0 1px hsl(154 100% 20% / 0.25);
+    --flag-glint-accent: 0 0 0 1px hsl(354 90% 39% / 0.25);
   }
 
   .dark {
-    --background: 240 20% 4%;
-    --foreground: 0 0% 95%;
+    /* Near-black #0a0a0a base, warm-charcoal cards. */
+    --background: 0 0% 4%;
+    --foreground: 0 0% 96%;
 
-    --card: 240 15% 8%;
-    --card-foreground: 0 0% 95%;
+    --card: 24 10% 7%;
+    --card-foreground: 0 0% 96%;
 
-    --popover: 240 15% 8%;
-    --popover-foreground: 0 0% 95%;
+    --popover: 24 10% 7%;
+    --popover-foreground: 0 0% 96%;
 
-    --primary: 120 100% 55%;
-    --primary-foreground: 240 20% 4%;
+    /* KE flag green, slightly brighter for dark contrast */
+    --primary: 154 80% 32%;
+    --primary-foreground: 0 0% 98%;
 
-    --secondary: 270 100% 10%;
-    --secondary-foreground: 0 0% 95%;
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 96%;
 
-    --muted: 240 10% 14%;
-    --muted-foreground: 240 5% 55%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 62%;
 
-    --accent: 50 100% 50%;
-    --accent-foreground: 240 20% 4%;
+    /* KE flag red */
+    --accent: 354 78% 48%;
+    --accent-foreground: 0 0% 98%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 95%;
+    --destructive: 354 78% 48%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 240 10% 16%;
-    --input: 240 10% 16%;
-    --ring: 120 100% 55%;
+    --border: 0 0% 14%;
+    --input: 0 0% 14%;
+    --ring: 154 80% 32%;
 
-    --sidebar-background: 240 15% 6%;
-    --sidebar-foreground: 0 0% 95%;
-    --sidebar-primary: 120 100% 55%;
-    --sidebar-primary-foreground: 240 20% 4%;
-    --sidebar-accent: 240 10% 14%;
-    --sidebar-accent-foreground: 0 0% 95%;
-    --sidebar-border: 240 10% 16%;
-    --sidebar-ring: 120 100% 55%;
+    --sidebar-background: 0 0% 5%;
+    --sidebar-foreground: 0 0% 96%;
+    --sidebar-primary: 154 80% 32%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 0 0% 12%;
+    --sidebar-accent-foreground: 0 0% 96%;
+    --sidebar-border: 0 0% 14%;
+    --sidebar-ring: 154 80% 32%;
 
-    --neon-glow: 0 0 20px hsl(120 100% 55% / 0.4), 0 0 40px hsl(120 100% 55% / 0.2);
-    --neon-glow-accent: 0 0 20px hsl(50 100% 50% / 0.4), 0 0 40px hsl(50 100% 50% / 0.2);
+    --flag-glint: 0 0 0 1px hsl(154 80% 32% / 0.4), 0 8px 24px -12px hsl(154 80% 32% / 0.3);
+    --flag-glint-accent: 0 0 0 1px hsl(354 78% 48% / 0.4), 0 8px 24px -12px hsl(354 78% 48% / 0.3);
   }
 }
 
@@ -98,30 +110,41 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Inter', sans-serif;
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Oswald', sans-serif;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.02em;
   }
+
+  h1 { @apply text-3xl md:text-4xl font-bold; }
+  h2 { @apply text-2xl md:text-3xl font-semibold; }
+  h3 { @apply text-xl md:text-2xl font-semibold; }
 }
 
 @layer utilities {
-  .neon-glow {
-    box-shadow: var(--neon-glow);
+  /* Legacy aliases — kept so existing components don't break, retoned to flag glint. */
+  .neon-glow { box-shadow: var(--flag-glint); }
+  .neon-glow-accent { box-shadow: var(--flag-glint-accent); }
+  .neon-text { color: hsl(var(--primary)); }
+  .neon-text-accent { color: hsl(var(--accent)); }
+
+  .flag-glint { box-shadow: var(--flag-glint); }
+  .flag-glint-accent { box-shadow: var(--flag-glint-accent); }
+
+  /* KE flag accent bar — three-stripe black/red/green/white. */
+  .ke-flag-bar {
+    background: linear-gradient(
+      to right,
+      hsl(0 0% 8%) 0%, hsl(0 0% 8%) 25%,
+      hsl(354 78% 48%) 25%, hsl(354 78% 48%) 50%,
+      hsl(154 80% 32%) 50%, hsl(154 80% 32%) 75%,
+      hsl(0 0% 96%) 75%, hsl(0 0% 96%) 100%
+    );
   }
-  .neon-glow-accent {
-    box-shadow: var(--neon-glow-accent);
-  }
-  .neon-text {
-    text-shadow: 0 0 10px hsl(var(--primary) / 0.6), 0 0 20px hsl(var(--primary) / 0.3);
-  }
-  .neon-text-accent {
-    text-shadow: 0 0 10px hsl(var(--accent) / 0.6), 0 0 20px hsl(var(--accent) / 0.3);
-  }
+
   .glass-card {
     @apply bg-card/80 backdrop-blur-sm border border-border/50;
   }
@@ -129,26 +152,13 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-  .scrollbar-none::-webkit-scrollbar {
-    display: none;
-  }
-  /* Safe area for mobile bottom nav */
-  .safe-area-bottom {
-    padding-bottom: env(safe-area-inset-bottom, 0);
-  }
-  /* Add bottom padding to pages so content isn't hidden behind mobile nav */
-  @media (max-width: 767px) {
-    .min-h-screen {
-      padding-bottom: 4.5rem;
-    }
-  }
-}
+  .scrollbar-none::-webkit-scrollbar { display: none; }
 
-/* React Bits animation keyframes */
-@keyframes gradient-shift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  .safe-area-bottom { padding-bottom: env(safe-area-inset-bottom, 0); }
+
+  @media (max-width: 767px) {
+    .min-h-screen { padding-bottom: 4.5rem; }
+  }
 }
 
 @keyframes shimmer {
@@ -156,28 +166,12 @@
   100% { transform: translateX(100%); }
 }
 
-@keyframes aurora-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
 @keyframes float {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
-}
-
-@keyframes pulse-ring {
-  0% { transform: scale(0.9); opacity: 0.8; }
-  50% { transform: scale(1.05); opacity: 0.4; }
-  100% { transform: scale(0.9); opacity: 0.8; }
+  50% { transform: translateY(-6px); }
 }
 
 @keyframes slide-up-fade {
-  from { opacity: 0; transform: translateY(20px); }
+  from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes glow-pulse {
-  0%, 100% { box-shadow: var(--neon-glow); }
-  50% { box-shadow: 0 0 30px hsl(var(--primary) / 0.5), 0 0 60px hsl(var(--primary) / 0.25); }
 }
