@@ -1376,6 +1376,54 @@ export type Database = {
       }
     }
     Views: {
+      public_profiles: {
+        Row: {
+          accuracy_rate: number | null
+          avatar_url: string | null
+          best_streak: number | null
+          bio: string | null
+          created_at: string | null
+          current_streak: number | null
+          followers_count: number | null
+          id: string | null
+          reputation_score: number | null
+          subscription_plan:
+            | Database["public"]["Enums"]["subscription_plan"]
+            | null
+          username: string | null
+        }
+        Insert: {
+          accuracy_rate?: number | null
+          avatar_url?: string | null
+          best_streak?: number | null
+          bio?: string | null
+          created_at?: string | null
+          current_streak?: number | null
+          followers_count?: number | null
+          id?: string | null
+          reputation_score?: number | null
+          subscription_plan?:
+            | Database["public"]["Enums"]["subscription_plan"]
+            | null
+          username?: string | null
+        }
+        Update: {
+          accuracy_rate?: number | null
+          avatar_url?: string | null
+          best_streak?: number | null
+          bio?: string | null
+          created_at?: string | null
+          current_streak?: number | null
+          followers_count?: number | null
+          id?: string | null
+          reputation_score?: number | null
+          subscription_plan?:
+            | Database["public"]["Enums"]["subscription_plan"]
+            | null
+          username?: string | null
+        }
+        Relationships: []
+      }
       v_wallet_balance: {
         Row: {
           balance: number | null
@@ -1443,6 +1491,25 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      get_guest_session: {
+        Args: { p_guest_id: string }
+        Returns: {
+          converted_user_id: string | null
+          created_at: string
+          credits: number
+          device_fingerprint: string | null
+          expired: boolean
+          guest_id: string
+          id: string
+          last_active_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "guest_sessions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       get_market_recent_trades: {
         Args: { p_limit?: number; p_market_id: string }
