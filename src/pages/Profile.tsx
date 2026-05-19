@@ -37,7 +37,7 @@ const Profile = () => {
     setEditing(false);
     const profilePromise = isOwnProfile
       ? (supabase as any).rpc("get_own_profile").then((r: any) => ({ data: Array.isArray(r.data) ? r.data[0] : r.data }))
-      : supabase.from("profiles")
+      : (supabase as any).from("public_profiles")
           .select("id, username, avatar_url, bio, reputation_score, accuracy_rate, current_streak, best_streak, followers_count, subscription_plan, created_at")
           .eq("id", id).single();
     Promise.all([
@@ -59,7 +59,7 @@ const Profile = () => {
     if (!id) return;
     const p = isOwnProfile
       ? (supabase as any).rpc("get_own_profile").then((r: any) => ({ data: Array.isArray(r.data) ? r.data[0] : r.data }))
-      : supabase.from("profiles")
+      : (supabase as any).from("public_profiles")
           .select("id, username, avatar_url, bio, reputation_score, accuracy_rate, current_streak, best_streak, followers_count, subscription_plan, created_at")
           .eq("id", id).single();
     p.then(({ data }: any) => { if (data) setProfile(data); });
