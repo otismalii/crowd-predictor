@@ -45,8 +45,8 @@ const Leaderboard = () => {
 
   const fetchProfiles = async (offset: number) => {
     const col = tab === "reputation" ? "reputation_score" : "accuracy_rate";
-    const { data } = await supabase
-      .from("profiles")
+    const { data } = await (supabase as any)
+      .from("public_profiles")
       .select("id, username, reputation_score, accuracy_rate, avatar_url, followers_count")
       .order(col, { ascending: false })
       .range(offset, offset + PAGE_SIZE - 1);
