@@ -34,9 +34,8 @@ export const AdminSidebar = () => {
         {ADMIN_NAV.map((group) => {
           const visible = group.items.filter((i) => canSee(i, role));
           if (visible.length === 0) return null;
-          const groupActive = visible.some((i) => isActive(i.to));
           return (
-            <SidebarGroup key={group.id} defaultOpen={groupActive}>
+            <SidebarGroup key={group.id}>
               <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
