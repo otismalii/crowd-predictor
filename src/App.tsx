@@ -45,6 +45,7 @@ const Portfolio = lazy(() => import("./pages/Portfolio"));
 const Watchlist = lazy(() => import("./pages/Watchlist"));
 
 // Lazy loads — admin
+const AdminLayout = lazy(() => import("./components/admin/shell/AdminLayout"));
 const AdminOverviewPage = lazy(() => import("./pages/admin/AdminOverviewPage"));
 const AdminMarketsPage = lazy(() => import("./pages/admin/AdminMarketsPage"));
 const AdminMarketsNewPage = lazy(() => import("./pages/admin/AdminMarketsNewPage"));
@@ -57,6 +58,9 @@ const AdminAuditPage = lazy(() => import("./pages/admin/AdminAuditPage"));
 const AdminReconciliationPage = lazy(() => import("./pages/admin/AdminReconciliationPage"));
 const AdminEventStreamPage = lazy(() => import("./pages/admin/AdminEventStreamPage"));
 const AdminLiquidityPage = lazy(() => import("./pages/admin/AdminLiquidityPage"));
+const AdminSourcesPage = lazy(() => import("./pages/admin/AdminSourcesPage"));
+const AdminDisputesPage = lazy(() => import("./pages/admin/AdminDisputesPage"));
+const AdminSettingsPage = lazy(() => import("./pages/admin/AdminSettingsPage"));
 
 // Lazy loads — misc
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -100,8 +104,7 @@ const AnimatedPage = ({ children }: { children: React.ReactNode }) => (
 const AnimatedRoutes = () => {
   const location = useLocation();
   const isAuthPage = location.pathname === "/auth" || location.pathname === "/reset-password";
-
-  return (
+  const isAdminPage = location.pathname.startsWith("/admin");
     <>
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
@@ -126,19 +129,35 @@ const AnimatedRoutes = () => {
           <Route path="/wallet" element={<AnimatedPage><PlayerRoute><Wallet /></PlayerRoute></AnimatedPage>} />
           <Route path="/watchlist" element={<AnimatedPage><PlayerRoute><Watchlist /></PlayerRoute></AnimatedPage>} />
 
-          {/* ========== ADMIN (guarded by AdminRoute) ========== */}
-          <Route path="/admin" element={<AnimatedPage><AdminRoute><AdminOverviewPage /></AdminRoute></AnimatedPage>} />
-          <Route path="/admin/markets" element={<AnimatedPage><AdminRoute><AdminMarketsPage /></AdminRoute></AnimatedPage>} />
-          <Route path="/admin/markets/new" element={<AnimatedPage><AdminRoute><AdminMarketsNewPage /></AdminRoute></AnimatedPage>} />
-          <Route path="/admin/resolution" element={<AnimatedPage><AdminRoute><AdminResolutionPage /></AdminRoute></AnimatedPage>} />
-          <Route path="/admin/analytics" element={<AnimatedPage><AdminRoute><AdminAnalyticsPage /></AdminRoute></AnimatedPage>} />
-          <Route path="/admin/users" element={<AnimatedPage><AdminRoute><AdminUsersPage /></AdminRoute></AnimatedPage>} />
-          <Route path="/admin/treasury" element={<AnimatedPage><AdminRoute><AdminTreasuryPage /></AdminRoute></AnimatedPage>} />
-          <Route path="/admin/fraud" element={<AnimatedPage><AdminRoute><AdminFraudPage /></AdminRoute></AnimatedPage>} />
-          <Route path="/admin/audit" element={<AnimatedPage><AdminRoute><AdminAuditPage /></AdminRoute></AnimatedPage>} />
-          <Route path="/admin/reconciliation" element={<AnimatedPage><AdminRoute><AdminReconciliationPage /></AdminRoute></AnimatedPage>} />
-          <Route path="/admin/events" element={<AnimatedPage><AdminRoute><AdminEventStreamPage /></AdminRoute></AnimatedPage>} />
-          <Route path="/admin/liquidity" element={<AnimatedPage><AdminRoute><AdminLiquidityPage /></AdminRoute></AnimatedPage>} />
+          {/* ========== ADMIN (guarded by AdminRoute, shared shell via Outlet) ========== */}
+          <Route path="/admin" element={<AdminRoute><Suspense fallback={<PageLoader />}><AdminLayout /></Suspense></AdminRoute>}>
+            <Route index element={<Suspense fallback={<PageLoader />}><AdminOverviewPage /></Suspense>} />
+            <Route path="operations/events" element={<Suspense fallback={<PageLoader />}><AdminEventStreamPage /></Suspense>} />
+            <Route path="markets" element={<Suspense fallback={<PageLoader />}><AdminMarketsPage /></Suspense>} />
+            <Route path="markets/new" element={<Suspense fallback={<PageLoader />}><AdminMarketsNewPage /></Suspense>} />
+            <Route path="markets/resolution" element={<Suspense fallback={<PageLoader />}><AdminResolutionPage /></Suspense>} />
+            <Route path="markets/liquidity" element={<Suspense fallback={<PageLoader />}><AdminLiquidityPage /></Suspense>} />
+            <Route path="markets/sources" element={<Suspense fallback={<PageLoader />}><AdminSourcesPage /></Suspense>} />
+            <Route path="finance/treasury" element={<Suspense fallback={<PageLoader />}><AdminTreasuryPage /></Suspense>} />
+            <Route path="finance/reconciliation" element={<Suspense fallback={<PageLoader />}><AdminReconciliationPage /></Suspense>} />
+            <Route path="risk/fraud" element={<Suspense fallback={<PageLoader />}><AdminFraudPage /></Suspense>} />
+            <Route path="risk/disputes" element={<Suspense fallback={<PageLoader />}><AdminDisputesPage /></Suspense>} />
+            <Route path="risk/users" element={<Suspense fallback={<PageLoader />}><AdminUsersPage /></Suspense>} />
+            <Route path="system/audit" element={<Suspense fallback={<PageLoader />}><AdminAuditPage /></Suspense>} />
+            <Route path="system/analytics" element={<Suspense fallback={<PageLoader />}><AdminAnalyticsPage /></Suspense>} />
+            <Route path="system/settings" element={<Suspense fallback={<PageLoader />}><AdminSettingsPage /></Suspense>} />
+          </Route>
+
+          {/* Admin legacy redirects — preserve old bookmarks */}
+          <Route path="/admin/treasury" element={<Navigate to="/admin/finance/treasury" replace />} />
+          <Route path="/admin/reconciliation" element={<Navigate to="/admin/finance/reconciliation" replace />} />
+          <Route path="/admin/fraud" element={<Navigate to="/admin/risk/fraud" replace />} />
+          <Route path="/admin/users" element={<Navigate to="/admin/risk/users" replace />} />
+          <Route path="/admin/resolution" element={<Navigate to="/admin/markets/resolution" replace />} />
+          <Route path="/admin/liquidity" element={<Navigate to="/admin/markets/liquidity" replace />} />
+          <Route path="/admin/audit" element={<Navigate to="/admin/system/audit" replace />} />
+          <Route path="/admin/analytics" element={<Navigate to="/admin/system/analytics" replace />} />
+          <Route path="/admin/events" element={<Navigate to="/admin/operations/events" replace />} />
 
           {/* ========== LEGACY REDIRECTS (kept for inbound links / shares) ========== */}
           <Route path="/trending" element={<Navigate to="/markets?sort=trending" replace />} />
