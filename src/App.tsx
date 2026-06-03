@@ -105,6 +105,8 @@ const AnimatedRoutes = () => {
   const location = useLocation();
   const isAuthPage = location.pathname === "/auth" || location.pathname === "/reset-password";
   const isAdminPage = location.pathname.startsWith("/admin");
+
+  return (
     <>
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
