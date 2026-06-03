@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import SEOHead from "@/components/SEOHead";
 import AdminUsers from "@/components/admin/AdminUsers";
 import { Users, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AdminPageHeader, AdminPageBody } from "@/components/admin/primitives";
 
 const AdminUsersPage = () => {
   const [profiles, setProfiles] = useState<any[]>([]);
@@ -24,25 +24,22 @@ const AdminUsersPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <SEOHead title="Admin - Users" path="/admin/users" />
-      
-      <div className="border-b border-border/30">
-        <div className="container py-6 flex items-center justify-between">
-          <div>
-            <h1 className="font-display text-2xl font-bold tracking-wider"><Users className="inline h-6 w-6 text-primary mr-2" />User <span className="text-primary">Management</span></h1>
-          </div>
+    <>
+      <AdminPageHeader
+        icon={Users}
+        title="User Management"
+        subtitle="View profiles, assign roles, and manage account status"
+        actions={
           <Button variant="outline" size="sm" onClick={fetchData} disabled={loading} className="gap-2">
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Refresh
           </Button>
-        </div>
-      </div>
-      <div className="container py-6">
+        }
+      />
+      <AdminPageBody>
         <AdminUsers profiles={profiles} adminIds={adminIds} onRefresh={fetchData} />
-      </div>
-      
-    </div>
+      </AdminPageBody>
+    </>
   );
-};
+}
 
 export default AdminUsersPage;
