@@ -2,8 +2,6 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { scanForFraudAlerts, type FraudAlert } from "@/services/fraudService";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
 import SEOHead from "@/components/SEOHead";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -101,7 +99,7 @@ const AdminFraudPage = () => {
   return (
     <div className="min-h-screen bg-background pb-20">
       <SEOHead title="Admin - Fraud Detection" path="/admin/fraud" />
-      <Navbar />
+      
       <div className="border-b border-border/30">
         <div className="container py-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -225,7 +223,7 @@ const AdminFraudPage = () => {
           </div>
         )}
       </div>
-      <Footer />
+      
     </div>
   );
 };

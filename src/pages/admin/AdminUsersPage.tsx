@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
 import SEOHead from "@/components/SEOHead";
 import AdminUsers from "@/components/admin/AdminUsers";
 import { Users, RefreshCw } from "lucide-react";
@@ -28,7 +26,7 @@ const AdminUsersPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <SEOHead title="Admin - Users" path="/admin/users" />
-      <Navbar />
+      
       <div className="border-b border-border/30">
         <div className="container py-6 flex items-center justify-between">
           <div>
@@ -42,7 +40,7 @@ const AdminUsersPage = () => {
       <div className="container py-6">
         <AdminUsers profiles={profiles} adminIds={adminIds} onRefresh={fetchData} />
       </div>
-      <Footer />
+      
     </div>
   );
 };

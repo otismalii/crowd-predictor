@@ -1,5 +1,3 @@
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
 import SEOHead from "@/components/SEOHead";
 import MarketBuilder from "@/components/admin/MarketBuilder";
 import { useNavigate } from "react-router-dom";
@@ -10,7 +8,7 @@ const AdminMarketsNewPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <SEOHead title="Admin - New Market" path="/admin/markets/new" />
-      <Navbar />
+      
       <div className="border-b border-border/30">
         <div className="container py-6">
           <h1 className="font-display text-2xl font-bold tracking-wider">Create <span className="text-primary">New Market</span></h1>
@@ -20,7 +18,7 @@ const AdminMarketsNewPage = () => {
       <div className="container py-6 max-w-3xl">
         <MarketBuilder onCreated={() => navigate("/admin/markets")} />
       </div>
-      <Footer />
+      
     </div>
   );
 };

@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
 import SEOHead from "@/components/SEOHead";
 import { Link } from "react-router-dom";
 import { Shield, BarChart3, Users, Database, Scale, RefreshCw, Landmark, ShieldAlert, Clock, TrendingUp, Wallet, Activity, FileText, DollarSign } from "lucide-react";
@@ -109,7 +107,7 @@ const AdminOverviewPage = () => {
   return (
     <div className="min-h-screen bg-background pb-20">
       <SEOHead title="Admin" path="/admin" />
-      <Navbar />
+      
       <div className="border-b border-border/30">
         <div className="container py-6">
           <div className="flex items-center justify-between flex-wrap gap-4">
@@ -201,7 +199,7 @@ const AdminOverviewPage = () => {
           ))}
         </div>
       </div>
-      <Footer />
+      
     </div>
   );
 };

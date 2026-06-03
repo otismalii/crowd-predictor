@@ -2,8 +2,6 @@ import { useEffect, useState } from "react";
 import { Navigate, Link } from "react-router-dom";
 import { useAdminGuard } from "@/hooks/useAdminGuard";
 import { fetchPlatformAnalytics, type PlatformAnalytics } from "@/services/analyticsService";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
 import SEOHead from "@/components/SEOHead";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -32,7 +30,7 @@ const AdminAnalyticsPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <SEOHead title="Admin - Analytics" path="/admin/analytics" />
-      <Navbar />
+      
       <div className="border-b border-border/30">
         <div className="container py-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -122,7 +120,7 @@ const AdminAnalyticsPage = () => {
           </>
         )}
       </div>
-      <Footer />
+      
     </div>
   );
 };

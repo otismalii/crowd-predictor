@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
 import SEOHead from "@/components/SEOHead";
 import { Helmet } from "react-helmet-async";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -52,7 +50,7 @@ const AdminReconciliationPage = () => {
     <div className="min-h-screen bg-background">
       <Helmet><title>Reconciliation · Pagaza Admin</title></Helmet>
       <SEOHead title="Reconciliation · Pagaza Admin" description="Ledger reconciliation dashboard" />
-      <Navbar />
+      
       <main className="container py-8 pb-24 space-y-6">
         <header className="flex items-center justify-between">
           <div>
@@ -110,7 +108,7 @@ const AdminReconciliationPage = () => {
           </CardContent>
         </Card>
       </main>
-      <Footer />
+      
     </div>
   );
 };

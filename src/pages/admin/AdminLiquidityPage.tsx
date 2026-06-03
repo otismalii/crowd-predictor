@@ -1,6 +1,4 @@
 import { useEffect, useState } from "react";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,7 +28,7 @@ const AdminLiquidityPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Helmet><title>Liquidity · Pagaza Admin</title></Helmet>
-      <Navbar />
+      
       <main className="container py-8 pb-24 space-y-6">
         <header>
           <h1 className="font-display text-2xl font-bold tracking-wider">Liquidity Overview</h1>
@@ -69,7 +67,7 @@ const AdminLiquidityPage = () => {
           </CardContent>
         </Card>
       </main>
-      <Footer />
+      
     </div>
   );
 };
