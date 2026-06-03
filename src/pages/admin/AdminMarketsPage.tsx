@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
 import SEOHead from "@/components/SEOHead";
 import AdminMatches from "@/components/admin/AdminMatches";
 import MarketBuilder from "@/components/admin/MarketBuilder";
@@ -24,7 +22,7 @@ const AdminMarketsPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <SEOHead title="Admin - Markets" path="/admin/markets" />
-      <Navbar />
+      
       <div className="border-b border-border/30">
         <div className="container py-6 flex items-center justify-between">
           <div>
@@ -42,7 +40,7 @@ const AdminMarketsPage = () => {
       <div className="container py-6">
         <AdminMatches matches={matches} onRefresh={fetchData} />
       </div>
-      <Footer />
+      
     </div>
   );
 };

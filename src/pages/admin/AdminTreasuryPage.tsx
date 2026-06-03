@@ -9,8 +9,6 @@ import {
   type TransactionRow,
 } from "@/services/treasuryService";
 import { getEntryLabel, isCredit, type LedgerEntry } from "@/lib/ledger";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
 import SEOHead from "@/components/SEOHead";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -113,7 +111,7 @@ const AdminTreasuryPage = () => {
   return (
     <div className="min-h-screen bg-background pb-20">
       <SEOHead title="Admin - Treasury" path="/admin/treasury" />
-      <Navbar />
+      
 
       <div className="border-b border-border/30">
         <div className="container py-6 flex items-center justify-between">
@@ -379,7 +377,7 @@ const AdminTreasuryPage = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      <Footer />
+      
     </div>
   );
 };

@@ -1,6 +1,4 @@
 import { useEffect, useState } from "react";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,7 +47,7 @@ const AdminEventStreamPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Helmet><title>Event Stream · Pagaza Admin</title></Helmet>
-      <Navbar />
+      
       <main className="container py-8 pb-24 space-y-4">
         <header>
           <h1 className="font-display text-2xl font-bold tracking-wider">Event Stream</h1>
@@ -86,7 +84,7 @@ const AdminEventStreamPage = () => {
           </CardContent>
         </Card>
       </main>
-      <Footer />
+      
     </div>
   );
 };

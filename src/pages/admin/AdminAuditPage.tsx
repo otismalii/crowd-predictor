@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
 import SEOHead from "@/components/SEOHead";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,7 +57,7 @@ const AdminAuditPage = () => {
   return (
     <div className="min-h-screen bg-background pb-20">
       <SEOHead title="Admin - Audit Log" path="/admin/audit" />
-      <Navbar />
+      
       <div className="border-b border-border/30">
         <div className="container py-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -147,7 +145,7 @@ const AdminAuditPage = () => {
           </div>
         )}
       </div>
-      <Footer />
+      
     </div>
   );
 };

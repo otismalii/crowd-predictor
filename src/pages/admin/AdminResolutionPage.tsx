@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
 import SEOHead from "@/components/SEOHead";
 import AdminDisputes from "@/components/admin/AdminDisputes";
 import AdminSourceRegistry from "@/components/admin/AdminSourceRegistry";
@@ -89,7 +87,7 @@ const AdminResolutionPage = () => {
   return (
     <div className="min-h-screen bg-background pb-20">
       <SEOHead title="Admin - Resolution" path="/admin/resolution" />
-      <Navbar />
+      
       <div className="border-b border-border/30">
         <div className="container py-6">
           <h1 className="font-display text-2xl font-bold tracking-wider">
@@ -197,7 +195,7 @@ const AdminResolutionPage = () => {
         <AdminDisputes />
         <AdminSourceRegistry />
       </div>
-      <Footer />
+      
     </div>
   );
 };
