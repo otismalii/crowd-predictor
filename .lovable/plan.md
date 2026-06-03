@@ -1,133 +1,104 @@
-## Pagaza — Major Overhaul Plan
+## Admin Control Panel Overhaul
 
-Goal: ship a focused, hyperlocalised Kenyan prediction-market UI with competitor-grade information density, kill legacy weight, and harden SEO — without touching the now-secured ledger and RLS layer.
+Rebuild `/admin/*` as a proper control panel with a persistent shell, 5-domain IA, shared primitives, and a per-page audit pass for redundancy, realtime, and role-aware visibility.
 
----
+### 1. Shell
 
-### Phase 1 — Design system reset (Flag Bold)
+New `src/components/admin/AdminLayout.tsx` wrapping all admin routes:
 
-Rewrite `src/index.css` + `tailwind.config.ts` tokens to the chosen palette:
+- `SidebarProvider` + `AdminSidebar` (`collapsible="icon"`) + topbar.
+- Sidebar groups (collapsible, active group auto-expanded):
+  - **Operations** — Overview, Event Stream
+  - **Markets** — Markets, New Market, Resolution, Liquidity, Sources
+  - **Finance** — Treasury, Reconciliation
+  - **Risk** — Fraud, Disputes, Users
+  - **System** — Audit Log, Analytics, Settings
+- Topbar: `SidebarTrigger`, breadcrumbs (derived from route), env badge (prod/preview), reserve-ratio mini-pill, global refresh, ⌘K trigger, theme toggle, admin avatar menu.
+- Command palette (`cmdk` via shadcn `Command`): jump to any admin route, run quick actions (Resolve next pending, Approve next withdrawal, Open disputes).
+- Strip the per-page `<Navbar/>` + `<Footer/>` — the layout owns chrome. `MobileNav` is hidden on `/admin/*`.
+
+### 2. Routing & IA
+
+Rewrite admin routes in `src/App.tsx` under a single parent using `Outlet`:
 
 ```text
-bg          #0a0a0a (near-black)        --background
-surface     #14110f                      --card
-primary     #006644 (KE green)           --primary
-accent      #bb0a1e (KE red)             --accent
-ivory       #f5f5f5                      --foreground
-muted       neutral 12% / 60%            --muted / --muted-foreground
+/admin                       → Overview
+/admin/operations/events     → Event Stream
+/admin/markets               → Markets list
+/admin/markets/new           → New Market
+/admin/markets/resolution    → Resolution queue
+/admin/markets/liquidity     → Liquidity
+/admin/markets/sources       → Source registry
+/admin/finance/treasury      → Treasury
+/admin/finance/reconciliation→ Reconciliation
+/admin/risk/fraud            → Fraud
+/admin/risk/disputes         → Disputes
+/admin/risk/users            → Users
+/admin/system/audit          → Audit log
+/admin/system/analytics      → Analytics
+/admin/system/settings       → Feature flags, source weights, fees (new)
 ```
 
-- Map every `--*` HSL token (light + dark); keep dark as default, light as accessible alt.
-- Replace neon-green glow utilities with subtler "flag glint" (green primary, red accent only on critical CTAs / loss states).
-- Typography: keep Oswald headings (works for KE editorial feel), Inter body. Add a `font-display` heading scale (clamp).
-- New radii (`--radius: 0.5rem`) — Polymarket-tighter cards.
-- Delete unused reactbits flair that fights density (Aurora background on Feed, oversized SpotlightCard glow). Keep AnimatedCounter, GradientText, ShimmerButton for CTAs only.
-- Update `<meta name="theme-color">` in `index.html` to `#0a0a0a`.
+Legacy paths (`/admin/treasury`, `/admin/fraud`, etc.) keep `<Navigate replace>` redirects to the new URLs so existing bookmarks survive.
 
-### Phase 2 — Route + IA cleanup
+### 3. Shared primitives (`src/components/admin/primitives/`)
 
-Routes to remove from `src/App.tsx` and the codebase entirely (all approved):
+- `AdminPageHeader` — title, subtitle, icon, action slot, breadcrumb-aware.
+- `AdminDataTable<T>` — TanStack-table wrapper with sticky header, density toggle, column visibility, CSV export, server-pagination hook, row selection, empty/loading/error states.
+- `AdminFilterBar` — search + status chips + date-range + saved-view dropdown; URL-synced (`useSearchParams`).
+- `AdminStatCard` / `AdminStatGrid` — replaces the ad-hoc KPI cards on Overview, Treasury, Analytics.
+- `AdminConfirmDialog` — destructive/critical actions require typed reason (enforces `mem://security/admin-audit-protocol`); writes to `admin_audit_log` automatically.
+- `AdminEmptyState`, `AdminErrorState`, `AdminSectionCard`.
+- `useAdminRealtime(channel, table, filter)` — wraps existing `mem://tech/realtime-pattern` (unique channel name, `removeChannel` cleanup).
 
-- `/trending`, `/closing-soon`, `/resolved` → fold into `/markets?sort=…&filter=…` (already redirected; remove the redirect lines too once nothing inbound).
-- `/categories/:slug` → `/markets?category=slug`.
-- `/faq`, `/about` → merge into `/rules` (single page with anchored sections + JSON-LD FAQPage).
-- `/challenges` → delete; surface leaderboard CTA on `/leaderboard` directly.
-- Duplicate `/market/:id` alias → keep `/markets/:id` only, add a one-time 301-style redirect for old shares.
+Every page is refactored to consume these — no more bespoke headers, tables, dialogs, or KPI tiles.
 
-Audit components for orphans (will list before deleting):
-- `src/components/reactbits/Aurora.tsx`, `Magnet.tsx` if unused after restyle
-- Any skeleton not referenced
-- `src/lib/social.ts` if unreferenced
+### 4. Per-page audit & refactor
 
-### Phase 3 — Page-level UI overhaul
+For each page: dedupe queries, move to shared primitives, add realtime where it matters, fix any leaked sensitive columns.
 
-Polymarket density + Kalshi polish + 5050 social, per page:
+- **Overview** — redesign as a true ops dashboard: 3 KPI rows (Liquidity, Activity, Risk), reserve-ratio gauge, pending-actions queue, recent audit events live feed.
+- **Event Stream** — realtime `admin_audit_log` + `transactions` + `trades` merged feed with filters.
+- **Markets** — replace bespoke table with `AdminDataTable`; bulk actions (pause, resume, flag); inline status edit.
+- **New Market** — keep `MarketBuilder`, wrap in standard layout; add draft autosave indicator.
+- **Resolution** — split tabs: Pending / Disputed / Recently resolved; one-click resolve with evidence snapshot dialog (already required by oracle policy).
+- **Liquidity** — per-market liquidity view; add seed-liquidity action behind confirm dialog.
+- **Sources** — fold `AdminSourceRegistry` in; CRUD + reliability score editor.
+- **Treasury** — realtime pending deposits/withdrawals queue; approve/reject with reason; show till balance vs liabilities chart.
+- **Reconciliation** — daily ledger diff view; export CSV.
+- **Fraud** — realtime flagged events; M-Pesa receipt dedupe view; rapid-deposit list; block/unblock user action.
+- **Disputes** — promote `AdminDisputes` to first-class page; SLA timer per dispute.
+- **Users** — replace bespoke `AdminUsers` with `AdminDataTable`; role assignment (super_admin only), KYC status, suspend/restore with reason.
+- **Audit Log** — full-text search, actor/action/target filters, JSON diff viewer per row.
+- **Analytics** — keep charts, move to `AdminStatGrid` + recharts cards; add date-range picker.
+- **Settings (new)** — feature flags, source weights, fee schedule, withdrawal limits. Super_admin only.
 
-**Feed (`/`)** — new landing
-- Hero strip: KE-flag accent bar, single H1 ("Predict Kenya"), live volume ticker, two CTAs (Trade / How it works).
-- Category chip rail (horizontal scroll, sticky on mobile).
-- Featured markets row (3 large cards) → dense grid below (`MarketCard` redesign).
-- Social proof strip: top tipsters from leaderboard (5050-style).
-- Remove Aurora hero background.
+### 5. Role-aware visibility
 
-**MarketCard redesign**
-- Compact (Polymarket): title (2 lines max), Yes/No price chips with % + delta arrow, mini sparkline (last 24h), volume + traders + closes-in row, watchlist star.
-- Replace SpotlightCard wrapper with simple bordered surface; hover = primary border-glow.
-- Skeleton matches.
+`useAdminRole()` hook returns `'market_operator' | 'admin' | 'super_admin'`. Sidebar items and routes filter by:
 
-**Markets (`/markets`)**
-- Left rail filters on desktop, top sheet on mobile (`MarketFilters` already exists, restyle).
-- Sort chips (Trending / Newest / Closing / Volume).
-- Infinite scroll keeps; remove duplicate sort logic in Feed.
+- `market_operator` → Markets group only.
+- `admin` → everything except Settings, Reconciliation write actions, role assignment.
+- `super_admin` → all.
 
-**MarketDetail (`/markets/:id`)**
-- Two-column: left = price chart + outcome bars + description + sources (Kalshi-style evidence panel); right = sticky `TradePanel`.
-- Below: tabs `Activity | Comments | Holders | Rules` (5050-style social).
-- Activity uses the new `get_market_recent_trades` RPC (already wired).
-- Add JSON-LD `Article` + breadcrumbs.
+Enforced both client-side (nav/UI) and via existing RLS / `has_any_role` on the server.
 
-**Wallet** — collapse Deposit/Withdraw into a single tabbed card; reconciliation badge inline; transaction list virtualised if >50 rows.
+### 6. Cleanup
 
-**Profile** — public stats card (rep, accuracy, streak) + recent positions (own only) + followers; remove email/phone reveal entirely (already RLS-locked).
+- Delete the old standalone `Navbar`/`Footer` usage inside every admin page.
+- Move `src/components/admin/AdminDisputes.tsx`, `AdminMatches.tsx`, `AdminSourceRegistry.tsx`, `AdminUsers.tsx`, `MarketBuilder.tsx` into feature folders under `src/features/admin/{markets,risk,users,sources}/` and update imports.
+- Remove any dead helpers found during the audit; log them in the closing message rather than silently deleting.
 
-**Leaderboard** — single dense table, weekly/all-time toggle, KE-flag rank chips for top 3.
+### Technical notes
 
-**Auth** — keep, restyle to flag palette, KE phone input prominent for trade-required path.
+- No new DB tables. May add a `admin_settings` table later for Settings page — flagged as follow-up, not in this pass.
+- Sidebar state persisted via the existing shadcn sidebar cookie.
+- Breadcrumbs derived from a `routeMeta` map keyed by path → `{ group, title }`.
+- All destructive admin RPCs already write to `admin_audit_log`; `AdminConfirmDialog` enforces a `reason` field client-side to match.
+- Realtime channels follow `admin:<page>:<uuid>` naming per memory rule.
 
-### Phase 4 — Hyperlocalisation
+### Out of scope (explicit)
 
-- Currency: every amount through `formatKES()` (already in `src/lib/format.ts`) — sweep all `Ksh`/`KES`/raw number leaks.
-- Time: `Africa/Nairobi` formatter helper, "EAT" suffix on closing times.
-- Copy: replace "bet/wager" → "predict/position"; CTAs in plain Kenyan English (no Sheng unless user later asks).
-- Categories: rebalance to KE-relevant defaults (Politics, Sports/FKF+EPL, Economy/CBK, Entertainment, Local). Reorder in `src/lib/constants.ts`.
-- Phone capture: enforce `+254` prefix in input mask, already required for trade.
-
-### Phase 5 — SEO hardening
-
-- `index.html`: shorten title <60 chars, description <160, swap `pagaza.app` → relative paths (no domain set yet) per head-meta rules.
-- Add per-route `<Helmet>` already via `SEOHead` — extend to MarketDetail with Article JSON-LD; add BreadcrumbList on Markets and MarketDetail; add FAQPage on Rules.
-- Move sitemap from `public/sitemap.xml` static + edge function to `scripts/generate-sitemap.ts` with Supabase fetch of open+resolved markets, wired into `predev`/`prebuild`. Keep the existing `generate-sitemap` edge function for runtime regeneration if you want — confirm.
-- `public/robots.txt` audit: ensure `/admin`, `/wallet`, `/portfolio`, `/dashboard`, `/watchlist`, `/profile/*` disallowed.
-- Single H1 per page sweep; alt text on all `<img>`; semantic landmarks (`<main>`, `<nav>`, `<article>`).
-- Lazy-load images, `loading="lazy"` on market thumbs.
-
-### Phase 6 — Legacy DB + edge cleanup (held for per-item approval)
-
-I'll surface a checklist before deleting any of:
-- `wallets.casino_credit_balance`, `wallets.fantasy_entry_balance` columns + related code paths.
-- Any unused enum values in `transaction_type` / `app_role`.
-- Edge functions with no caller (audit `evaluate-risk`, `compute-trends` cron status).
-- Orphaned tables surfaced by audit.
-
-No DB changes execute without you approving each item.
-
-### Phase 7 — Verification
-
-- `npm run build` (auto by harness) — zero TS errors.
-- Spot-check Feed, MarketDetail, Wallet, Admin overview at 360px and desktop.
-- Lighthouse mental-pass: LCP image, no layout shift on cards, meta presence.
-- Confirm no client-side `select("*")` on `profiles`/`trades` reintroduced.
-
----
-
-### Sequencing & risk
-
-I'll deliver in this order so the app stays usable throughout:
-
-1. Phase 1 (tokens) + Phase 2 (route cleanup) — single PR, low risk.
-2. Phase 3 page-by-page (Feed → MarketCard → MarketDetail → Wallet → Leaderboard → Profile → Auth) — one page per turn, you review each.
-3. Phase 4 + Phase 5 sweep — combined pass.
-4. Phase 6 cleanup checklist — you tick items, I execute.
-
-### What I will NOT touch
-
-- RLS policies / SECURITY DEFINER functions / ledger semantics (just secured).
-- PesaPal flows, treasury ledger, fraud detection.
-- Auth provider config.
-- Realtime channel pattern, safeFetch wrapper, LMSR engine.
-
-### Open questions for during build (won't block plan approval)
-
-- Are inbound links pointing to `/trending`, `/faq` worth keeping as 301 redirects, or hard-delete?
-- Should Markets default sort be Trending or Closing-soon for Kenyan timezone primetime?
-- Want a marketing landing variant for logged-out users distinct from Feed, or keep Feed as the public face?
+- No changes to user-facing routes, theme, or market logic.
+- No new business logic — pure admin UX/IA refactor plus reuse of existing RPCs.
+- AI assistance in admin — excluded per memory.
