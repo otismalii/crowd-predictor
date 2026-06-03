@@ -171,7 +171,7 @@ const AnimatedRoutes = () => {
           <Route path="*" element={<AnimatedPage><NotFound /></AnimatedPage>} />
         </Routes>
       </AnimatePresence>
-      {!isAuthPage && <MobileNav />}
+      {!isAuthPage && !isAdminPage && <MobileNav />}
       <InstallBanner />
     </>
   );
