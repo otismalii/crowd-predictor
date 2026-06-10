@@ -11,7 +11,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import MobileNav from "@/components/layout/MobileNav";
 import InstallBanner from "@/components/InstallBanner";
 import { AnimatePresence, motion } from "framer-motion";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, forwardRef } from "react";
 import { Navigate, useParams } from "react-router-dom";
 import PageLoader from "@/components/PageLoader";
 import { PlayerRoute, AdminRoute } from "@/routes/route-guards";
@@ -85,8 +85,9 @@ const pageTransition = {
   ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number],
 };
 
-const AnimatedPage = ({ children }: { children: React.ReactNode }) => (
+const AnimatedPage = forwardRef<HTMLDivElement, { children: React.ReactNode }>(({ children }, ref) => (
   <motion.div
+    ref={ref}
     variants={pageVariants}
     initial="initial"
     animate="animate"
@@ -99,7 +100,8 @@ const AnimatedPage = ({ children }: { children: React.ReactNode }) => (
       </Suspense>
     </ErrorBoundary>
   </motion.div>
-);
+));
+AnimatedPage.displayName = "AnimatedPage";
 
 const AnimatedRoutes = () => {
   const location = useLocation();
@@ -186,7 +188,7 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter>
+          <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <AuthProvider>
               <GuestProvider>
                 <OfflineIndicator />
