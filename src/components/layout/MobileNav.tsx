@@ -1,28 +1,32 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, BarChart3, Trophy, Wallet, User } from "lucide-react";
+import { Home, BarChart3, Wallet, Briefcase, User } from "lucide-react";
 import { motion } from "framer-motion";
-
-const tabs = [
-  { to: "/", label: "Home", icon: Home },
-  { to: "/markets", label: "Markets", icon: BarChart3 },
-  { to: "/leaderboard", label: "Ranks", icon: Trophy },
-  { to: "/dashboard", label: "Dashboard", icon: Wallet },
-];
+import { useAuth } from "@/contexts/AuthContext";
 
 const MobileNav = () => {
   const location = useLocation();
+  const { user } = useAuth();
+
+  const tabs = [
+    { to: "/", label: "Home", icon: Home },
+    { to: "/markets", label: "Markets", icon: BarChart3 },
+    { to: "/portfolio", label: "Portfolio", icon: Briefcase },
+    { to: "/wallet", label: "Wallet", icon: Wallet },
+    { to: user ? `/profile/${user.id}` : "/auth", label: user ? "Profile" : "Sign in", icon: User },
+  ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/50 bg-background/95 backdrop-blur-xl md:hidden safe-area-bottom">
       <div className="flex items-center justify-around px-1 py-1">
         {tabs.map((tab) => {
-          const isActive = tab.to === "/"
+          const base = tab.to.split("?")[0];
+          const isActive = base === "/"
             ? location.pathname === "/"
-            : location.pathname.startsWith(tab.to);
+            : location.pathname.startsWith(base.split("/").slice(0, 2).join("/"));
 
           return (
             <Link
-              key={tab.to}
+              key={tab.label}
               to={tab.to}
               className="relative flex flex-col items-center justify-center min-w-0 flex-1 py-2 px-1 group"
             >
