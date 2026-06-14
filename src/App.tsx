@@ -61,6 +61,14 @@ const AdminLiquidityPage = lazy(() => import("./pages/admin/AdminLiquidityPage")
 const AdminSourcesPage = lazy(() => import("./pages/admin/AdminSourcesPage"));
 const AdminDisputesPage = lazy(() => import("./pages/admin/AdminDisputesPage"));
 const AdminSettingsPage = lazy(() => import("./pages/admin/AdminSettingsPage"));
+const AdminCreationQueuePage = lazy(() => import("./pages/admin/AdminCreationQueuePage"));
+const AdminOracleSuggestionsPage = lazy(() => import("./pages/admin/AdminOracleSuggestionsPage"));
+const AdminSettlementsPage = lazy(() => import("./pages/admin/AdminSettlementsPage"));
+const AdminIntelligenceInsightsPage = lazy(() => import("./pages/admin/AdminIntelligenceInsightsPage"));
+const AdminRiskSignalsPage = lazy(() => import("./pages/admin/AdminRiskSignalsPage"));
+const AdminPredictionHistoryPage = lazy(() => import("./pages/admin/AdminPredictionHistoryPage"));
+const AdminPromotionsPage = lazy(() => import("./pages/admin/AdminPromotionsPage"));
+const AdminMarketHistoryPage = lazy(() => import("./pages/admin/AdminMarketHistoryPage"));
 
 // Lazy loads — misc
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -133,35 +141,63 @@ const AnimatedRoutes = () => {
           <Route path="/wallet" element={<AnimatedPage><PlayerRoute><Wallet /></PlayerRoute></AnimatedPage>} />
           <Route path="/watchlist" element={<AnimatedPage><PlayerRoute><Watchlist /></PlayerRoute></AnimatedPage>} />
 
-          {/* ========== ADMIN (guarded by AdminRoute, shared shell via Outlet) ========== */}
+          {/* ========== ADMIN (v4 LDX: 6 domains) ========== */}
           <Route path="/admin" element={<AdminRoute><Suspense fallback={<PageLoader />}><AdminLayout /></Suspense></AdminRoute>}>
             <Route index element={<Suspense fallback={<PageLoader />}><AdminOverviewPage /></Suspense>} />
+
+            {/* Operations */}
             <Route path="operations/events" element={<Suspense fallback={<PageLoader />}><AdminEventStreamPage /></Suspense>} />
+
+            {/* Markets */}
             <Route path="markets" element={<Suspense fallback={<PageLoader />}><AdminMarketsPage /></Suspense>} />
+            <Route path="markets/queue" element={<Suspense fallback={<PageLoader />}><AdminCreationQueuePage /></Suspense>} />
+            <Route path="markets/oracle-suggestions" element={<Suspense fallback={<PageLoader />}><AdminOracleSuggestionsPage /></Suspense>} />
             <Route path="markets/new" element={<Suspense fallback={<PageLoader />}><AdminMarketsNewPage /></Suspense>} />
             <Route path="markets/resolution" element={<Suspense fallback={<PageLoader />}><AdminResolutionPage /></Suspense>} />
             <Route path="markets/liquidity" element={<Suspense fallback={<PageLoader />}><AdminLiquidityPage /></Suspense>} />
             <Route path="markets/sources" element={<Suspense fallback={<PageLoader />}><AdminSourcesPage /></Suspense>} />
+
+            {/* Finance */}
             <Route path="finance/treasury" element={<Suspense fallback={<PageLoader />}><AdminTreasuryPage /></Suspense>} />
+            <Route path="finance/settlements" element={<Suspense fallback={<PageLoader />}><AdminSettlementsPage /></Suspense>} />
             <Route path="finance/reconciliation" element={<Suspense fallback={<PageLoader />}><AdminReconciliationPage /></Suspense>} />
-            <Route path="risk/fraud" element={<Suspense fallback={<PageLoader />}><AdminFraudPage /></Suspense>} />
-            <Route path="risk/disputes" element={<Suspense fallback={<PageLoader />}><AdminDisputesPage /></Suspense>} />
-            <Route path="risk/users" element={<Suspense fallback={<PageLoader />}><AdminUsersPage /></Suspense>} />
-            <Route path="system/audit" element={<Suspense fallback={<PageLoader />}><AdminAuditPage /></Suspense>} />
-            <Route path="system/analytics" element={<Suspense fallback={<PageLoader />}><AdminAnalyticsPage /></Suspense>} />
-            <Route path="system/settings" element={<Suspense fallback={<PageLoader />}><AdminSettingsPage /></Suspense>} />
+
+            {/* Intelligence */}
+            <Route path="intelligence/insights" element={<Suspense fallback={<PageLoader />}><AdminIntelligenceInsightsPage /></Suspense>} />
+            <Route path="intelligence/sources" element={<Suspense fallback={<PageLoader />}><AdminSourcesPage /></Suspense>} />
+            <Route path="intelligence/risk" element={<Suspense fallback={<PageLoader />}><AdminRiskSignalsPage /></Suspense>} />
+            <Route path="intelligence/predictions" element={<Suspense fallback={<PageLoader />}><AdminPredictionHistoryPage /></Suspense>} />
+
+            {/* Governance */}
+            <Route path="governance/users" element={<Suspense fallback={<PageLoader />}><AdminUsersPage /></Suspense>} />
+            <Route path="governance/promotions" element={<Suspense fallback={<PageLoader />}><AdminPromotionsPage /></Suspense>} />
+            <Route path="governance/disputes" element={<Suspense fallback={<PageLoader />}><AdminDisputesPage /></Suspense>} />
+            <Route path="governance/fraud" element={<Suspense fallback={<PageLoader />}><AdminFraudPage /></Suspense>} />
+
+            {/* Audit */}
+            <Route path="audit/logs" element={<Suspense fallback={<PageLoader />}><AdminAuditPage /></Suspense>} />
+            <Route path="audit/system" element={<Suspense fallback={<PageLoader />}><AdminAnalyticsPage /></Suspense>} />
+            <Route path="audit/markets" element={<Suspense fallback={<PageLoader />}><AdminMarketHistoryPage /></Suspense>} />
+            <Route path="audit/settings" element={<Suspense fallback={<PageLoader />}><AdminSettingsPage /></Suspense>} />
           </Route>
 
-          {/* Admin legacy redirects — preserve old bookmarks */}
+          {/* Legacy admin redirects (preserve old bookmarks) */}
           <Route path="/admin/treasury" element={<Navigate to="/admin/finance/treasury" replace />} />
           <Route path="/admin/reconciliation" element={<Navigate to="/admin/finance/reconciliation" replace />} />
-          <Route path="/admin/fraud" element={<Navigate to="/admin/risk/fraud" replace />} />
-          <Route path="/admin/users" element={<Navigate to="/admin/risk/users" replace />} />
+          <Route path="/admin/fraud" element={<Navigate to="/admin/governance/fraud" replace />} />
+          <Route path="/admin/risk/fraud" element={<Navigate to="/admin/governance/fraud" replace />} />
+          <Route path="/admin/risk/disputes" element={<Navigate to="/admin/governance/disputes" replace />} />
+          <Route path="/admin/risk/users" element={<Navigate to="/admin/governance/users" replace />} />
+          <Route path="/admin/users" element={<Navigate to="/admin/governance/users" replace />} />
           <Route path="/admin/resolution" element={<Navigate to="/admin/markets/resolution" replace />} />
           <Route path="/admin/liquidity" element={<Navigate to="/admin/markets/liquidity" replace />} />
-          <Route path="/admin/audit" element={<Navigate to="/admin/system/audit" replace />} />
-          <Route path="/admin/analytics" element={<Navigate to="/admin/system/analytics" replace />} />
+          <Route path="/admin/audit" element={<Navigate to="/admin/audit/logs" replace />} />
+          <Route path="/admin/system/audit" element={<Navigate to="/admin/audit/logs" replace />} />
+          <Route path="/admin/analytics" element={<Navigate to="/admin/audit/system" replace />} />
+          <Route path="/admin/system/analytics" element={<Navigate to="/admin/audit/system" replace />} />
+          <Route path="/admin/system/settings" element={<Navigate to="/admin/audit/settings" replace />} />
           <Route path="/admin/events" element={<Navigate to="/admin/operations/events" replace />} />
+
 
           {/* ========== LEGACY REDIRECTS (kept for inbound links / shares) ========== */}
           <Route path="/trending" element={<Navigate to="/markets?sort=trending" replace />} />

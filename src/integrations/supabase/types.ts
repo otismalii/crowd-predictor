@@ -254,6 +254,7 @@ export type Database = {
           id: string
           idempotency_key: string | null
           reference_id: string | null
+          treasury_bucket: Database["public"]["Enums"]["treasury_bucket"]
           user_id: string | null
           wallet_id: string | null
         }
@@ -269,6 +270,7 @@ export type Database = {
           id?: string
           idempotency_key?: string | null
           reference_id?: string | null
+          treasury_bucket?: Database["public"]["Enums"]["treasury_bucket"]
           user_id?: string | null
           wallet_id?: string | null
         }
@@ -284,6 +286,7 @@ export type Database = {
           id?: string
           idempotency_key?: string | null
           reference_id?: string | null
+          treasury_bucket?: Database["public"]["Enums"]["treasury_bucket"]
           user_id?: string | null
           wallet_id?: string | null
         }
@@ -1004,6 +1007,48 @@ export type Database = {
         }
         Relationships: []
       }
+      role_promotions: {
+        Row: {
+          approved_by: string | null
+          created_at: string
+          decided_at: string | null
+          evidence: Json | null
+          from_role: string | null
+          id: string
+          reason: string | null
+          requested_by: string | null
+          status: string
+          to_role: string
+          user_id: string
+        }
+        Insert: {
+          approved_by?: string | null
+          created_at?: string
+          decided_at?: string | null
+          evidence?: Json | null
+          from_role?: string | null
+          id?: string
+          reason?: string | null
+          requested_by?: string | null
+          status?: string
+          to_role: string
+          user_id: string
+        }
+        Update: {
+          approved_by?: string | null
+          created_at?: string
+          decided_at?: string | null
+          evidence?: Json | null
+          from_role?: string | null
+          id?: string
+          reason?: string | null
+          requested_by?: string | null
+          status?: string
+          to_role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       source_registry: {
         Row: {
           base_url: string | null
@@ -1231,6 +1276,24 @@ export type Database = {
           },
         ]
       }
+      treasury_accounts: {
+        Row: {
+          balance: number
+          bucket: Database["public"]["Enums"]["treasury_bucket"]
+          updated_at: string
+        }
+        Insert: {
+          balance?: number
+          bucket: Database["public"]["Enums"]["treasury_bucket"]
+          updated_at?: string
+        }
+        Update: {
+          balance?: number
+          bucket?: Database["public"]["Enums"]["treasury_bucket"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_badges: {
         Row: {
           badge_id: string
@@ -1454,6 +1517,15 @@ export type Database = {
         }
         Relationships: []
       }
+      v_treasury_balances: {
+        Row: {
+          bucket: Database["public"]["Enums"]["treasury_bucket"] | null
+          cached_balance: number | null
+          drift: number | null
+          ledger_balance: number | null
+        }
+        Relationships: []
+      }
       v_wallet_balance: {
         Row: {
           balance: number | null
@@ -1510,6 +1582,21 @@ export type Database = {
         Returns: boolean
       }
       derived_balance: { Args: { p_user_id: string }; Returns: number }
+      fn_post_double_entry: {
+        Args: {
+          p_amount: number
+          p_credit_bucket: Database["public"]["Enums"]["treasury_bucket"]
+          p_credit_user: string
+          p_debit_bucket: Database["public"]["Enums"]["treasury_bucket"]
+          p_debit_user: string
+          p_description: string
+          p_entry_type: string
+          p_event_id: string
+          p_idempotency_key: string
+          p_reference_id: string
+        }
+        Returns: Json
+      }
       fn_settle_trade: {
         Args: {
           p_amount: number
@@ -1651,6 +1738,12 @@ export type Database = {
         | "bet_win"
         | "bet_refund"
         | "house_fee"
+      treasury_bucket:
+        | "user_funds"
+        | "platform_revenue"
+        | "liquidity_pool"
+        | "settlement_reserve"
+        | "operational_reserve"
       vote_type: "up" | "down"
       withdrawal_status:
         | "pending"
@@ -1834,6 +1927,13 @@ export const Constants = {
         "bet_win",
         "bet_refund",
         "house_fee",
+      ],
+      treasury_bucket: [
+        "user_funds",
+        "platform_revenue",
+        "liquidity_pool",
+        "settlement_reserve",
+        "operational_reserve",
       ],
       vote_type: ["up", "down"],
       withdrawal_status: [

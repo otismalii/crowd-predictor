@@ -2,9 +2,21 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
-export type AdminRole = "super_admin" | "admin" | "market_operator" | null;
+export type AdminRole =
+  | "super_admin"
+  | "admin"
+  | "market_manager"
+  | "market_operator"
+  | "analyst"
+  | "verified_creator"
+  | "market_creator"
+  | "trusted_predictor"
+  | null;
 
-const ORDER: AdminRole[] = ["super_admin", "admin", "market_operator"];
+const ORDER: AdminRole[] = [
+  "super_admin", "admin", "market_manager", "market_operator",
+  "analyst", "verified_creator", "market_creator", "trusted_predictor",
+];
 
 export const useAdminRole = () => {
   const { user, loading: authLoading } = useAuth();
