@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
+import TreasuryBuckets from "@/components/admin/TreasuryBuckets";
 
 const AdminTreasuryPage = () => {
   const { toast } = useToast();
@@ -133,6 +134,7 @@ const AdminTreasuryPage = () => {
       </div>
 
       <div className="container py-6 space-y-6">
+        <TreasuryBuckets />
         {summary && (
           <>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
