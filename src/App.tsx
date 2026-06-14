@@ -197,10 +197,7 @@ const AnimatedRoutes = () => {
           <Route path="/admin/system/analytics" element={<Navigate to="/admin/audit/system" replace />} />
           <Route path="/admin/system/settings" element={<Navigate to="/admin/audit/settings" replace />} />
           <Route path="/admin/events" element={<Navigate to="/admin/operations/events" replace />} />
-          <Route path="/admin/operations/events" element={<Suspense fallback={<PageLoader />}><AdminEventStreamPage /></Suspense>} />
-        </>}>
-        </>}>
-        </>}>
+
 
           {/* ========== LEGACY REDIRECTS (kept for inbound links / shares) ========== */}
           <Route path="/trending" element={<Navigate to="/markets?sort=trending" replace />} />
