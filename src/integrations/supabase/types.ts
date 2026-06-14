@@ -1614,6 +1614,11 @@ export type Database = {
         | "risk_flagged"
         | "market_operator"
         | "super_admin"
+        | "trusted_predictor"
+        | "analyst"
+        | "market_creator"
+        | "verified_creator"
+        | "market_manager"
       bet_status: "pending" | "accepted" | "declined" | "resolved" | "cancelled"
       market_status:
         | "open"
@@ -1789,6 +1794,11 @@ export const Constants = {
         "risk_flagged",
         "market_operator",
         "super_admin",
+        "trusted_predictor",
+        "analyst",
+        "market_creator",
+        "verified_creator",
+        "market_manager",
       ],
       bet_status: ["pending", "accepted", "declined", "resolved", "cancelled"],
       market_status: [
