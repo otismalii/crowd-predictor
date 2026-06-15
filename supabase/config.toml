@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.manage-markets]
 verify_jwt = false
+
+[functions.logik-oracle]
+verify_jwt = true
