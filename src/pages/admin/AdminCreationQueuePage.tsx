@@ -14,7 +14,7 @@ const AdminCreationQueuePage = () => {
       const { data } = await supabase
         .from("markets")
         .select("id, title, status, category, created_at, created_by")
-        .in("status", ["draft", "pending_review"])
+        .in("status", ["draft", "review"])
         .order("created_at", { ascending: false })
         .limit(100);
       setDrafts(data || []);
