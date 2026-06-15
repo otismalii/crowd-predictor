@@ -469,6 +469,61 @@ export type Database = {
           },
         ]
       }
+      market_quality_scores: {
+        Row: {
+          breakdown: Json
+          created_at: string
+          id: string
+          market_id: string | null
+          oracle_run_id: string | null
+          score: number
+          scored_by: string
+          suggestion_id: string | null
+        }
+        Insert: {
+          breakdown?: Json
+          created_at?: string
+          id?: string
+          market_id?: string | null
+          oracle_run_id?: string | null
+          score: number
+          scored_by?: string
+          suggestion_id?: string | null
+        }
+        Update: {
+          breakdown?: Json
+          created_at?: string
+          id?: string
+          market_id?: string | null
+          oracle_run_id?: string | null
+          score?: number
+          scored_by?: string
+          suggestion_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_quality_scores_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "market_quality_scores_oracle_run_id_fkey"
+            columns: ["oracle_run_id"]
+            isOneToOne: false
+            referencedRelation: "oracle_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "market_quality_scores_suggestion_id_fkey"
+            columns: ["suggestion_id"]
+            isOneToOne: false
+            referencedRelation: "market_suggestions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       market_sources: {
         Row: {
           confidence: number | null
@@ -520,10 +575,16 @@ export type Database = {
           created_at: string
           created_market_id: string | null
           description: string | null
+          domain: string | null
           id: string
+          oracle_run_id: string | null
+          quality_breakdown: Json | null
+          quality_score: number | null
           reviewed_at: string | null
           reviewed_by: string | null
+          risk_flags: Json | null
           source_data: Json | null
+          source_evidence: Json | null
           source_id: string | null
           status: string
           subcategory: string | null
@@ -536,10 +597,16 @@ export type Database = {
           created_at?: string
           created_market_id?: string | null
           description?: string | null
+          domain?: string | null
           id?: string
+          oracle_run_id?: string | null
+          quality_breakdown?: Json | null
+          quality_score?: number | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          risk_flags?: Json | null
           source_data?: Json | null
+          source_evidence?: Json | null
           source_id?: string | null
           status?: string
           subcategory?: string | null
@@ -552,10 +619,16 @@ export type Database = {
           created_at?: string
           created_market_id?: string | null
           description?: string | null
+          domain?: string | null
           id?: string
+          oracle_run_id?: string | null
+          quality_breakdown?: Json | null
+          quality_score?: number | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          risk_flags?: Json | null
           source_data?: Json | null
+          source_evidence?: Json | null
           source_id?: string | null
           status?: string
           subcategory?: string | null
@@ -770,6 +843,51 @@ export type Database = {
           title?: string
           type?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      oracle_runs: {
+        Row: {
+          action: string
+          cost_estimate: number | null
+          created_at: string
+          error: string | null
+          id: string
+          input: Json | null
+          latency_ms: number | null
+          model: string | null
+          output: Json | null
+          pipeline_stage: string
+          status: string
+          triggered_by: string | null
+        }
+        Insert: {
+          action: string
+          cost_estimate?: number | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          input?: Json | null
+          latency_ms?: number | null
+          model?: string | null
+          output?: Json | null
+          pipeline_stage: string
+          status?: string
+          triggered_by?: string | null
+        }
+        Update: {
+          action?: string
+          cost_estimate?: number | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          input?: Json | null
+          latency_ms?: number | null
+          model?: string | null
+          output?: Json | null
+          pipeline_stage?: string
+          status?: string
+          triggered_by?: string | null
         }
         Relationships: []
       }
