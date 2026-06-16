@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Activity, BarChart3, Plus, Scale, Droplet, Database,
   Landmark, RefreshCw, ShieldAlert, Gavel, Users, FileText, LineChart, Settings,
-  Inbox, Sparkles, Brain, Radio, History, Workflow, ListChecks,
+  Inbox, Sparkles, Brain, Radio, History, Workflow, ListChecks, Coins,
 } from "lucide-react";
 import type { AdminRole } from "@/hooks/useAdminRole";
 
