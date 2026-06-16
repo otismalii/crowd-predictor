@@ -163,6 +163,7 @@ const AnimatedRoutes = () => {
             {/* Finance */}
             <Route path="finance/treasury" element={<Suspense fallback={<PageLoader />}><AdminTreasuryPage /></Suspense>} />
             <Route path="finance/settlements" element={<Suspense fallback={<PageLoader />}><AdminSettlementsPage /></Suspense>} />
+            <Route path="finance/creator-payouts" element={<Suspense fallback={<PageLoader />}><AdminCreatorPayoutsPage /></Suspense>} />
             <Route path="finance/reconciliation" element={<Suspense fallback={<PageLoader />}><AdminReconciliationPage /></Suspense>} />
 
             {/* Intelligence */}
