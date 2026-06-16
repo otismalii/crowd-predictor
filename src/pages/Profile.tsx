@@ -168,14 +168,21 @@ const Profile = () => {
                     className="mt-4 flex items-center gap-2"
                   >
                     {isOwnProfile ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setEditing(true)}
-                        className="border-primary/30 text-primary"
-                      >
-                        <Pencil className="h-3.5 w-3.5 mr-1.5" /> Edit Profile
-                      </Button>
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setEditing(true)}
+                          className="border-primary/30 text-primary"
+                        >
+                          <Pencil className="h-3.5 w-3.5 mr-1.5" /> Edit Profile
+                        </Button>
+                        <Link to="/creator">
+                          <Button variant="outline" size="sm" className="border-accent/30 text-accent">
+                            Creator Studio
+                          </Button>
+                        </Link>
+                      </>
                     ) : (
                       <FollowButton targetUserId={id!} onFollowChange={refreshProfile} />
                     )}
