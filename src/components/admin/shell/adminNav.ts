@@ -47,6 +47,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     items: [
       { to: "/admin/finance/treasury", label: "Treasury", icon: Landmark, roles: ["admin", "super_admin", "market_manager"] },
       { to: "/admin/finance/settlements", label: "Settlements", icon: Workflow, roles: ["admin", "super_admin"] },
+      { to: "/admin/finance/creator-payouts", label: "Creator Payouts", icon: Coins, roles: ["admin", "super_admin"] },
       { to: "/admin/finance/reconciliation", label: "Reconciliation", icon: RefreshCw, roles: ["admin", "super_admin"] },
     ],
   },
