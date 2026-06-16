@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Activity, BarChart3, Plus, Scale, Droplet, Database,
   Landmark, RefreshCw, ShieldAlert, Gavel, Users, FileText, LineChart, Settings,
-  Inbox, Sparkles, Brain, Radio, History, Workflow, ListChecks,
+  Inbox, Sparkles, Brain, Radio, History, Workflow, ListChecks, Coins,
 } from "lucide-react";
 import type { AdminRole } from "@/hooks/useAdminRole";
 
@@ -47,6 +47,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     items: [
       { to: "/admin/finance/treasury", label: "Treasury", icon: Landmark, roles: ["admin", "super_admin", "market_manager"] },
       { to: "/admin/finance/settlements", label: "Settlements", icon: Workflow, roles: ["admin", "super_admin"] },
+      { to: "/admin/finance/creator-payouts", label: "Creator Payouts", icon: Coins, roles: ["admin", "super_admin"] },
       { to: "/admin/finance/reconciliation", label: "Reconciliation", icon: RefreshCw, roles: ["admin", "super_admin"] },
     ],
   },

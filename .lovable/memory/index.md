@@ -12,6 +12,7 @@
 ## Memories
 - [LDX v4 Invariants](mem://architecture/ldx-v4-invariants) — Non-negotiable rules; AI never moves money or publishes/settles
 - [Oracle Resolution Policy](mem://admin/oracle-resolution-policy) — LOGIK Oracle is advisory; runs on NVIDIA NIM via logik-oracle edge function
+- [Creator Economy](mem://features/creator-economy) — creator_profiles/payouts/subscriptions, 0.5% default rate, admin approval required
 - [Visual Assets](mem://style/visual-assets) — Hybrid licensed/AI images with strict metadata tracking
 - [Mobile UX](mem://ux/mobile-experience) — Bottom nav, pull-to-refresh, shimmer skeletons
 - [Market Resolution](mem://admin/market-resolution-logic) — Source-ranked pipeline and strict evidence snapshots

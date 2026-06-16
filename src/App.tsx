@@ -69,6 +69,8 @@ const AdminRiskSignalsPage = lazy(() => import("./pages/admin/AdminRiskSignalsPa
 const AdminPredictionHistoryPage = lazy(() => import("./pages/admin/AdminPredictionHistoryPage"));
 const AdminPromotionsPage = lazy(() => import("./pages/admin/AdminPromotionsPage"));
 const AdminMarketHistoryPage = lazy(() => import("./pages/admin/AdminMarketHistoryPage"));
+const AdminCreatorPayoutsPage = lazy(() => import("./pages/admin/AdminCreatorPayoutsPage"));
+const CreatorDashboard = lazy(() => import("./pages/CreatorDashboard"));
 
 // Lazy loads — misc
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -140,6 +142,7 @@ const AnimatedRoutes = () => {
           <Route path="/profile/:id" element={<AnimatedPage><Profile /></AnimatedPage>} />
           <Route path="/wallet" element={<AnimatedPage><PlayerRoute><Wallet /></PlayerRoute></AnimatedPage>} />
           <Route path="/watchlist" element={<AnimatedPage><PlayerRoute><Watchlist /></PlayerRoute></AnimatedPage>} />
+          <Route path="/creator" element={<AnimatedPage><PlayerRoute><CreatorDashboard /></PlayerRoute></AnimatedPage>} />
 
           {/* ========== ADMIN (v4 LDX: 6 domains) ========== */}
           <Route path="/admin" element={<AdminRoute><Suspense fallback={<PageLoader />}><AdminLayout /></Suspense></AdminRoute>}>
@@ -160,6 +163,7 @@ const AnimatedRoutes = () => {
             {/* Finance */}
             <Route path="finance/treasury" element={<Suspense fallback={<PageLoader />}><AdminTreasuryPage /></Suspense>} />
             <Route path="finance/settlements" element={<Suspense fallback={<PageLoader />}><AdminSettlementsPage /></Suspense>} />
+            <Route path="finance/creator-payouts" element={<Suspense fallback={<PageLoader />}><AdminCreatorPayoutsPage /></Suspense>} />
             <Route path="finance/reconciliation" element={<Suspense fallback={<PageLoader />}><AdminReconciliationPage /></Suspense>} />
 
             {/* Intelligence */}

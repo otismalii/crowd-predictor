@@ -59,12 +59,16 @@ const AdminOracleSuggestionsPage = () => {
     setBusy(s.id);
     // Promote to markets table as draft (humans publish from Creation Queue)
     const outcomes = Array.isArray((s as any).outcomes) ? (s as any).outcomes : [];
+    const me = (await supabase.auth.getUser()).data.user?.id;
+    // If suggestion has a human submitter (future field), credit them; else admin
+    const suggestedBy = (s as any).submitted_by ?? null;
     const { data: market, error } = await supabase.from("markets").insert({
       title: s.title,
       description: s.description,
       category: s.category,
       status: "draft",
-      created_by: (await supabase.auth.getUser()).data.user?.id,
+      created_by: me,
+      suggested_by: suggestedBy,
     } as any).select("id").single();
     if (error) { toast.error(error.message); setBusy(null); return; }
     if (outcomes.length && market) {
@@ -72,7 +76,7 @@ const AdminOracleSuggestionsPage = () => {
         outcomes.map((o: any) => ({ market_id: market.id, label: o.label }))
       );
     }
-    await supabase.from("market_suggestions").update({ status: "approved" }).eq("id", s.id);
+    await supabase.from("market_suggestions").update({ status: "approved", created_market_id: market?.id } as any).eq("id", s.id);
     toast.success("Promoted to draft market");
     await load();
     setBusy(null);

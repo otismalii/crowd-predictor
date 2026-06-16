@@ -110,6 +110,150 @@ export type Database = {
         }
         Relationships: []
       }
+      creator_payouts: {
+        Row: {
+          amount_kes: number
+          approved_at: string | null
+          approved_by: string | null
+          basis_volume: number
+          created_at: string
+          creator_id: string
+          id: string
+          ledger_entry_id: string | null
+          market_id: string | null
+          notes: string | null
+          paid_at: string | null
+          rate_bps: number
+          status: Database["public"]["Enums"]["creator_payout_status"]
+          updated_at: string
+        }
+        Insert: {
+          amount_kes: number
+          approved_at?: string | null
+          approved_by?: string | null
+          basis_volume?: number
+          created_at?: string
+          creator_id: string
+          id?: string
+          ledger_entry_id?: string | null
+          market_id?: string | null
+          notes?: string | null
+          paid_at?: string | null
+          rate_bps?: number
+          status?: Database["public"]["Enums"]["creator_payout_status"]
+          updated_at?: string
+        }
+        Update: {
+          amount_kes?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          basis_volume?: number
+          created_at?: string
+          creator_id?: string
+          id?: string
+          ledger_entry_id?: string | null
+          market_id?: string | null
+          notes?: string | null
+          paid_at?: string | null
+          rate_bps?: number
+          status?: Database["public"]["Enums"]["creator_payout_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      creator_profiles: {
+        Row: {
+          bio: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          lifetime_payout_kes: number
+          markets_published: number
+          payout_destination: string | null
+          payout_method: string | null
+          payout_rate_bps: number
+          score: number
+          tier: Database["public"]["Enums"]["creator_tier"]
+          total_volume_attributed: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          lifetime_payout_kes?: number
+          markets_published?: number
+          payout_destination?: string | null
+          payout_method?: string | null
+          payout_rate_bps?: number
+          score?: number
+          tier?: Database["public"]["Enums"]["creator_tier"]
+          total_volume_attributed?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          lifetime_payout_kes?: number
+          markets_published?: number
+          payout_destination?: string | null
+          payout_method?: string | null
+          payout_rate_bps?: number
+          score?: number
+          tier?: Database["public"]["Enums"]["creator_tier"]
+          total_volume_attributed?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      creator_subscriptions: {
+        Row: {
+          auto_renew: boolean
+          created_at: string
+          creator_id: string
+          id: string
+          period_end: string | null
+          period_start: string
+          price_kes: number
+          status: Database["public"]["Enums"]["creator_subscription_status"]
+          subscriber_id: string
+          tier: string
+          updated_at: string
+        }
+        Insert: {
+          auto_renew?: boolean
+          created_at?: string
+          creator_id: string
+          id?: string
+          period_end?: string | null
+          period_start?: string
+          price_kes?: number
+          status?: Database["public"]["Enums"]["creator_subscription_status"]
+          subscriber_id: string
+          tier?: string
+          updated_at?: string
+        }
+        Update: {
+          auto_renew?: boolean
+          created_at?: string
+          creator_id?: string
+          id?: string
+          period_end?: string | null
+          period_start?: string
+          price_kes?: number
+          status?: Database["public"]["Enums"]["creator_subscription_status"]
+          subscriber_id?: string
+          tier?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       event_log: {
         Row: {
           actor_id: string | null
@@ -709,6 +853,7 @@ export type Database = {
           slug: string | null
           status: Database["public"]["Enums"]["market_status"]
           subcategory: string | null
+          suggested_by: string | null
           tags: string[] | null
           title: string
           total_volume: number
@@ -734,6 +879,7 @@ export type Database = {
           slug?: string | null
           status?: Database["public"]["Enums"]["market_status"]
           subcategory?: string | null
+          suggested_by?: string | null
           tags?: string[] | null
           title: string
           total_volume?: number
@@ -759,6 +905,7 @@ export type Database = {
           slug?: string | null
           status?: Database["public"]["Enums"]["market_status"]
           subcategory?: string | null
+          suggested_by?: string | null
           tags?: string[] | null
           title?: string
           total_volume?: number
@@ -1700,6 +1847,14 @@ export type Database = {
         Returns: boolean
       }
       derived_balance: { Args: { p_user_id: string }; Returns: number }
+      fn_attribute_creator_payout: {
+        Args: {
+          p_basis_volume: number
+          p_creator_id: string
+          p_market_id: string
+        }
+        Returns: string
+      }
       fn_post_double_entry: {
         Args: {
           p_amount: number
@@ -1825,6 +1980,9 @@ export type Database = {
         | "verified_creator"
         | "market_manager"
       bet_status: "pending" | "accepted" | "declined" | "resolved" | "cancelled"
+      creator_payout_status: "pending" | "approved" | "paid" | "rejected"
+      creator_subscription_status: "active" | "cancelled" | "expired"
+      creator_tier: "bronze" | "silver" | "gold" | "platinum"
       market_status:
         | "open"
         | "closed"
@@ -2012,6 +2170,9 @@ export const Constants = {
         "market_manager",
       ],
       bet_status: ["pending", "accepted", "declined", "resolved", "cancelled"],
+      creator_payout_status: ["pending", "approved", "paid", "rejected"],
+      creator_subscription_status: ["active", "cancelled", "expired"],
+      creator_tier: ["bronze", "silver", "gold", "platinum"],
       market_status: [
         "open",
         "closed",
