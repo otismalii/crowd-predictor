@@ -142,6 +142,7 @@ const AnimatedRoutes = () => {
           <Route path="/profile/:id" element={<AnimatedPage><Profile /></AnimatedPage>} />
           <Route path="/wallet" element={<AnimatedPage><PlayerRoute><Wallet /></PlayerRoute></AnimatedPage>} />
           <Route path="/watchlist" element={<AnimatedPage><PlayerRoute><Watchlist /></PlayerRoute></AnimatedPage>} />
+          <Route path="/creator" element={<AnimatedPage><PlayerRoute><CreatorDashboard /></PlayerRoute></AnimatedPage>} />
 
           {/* ========== ADMIN (v4 LDX: 6 domains) ========== */}
           <Route path="/admin" element={<AdminRoute><Suspense fallback={<PageLoader />}><AdminLayout /></Suspense></AdminRoute>}>
