@@ -69,6 +69,8 @@ const AdminRiskSignalsPage = lazy(() => import("./pages/admin/AdminRiskSignalsPa
 const AdminPredictionHistoryPage = lazy(() => import("./pages/admin/AdminPredictionHistoryPage"));
 const AdminPromotionsPage = lazy(() => import("./pages/admin/AdminPromotionsPage"));
 const AdminMarketHistoryPage = lazy(() => import("./pages/admin/AdminMarketHistoryPage"));
+const AdminCreatorPayoutsPage = lazy(() => import("./pages/admin/AdminCreatorPayoutsPage"));
+const CreatorDashboard = lazy(() => import("./pages/CreatorDashboard"));
 
 // Lazy loads — misc
 const NotFound = lazy(() => import("./pages/NotFound"));
