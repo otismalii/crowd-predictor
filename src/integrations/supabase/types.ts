@@ -1979,6 +1979,7 @@ export type Database = {
         | "market_creator"
         | "verified_creator"
         | "market_manager"
+        | "mini_admin"
       bet_status: "pending" | "accepted" | "declined" | "resolved" | "cancelled"
       creator_payout_status: "pending" | "approved" | "paid" | "rejected"
       creator_subscription_status: "active" | "cancelled" | "expired"
@@ -2168,6 +2169,7 @@ export const Constants = {
         "market_creator",
         "verified_creator",
         "market_manager",
+        "mini_admin",
       ],
       bet_status: ["pending", "accepted", "declined", "resolved", "cancelled"],
       creator_payout_status: ["pending", "approved", "paid", "rejected"],
