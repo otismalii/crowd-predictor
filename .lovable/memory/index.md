@@ -8,6 +8,7 @@
 - All KES transactions are double-entry in `ledger_entries` with NOT NULL `treasury_bucket`. Drift in `v_treasury_balances` must be 0.
 - AI (LOGIK Oracle) is suggestion-only. AI cannot publish markets, settle markets, or move funds. Humans approve all financial and governance actions.
 - ACP information architecture (v4): Operations / Markets / Finance / Intelligence / Governance / Audit.
+- MCP server exposed at supabase/functions/mcp via @lovable.dev/mcp-js; tools live under src/lib/mcp/tools. Supabase OAuth 2.1 issuer bound to project ref, consent route at /.lovable/oauth/consent.
 
 ## Memories
 - [LDX v4 Invariants](mem://architecture/ldx-v4-invariants) — Non-negotiable rules; AI never moves money or publishes/settles

@@ -1,0 +1,146 @@
+{
+  "version": 1,
+  "sdk_version": "0.20.0",
+  "path": "/functions/v1/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://nshxgolruvisdzptcxew.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "pagaza-mcp",
+      "version": "0.1.0",
+      "title": "Pagaza Prediction Markets"
+    },
+    "tools": [
+      {
+        "name": "list_markets",
+        "title": "List markets",
+        "description": "List prediction markets on Pagaza, optionally filtered by status or category. Returns up to 25 markets.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "status": {
+              "description": "Filter by lifecycle status.",
+              "type": "string",
+              "enum": [
+                "open",
+                "closed",
+                "resolved",
+                "draft"
+              ]
+            },
+            "category": {
+              "description": "Filter by category (e.g. sports, politics).",
+              "type": "string"
+            },
+            "limit": {
+              "description": "Max rows to return (default 10).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 25
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_market",
+        "title": "Get market",
+        "description": "Fetch a single Pagaza market with its outcomes and current odds.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "market_id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "The market id."
+            }
+          },
+          "required": [
+            "market_id"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_wallet",
+        "title": "Get my wallet balance",
+        "description": "Get the signed-in user's Pagaza wallet balance in KES.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_positions",
+        "title": "List my positions",
+        "description": "List the signed-in user's open positions across markets.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "limit": {
+              "description": "Max rows (default 20).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_recent_trades",
+        "title": "List my recent trades",
+        "description": "List the signed-in user's most recent trades on Pagaza.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "limit": {
+              "description": "Max rows (default 20).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
