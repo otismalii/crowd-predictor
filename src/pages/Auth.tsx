@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,14 @@ import Aurora from "@/components/reactbits/Aurora";
 import SplitText from "@/components/reactbits/SplitText";
 import PasswordStrength from "@/components/PasswordStrength";
 
+// Same-origin relative paths only — used to safely round-trip a post-login target
+// (for OAuth consent, deep links, etc.).
+function safeNext(next: string | null): string {
+  if (!next) return "/";
+  if (!next.startsWith("/") || next.startsWith("//")) return "/";
+  return next;
+}
+
 const Auth = () => {
   const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
   const [email, setEmail] = useState("");
@@ -25,10 +33,12 @@ const Auth = () => {
   const { signIn, signUp, resetPassword, user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  const nextPath = safeNext(searchParams.get("next"));
 
   useEffect(() => {
-    if (user) navigate("/", { replace: true });
-  }, [user, navigate]);
+    if (user) navigate(nextPath, { replace: true });
+  }, [user, navigate, nextPath]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,7 +80,7 @@ const Auth = () => {
           : error.message;
         toast({ title: "Login failed", description: msg, variant: "destructive" });
       } else {
-        navigate("/");
+        navigate(nextPath);
       }
     }
     setLoading(false);

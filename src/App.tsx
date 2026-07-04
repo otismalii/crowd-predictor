@@ -35,6 +35,7 @@ const Sources = lazy(() => import("./pages/Sources"));
 
 // Lazy loads — auth
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const OAuthConsent = lazy(() => import("./pages/OAuthConsent"));
 
 // Lazy loads — player
 const PlayerDashboard = lazy(() => import("./pages/player/Dashboard"));
@@ -115,7 +116,10 @@ AnimatedPage.displayName = "AnimatedPage";
 
 const AnimatedRoutes = () => {
   const location = useLocation();
-  const isAuthPage = location.pathname === "/auth" || location.pathname === "/reset-password";
+  const isAuthPage =
+    location.pathname === "/auth" ||
+    location.pathname === "/reset-password" ||
+    location.pathname.startsWith("/.lovable/");
   const isAdminPage = location.pathname.startsWith("/admin");
 
   return (
@@ -134,6 +138,7 @@ const AnimatedRoutes = () => {
           {/* ========== AUTH ========== */}
           <Route path="/auth" element={<AnimatedPage><Auth /></AnimatedPage>} />
           <Route path="/reset-password" element={<AnimatedPage><ResetPassword /></AnimatedPage>} />
+          <Route path="/.lovable/oauth/consent" element={<AnimatedPage><OAuthConsent /></AnimatedPage>} />
 
           {/* ========== PLAYER ========== */}
           <Route path="/dashboard" element={<AnimatedPage><PlayerRoute><PlayerDashboard /></PlayerRoute></AnimatedPage>} />
