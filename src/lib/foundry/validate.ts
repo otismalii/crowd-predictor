@@ -11,7 +11,8 @@ export type PackageValidation = {
   summary: { total: number; ready: number; warning: number; error: number };
 };
 
-export function parseJsonSafe(text: string): { ok: true; data: unknown } | { ok: false; message: string } {
+export type JsonParseResult = { ok: true; data: unknown; message?: undefined } | { ok: false; message: string; data?: undefined };
+export function parseJsonSafe(text: string): JsonParseResult {
   try { return { ok: true, data: JSON.parse(text) }; }
   catch (e: any) { return { ok: false, message: e?.message ?? "Invalid JSON" }; }
 }
@@ -22,7 +23,7 @@ function normalizeMarket(raw: any): { normalized?: MarketInput; issues: Issue[] 
   const issues: Issue[] = [];
   const parsed = MarketInputSchema.safeParse(raw);
   if (!parsed.success) {
-    for (const err of parsed.error.errors) {
+    for (const err of parsed.error.issues) {
       issues.push({ code: "schema", severity: "error", message: err.message, field: err.path.join(".") });
     }
     return { issues };
@@ -90,7 +91,7 @@ export async function validatePackage(raw: unknown): Promise<PackageValidation> 
   if (!pkg.success) {
     return {
       rows: [],
-      fatal: pkg.error.errors.map((e) => ({ code: "pkg", severity: "error", message: e.message, field: e.path.join(".") })),
+      fatal: pkg.error.issues.map((e) => ({ code: "pkg", severity: "error", message: e.message, field: e.path.join(".") })),
       summary: { total: 0, ready: 0, warning: 0, error: 0 },
     };
   }
