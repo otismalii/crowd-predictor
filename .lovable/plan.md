@@ -1,156 +1,129 @@
+# Market Foundry v2 — JSON-First Import Pipeline
 
-# PAGAZA LDX v4 — Master Upgrade Plan
+Replace the current "New Market" form with an operations-grade import center. Operators generate JSON anywhere (ChatGPT, GLM, Gemini, scripts, feeds) and publish hundreds of markets in minutes.
 
-Four waves, executed sequentially with approval between each. Each wave ships a working slice — no dead schema. Two non-negotiable invariants enforced from Wave 1: **AI never moves funds or publishes/settles markets**, and **every financial action lives in the immutable ledger**.
+## 1. Canonical Pagaza Market Package Schema
 
-## Cross-cutting decisions
+One schema, provider-agnostic. Version-locked.
 
-- **Oracle model provider**: NVIDIA NIM (key you supplied). The key will be stored as Supabase secret `NVIDIA_API_KEY` via the secrets tool — never committed to code. I will also **update `mem://index.md`** to lift the "no AI insights / no Gemini" rule and replace it with "AI is suggestion-only; humans approve all market/financial actions."
-- **Memory update**: rewrite the Oracle Resolution Policy memory to match v4 (AI suggests; ACP decides). Add a new memory `mem://architecture/ldx-v4-invariants` capturing the 7 critical design rules.
-- **Single source of truth**: keep existing `wallets`, `ledger_entries`, `event_log`, `user_roles`, `market_audit_log`, `audit_logs`, `market_suggestions`, `source_registry`, `ingestion_logs`, `risk_signals`. **No duplicates created.**
-- **All AI calls** go through one edge function (`logik-oracle`) that fans out to sub-tasks. Frontend never calls the model directly.
-
----
-
-## WAVE 1 — Foundations: Treasury sub-ledger + Role expansion + ACP restructure
-
-**Goal**: lock down the money model and the people model before any AI lands.
-
-### 1A. Treasury sub-ledger (full refactor)
-
-Migration:
-- New enum `treasury_bucket`: `user_funds`, `platform_revenue`, `liquidity_pool`, `settlement_reserve`, `operational_reserve`.
-- New table `treasury_accounts(bucket PK, balance numeric, updated_at)` — derived/cached, truth lives in ledger.
-- Add `treasury_bucket treasury_bucket NOT NULL DEFAULT 'user_funds'` to `ledger_entries`. Backfill all existing rows to `user_funds`.
-- New view `v_treasury_balances` — `SUM(amount) GROUP BY bucket` from ledger; must always equal `treasury_accounts.balance` (reconciliation invariant).
-- New function `fn_post_double_entry(p_debit_user, p_credit_user, p_debit_bucket, p_credit_bucket, p_amount, p_event_id, p_idempotency_key)` — single chokepoint for all bucket movement; SECURITY DEFINER, revoke from anon/authenticated, service_role only.
-- Trigger on `ledger_entries` insert → updates `treasury_accounts.balance`.
-
-Edge function refactors (route every write through `fn_post_double_entry`):
-- `execute-trade`: debit user → credit `liquidity_pool` (stake) + `platform_revenue` (fee split from `app_settings.trade_fee_bps`).
-- `pesapal-deposit` callback: external M-Pesa → credit `user_funds` + debit `operational_reserve`.
-- `pesapal-withdraw`: debit `user_funds` → credit external; lock first via existing `lock_for_withdrawal`.
-- `reconcile-ledger`: extend to assert `SUM(ledger) per bucket = treasury_accounts.balance` and that `user_funds = SUM(wallets.balance + locked_balance + escrow_balance)`. Emit `risk_signal` on drift.
-
-Acceptance: ledger imbalance always = 0; every wallet write goes through `fn_post_double_entry`; old direct `credit_balance`/`deduct_balance` paths are deprecated (kept for backward compat but logged + flagged in `risk_signals`).
-
-### 1B. Full role system
-
-Migration:
-- Extend `app_role` enum: add `trusted_predictor`, `analyst`, `market_creator`, `verified_creator`, `market_manager`. (Existing: `user`, `moderator`, `admin`, `super_admin`, `market_operator`, `verified_user`, `risk_flagged`.)
-- New table `role_promotions(id, user_id, from_role, to_role, requested_by, approved_by, status, reason, evidence jsonb, created_at, decided_at)` — ACP-only approval; service_role grants only for writes, authenticated read own.
-- RLS: `markets` insert policy splits — `market_creator`/`verified_creator` can insert with `status='draft'` only; only `market_manager`/`admin`/`super_admin` can flip to `published`.
-
-Frontend:
-- `useAdminRole` → rename to `useUserRole`, return the full role ladder.
-- ACP `/admin/risk/users` gains a **Promote** action that writes to `role_promotions`. Approve UI in new `/admin/governance/promotions`.
-
-### 1C. ACP information-architecture rebuild
-
-Restructure `adminNav.ts` into the v4 spec exactly:
+```json
+{
+  "version": "1.0",
+  "batchName": "EPL Matchweek 20",
+  "generatedBy": "chatgpt|glm|gemini|claude|deepseek|script|api|manual",
+  "generatedAt": "2026-07-08T10:00:00Z",
+  "description": "optional",
+  "markets": [
+    {
+      "question": "Will Arsenal beat Chelsea on 2026-07-15?",
+      "slug": "arsenal-chelsea-2026-07-15",         // optional, auto-generated
+      "category": "sports",                           // must match allowed set
+      "subcategory": "football",
+      "marketType": "binary|multi",
+      "outcomes": [{ "label": "Yes", "initialProbability": 0.55 }, ...],
+      "closesAt": "2026-07-15T16:00:00Z",
+      "resolvesAt": "2026-07-15T18:00:00Z",
+      "resolutionRules": "text",
+      "initialLiquidity": 1000,
+      "sources": [{ "url": "...", "publisher": "..." }],  // optional
+      "tags": ["epl","football"]
+    }
+  ]
+}
 ```
-Operations: Overview, Event Stream
-Markets: Active, Creation Queue (drafts + suggestions), Oracle Suggestions, Resolution, Liquidity, Sources
-Finance: Treasury (bucketed), Settlements, Reconciliation
-Intelligence: LOGIK Insights, Event Sources, Risk Signals, Prediction History
-Governance: Users, Roles & Promotions, Disputes, Fraud
-Audit: Logs, System Events, Market History
-```
-Five existing domain folders collapse into the six-domain v4 layout. All new pages are stubs in Wave 1 (skeleton + empty state) and filled in Waves 2-4.
 
----
+## 2. Route + IA changes
 
-## WAVE 2 — LOGIK Oracle: suggestion engine + market quality scoring
+- `/admin/markets/new` becomes **Import Markets** (three tabs only: Upload · Paste · History).
+- Legacy `MarketBuilder` form is removed from that route. It stays available only as an internal component behind an "Advanced / Single Market" collapsed panel — no top-level UI.
+- Sidebar label: "New Market" → "Import Markets".
 
-**Goal**: humans-approved AI suggestions land in the Creation Queue. Nothing publishes automatically.
+## 3. New tables (one migration)
 
-### 2A. Secrets + provider
+- `market_import_batches` — id, batch_name, generated_by, generated_at, description, operator_id, source_mode (upload|paste|api), raw_payload (jsonb), markets_total, markets_ready, markets_warned, markets_failed, markets_published, status (parsing|validated|publishing|completed|rolled_back), processing_ms, created_at.
+- `market_import_rows` — id, batch_id, row_index, raw_market (jsonb), normalized_market (jsonb), slug, status (ready|warning|error|published|rejected), issues (jsonb array of `{code,severity,message,field}`), published_market_id (nullable fk markets), created_at.
+- `market_import_audit` — id, batch_id, row_id (nullable), operator_id, action (import|validate|edit|publish|reject|rollback|delete), payload (jsonb), created_at.
 
-- Add secret `NVIDIA_API_KEY` (user-supplied). Edge functions call `https://integrate.api.nvidia.com/v1/chat/completions` with `Authorization: Bearer ${NVIDIA_API_KEY}`. Model default: `meta/llama-3.3-70b-instruct` (configurable in `app_settings`).
+RLS: readable + writable only by roles admin, super_admin, market_manager. Service_role full access. All three tables get standard GRANTs, updated_at trigger where relevant, and indexes on (batch_id), (status), (created_at desc).
 
-### 2B. Oracle data model
+## 4. Validation engine (`src/lib/foundry/validate.ts`)
 
-Migration:
-- Extend `market_suggestions`: add `quality_score int`, `quality_breakdown jsonb` (clarity, resolution_certainty, dispute_risk, liquidity_potential, popularity_potential), `oracle_run_id uuid`, `source_evidence jsonb`, `domain text` (sports/politics/economics/tech/entertainment/social), `risk_flags jsonb`.
-- New table `oracle_runs(id, pipeline_stage, input jsonb, output jsonb, model, latency_ms, cost_estimate, error, created_at)` — every LOGIK call logged for the recursive-learning loop.
-- New table `market_quality_scores(market_id, score, breakdown jsonb, scored_at, scored_by)` — applies to both drafts and live markets.
+Pure client-side + server-side (edge function reuses same module via shared code). Rules:
 
-### 2C. Edge function `logik-oracle`
+- Schema shape (zod).
+- Required fields per market.
+- `closesAt` in future, `resolvesAt >= closesAt`.
+- Slug uniqueness — within batch AND against existing `markets.slug`.
+- Duplicate question detection within batch (normalized text hash).
+- Category in allowed enum (from existing category list).
+- Outcomes: binary needs exactly 2; multi needs 2–8; probabilities sum ≈ 1.0 (±0.02); each in [0.01, 0.99].
+- Liquidity: number, min 100, max from `app_settings`.
+- Duplicate batch detection: hash of `raw_payload` vs last 30 days.
+- Auto-fixes: trim strings, generate missing slug, normalize probabilities to sum 1, strip HTML.
 
-Single entrypoint with `action` param:
-- `detect_events` — pulls from `source_registry` + `ingestion_logs`, dedupes, returns candidate events.
-- `suggest_markets` — for an event, generates 1-N draft market specs (question, outcomes, resolution criteria, sources).
-- `score_quality` — scores a draft 0-100; **gate: score < 85 → status `needs_revision`**.
-- `analyze_risk` — writes a `risk_signals` row if dispute/fraud heuristics trip.
-- `propose_resolution` — for a closed market, suggests an outcome with evidence; **never writes resolution** — only inserts a row in `market_audit_log` of type `oracle_suggestion`.
+Output per market: `{ status: 'ready'|'warning'|'error', issues: [...] }`. Errors block publish; warnings don't.
 
-All writes go through service-role with idempotency keys; `logik-oracle` is called from cron jobs (`system_jobs`) and from ACP "re-run" buttons.
+## 5. Import UI (`/admin/markets/new`)
 
-### 2D. ACP screens (functional)
+Three tabs, no other UI:
 
-- `/admin/markets/oracle-suggestions` — list of `market_suggestions` with quality score, "Approve & Promote to Draft" (ACP only), "Reject", "Request revision."
-- `/admin/markets/creation-queue` — drafts (from creators + approved Oracle suggestions); ACP publishes from here.
-- `/admin/intelligence/logik-insights` — `oracle_runs` log + calibration metrics.
+**Upload tab**
+- Drag-drop `.json` file(s), max 5MB each.
+- On drop → parse → create batch (client-side preview, not persisted until user clicks "Save Batch") → render preview grid.
 
----
+**Paste tab**
+- Monaco Editor (`@monaco-editor/react`, add dep) with JSON language, schema hint, live validation gutter markers, format shortcut, auto-complete via injected JSON schema.
+- "Validate" button runs the engine; "Save Batch" persists.
 
-## WAVE 3 — Creator economy + confidence engine
+**History tab**
+- Table of `market_import_batches` — batch name, operator, date, totals, status, actions (View · Rollback · Export errors).
+- Filters: operator, date range, status.
 
-**Goal**: track creator/predictor accuracy; promotions are scored but never automatic.
+## 6. Preview grid (shared, appears below tabs after validation)
 
-### 3A. Data model
+- Summary bar: `✓ 187 Ready  ⚠ 8 Warnings  ✖ 3 Errors`.
+- Virtualized grid of preview cards (question, category, close time, market type, liquidity, top-outcome probability, status pill, warning badges).
+- Row actions: Publish · Edit (inline dialog to fix one field) · Reject.
+- Bulk actions: Publish All Ready · Publish Selected · Reject Selected · Export Errors (CSV).
+- Publishing runs in chunks of 25 via edge function `import-markets-publish`, with live progress bar and per-row status updates via realtime subscription on `market_import_rows`.
 
-- `creator_scores(user_id PK, accuracy_rate, market_success_rate, dispute_rate, fraud_risk, engagement_score, tier text)` — tier ∈ `bronze|silver|gold|elite`, computed nightly by `logik-oracle action=score_creators`.
-- `prediction_accuracy(user_id, market_id, predicted_outcome, actual_outcome, confidence, brier_score, created_at)` — feeds the recursive-learning calibration.
-- `confidence_calibration(domain, bucket_lo, bucket_hi, predicted_rate, actual_rate, sample_size, updated_at)` — rolling calibration table.
+## 7. Edge functions
 
-### 3B. Promotion workflow
+- `import-markets-validate` — accepts a batch payload, runs the shared validator, upserts `market_import_batches` + `market_import_rows`, returns summary. Idempotent by client-generated batch idempotency key.
+- `import-markets-publish` — takes `batch_id` + optional `row_ids`. For each ready row: inserts `markets` + `market_outcomes` + sources inside a transaction (RPC), updates row status, writes `market_import_audit`. Chunked, resumable.
+- `import-markets-rollback` — soft-deletes markets created by a batch (uses existing `markets.deleted_at` from Wave 4 migration), marks batch `rolled_back`, audits.
 
-- Oracle proposes role promotions (`role_promotions` row with `requested_by = oracle_system_user`); ACP approves/rejects. **No auto-promotion.**
+All three: role-gated (admin/super_admin/market_manager), zod-validated input, CORS, structured envelope responses.
 
-### 3C. UI
+## 8. GLM as one JSON provider (optional helper)
 
-- Public: creator profile badge (bronze/silver/gold/elite) on `Profile.tsx` + market card.
-- ACP: `/admin/governance/creator-scores` review board.
+- `supabase/functions/foundry-generate/index.ts` — thin helper that calls NVIDIA GLM (uses existing `NVIDIA_API_KEY`) or GLM direct (uses new `GLM_API_KEY`) with a prompt template and returns Pagaza JSON. Output flows back through the same Upload/Paste path — never bypasses validation. Purely optional; platform works without it.
 
----
+## 9. Files touched
 
-## WAVE 4 — Recursive learning + internal LOGIK API + hardening
+**New**
+- `src/lib/foundry/schema.ts` (zod), `src/lib/foundry/validate.ts`, `src/lib/foundry/normalize.ts`, `src/lib/foundry/slug.ts`
+- `src/pages/admin/AdminMarketsImportPage.tsx` (replaces new-page content)
+- `src/components/admin/foundry/UploadTab.tsx`, `PasteTab.tsx`, `HistoryTab.tsx`, `PreviewGrid.tsx`, `PreviewCard.tsx`, `IssueBadge.tsx`, `BatchProgressBar.tsx`, `BatchDetailDrawer.tsx`
+- `supabase/functions/import-markets-validate/index.ts`, `import-markets-publish/index.ts`, `import-markets-rollback/index.ts`, `foundry-generate/index.ts`
+- `supabase/functions/_shared/foundry-validate.ts` (mirror of client validator for edge)
 
-**Goal**: close the feedback loop, expose a stable internal API, finish hardening.
+**Edited**
+- `src/App.tsx` — route `/admin/markets/new` → `AdminMarketsImportPage`
+- `src/components/admin/shell/adminNav.ts` — relabel "New Market" → "Import Markets"
+- `src/pages/admin/AdminMarketsNewPage.tsx` — delete or convert to redirect
+- One DB migration for the three new tables + GRANTs + RLS + indexes + triggers
 
-### 4A. Recursive learning loop
+**Deps**
+- `@monaco-editor/react`, `monaco-editor`, `react-window` (virtualized preview), `papaparse` (CSV export)
 
-- Nightly cron (`system_jobs`) → `logik-oracle action=calibrate` → reads `prediction_accuracy`, updates `confidence_calibration`, adjusts per-domain prompt temperature/system prompt stored in `app_settings`.
-- Per-market post-resolution job writes Brier scores for every trader who held a position.
+## 10. Out of scope for this wave
 
-### 4B. Internal LOGIK API layer
+- Sports/election/crypto automation generators (they will output the same JSON later).
+- AI-driven publishing (Oracle stays advisory).
+- Import from URL / RSS.
 
-- New edge function `logik-api` exposing read-only endpoints (`/events`, `/suggestions`, `/quality/:market_id`, `/confidence/:domain`) for future external/partner use. Auth via per-consumer API keys table `oracle_api_keys` (hashed). Rate limited.
-
-### 4C. Hardening
-
-- Settlement engine: every settlement runs `reconcile-ledger` pre-check; refuses if imbalance ≠ 0.
-- Add `settlement_previews` table — ACP must "Preview → Approve" two-step for every payout batch.
-- Realtime subscriptions on `oracle_suggestions` so ACP queue updates live.
-- Performance: index audit (`ledger_entries(treasury_bucket, created_at)`, `market_suggestions(quality_score, status)`).
-
----
-
-## Technical notes / risks
-
-- **Backfill order matters** in Wave 1A: add column NULL → backfill `user_funds` → set NOT NULL → create trigger. Otherwise the trigger blocks the backfill.
-- **`fn_post_double_entry` is a chokepoint**: every existing edge function must be updated in the same wave; partial migration corrupts the bucket invariant. Wave 1A is therefore atomic — all 4 edge functions ship together.
-- **NVIDIA NIM rate limits**: cron-driven suggestions throttled to N/min via `system_jobs`; ACP-triggered runs bypass throttle but log to `oracle_runs.cost_estimate`.
-- **Memory rewrite**: lifting the "no AI" rule is a one-way door. The new memory will be explicit that AI is **advisory only** and cannot publish/settle/move funds — these remain DB-enforced via GRANT revocation on `fn_settle_trade`, `fn_post_double_entry`, market `status` transitions.
-- **No frontend AI calls.** All `logik-oracle` invocations are server-side (edge functions, cron). The browser only reads `market_suggestions`, `oracle_runs`, `creator_scores`.
-
-## Out of scope (explicit)
-
-- External LOGIK API monetization, billing for partners — deferred past Wave 4.
-- Mobile push notifications for Oracle suggestions — separate request.
-- Re-theming, marketing pages.
-
-## Approval gate after each wave
-
-After Wave 1 ships: I stop, you verify treasury reconciliation = 0 and ACP IA matches the v4 spec, then approve Wave 2. Same for 2→3 and 3→4.
+## Approval gates
+- One DB migration.
+- Three dependencies added.
+- Zero new secrets (GLM_API_KEY already added).
