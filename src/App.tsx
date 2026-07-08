@@ -49,7 +49,7 @@ const Watchlist = lazy(() => import("./pages/Watchlist"));
 const AdminLayout = lazy(() => import("./components/admin/shell/AdminLayout"));
 const AdminOverviewPage = lazy(() => import("./pages/admin/AdminOverviewPage"));
 const AdminMarketsPage = lazy(() => import("./pages/admin/AdminMarketsPage"));
-const AdminMarketsNewPage = lazy(() => import("./pages/admin/AdminMarketsNewPage"));
+const AdminMarketsNewPage = lazy(() => import("./pages/admin/AdminMarketsImportPage"));
 const AdminResolutionPage = lazy(() => import("./pages/admin/AdminResolutionPage"));
 const AdminAnalyticsPage = lazy(() => import("./pages/admin/AdminAnalyticsPage"));
 const AdminUsersPage = lazy(() => import("./pages/admin/AdminUsersPage"));
