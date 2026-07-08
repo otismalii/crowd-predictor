@@ -575,6 +575,180 @@ export type Database = {
           },
         ]
       }
+      market_import_audit: {
+        Row: {
+          action: string
+          batch_id: string | null
+          created_at: string
+          id: string
+          operator_id: string | null
+          payload: Json | null
+          row_id: string | null
+        }
+        Insert: {
+          action: string
+          batch_id?: string | null
+          created_at?: string
+          id?: string
+          operator_id?: string | null
+          payload?: Json | null
+          row_id?: string | null
+        }
+        Update: {
+          action?: string
+          batch_id?: string | null
+          created_at?: string
+          id?: string
+          operator_id?: string | null
+          payload?: Json | null
+          row_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_import_audit_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "market_import_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "market_import_audit_row_id_fkey"
+            columns: ["row_id"]
+            isOneToOne: false
+            referencedRelation: "market_import_rows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      market_import_batches: {
+        Row: {
+          batch_name: string
+          created_at: string
+          description: string | null
+          generated_at: string | null
+          generated_by: string | null
+          id: string
+          markets_failed: number
+          markets_published: number
+          markets_ready: number
+          markets_total: number
+          markets_warned: number
+          operator_id: string | null
+          payload_hash: string | null
+          processing_ms: number | null
+          raw_payload: Json | null
+          source_mode: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          batch_name: string
+          created_at?: string
+          description?: string | null
+          generated_at?: string | null
+          generated_by?: string | null
+          id?: string
+          markets_failed?: number
+          markets_published?: number
+          markets_ready?: number
+          markets_total?: number
+          markets_warned?: number
+          operator_id?: string | null
+          payload_hash?: string | null
+          processing_ms?: number | null
+          raw_payload?: Json | null
+          source_mode: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          batch_name?: string
+          created_at?: string
+          description?: string | null
+          generated_at?: string | null
+          generated_by?: string | null
+          id?: string
+          markets_failed?: number
+          markets_published?: number
+          markets_ready?: number
+          markets_total?: number
+          markets_warned?: number
+          operator_id?: string | null
+          payload_hash?: string | null
+          processing_ms?: number | null
+          raw_payload?: Json | null
+          source_mode?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      market_import_rows: {
+        Row: {
+          batch_id: string
+          created_at: string
+          error_message: string | null
+          id: string
+          issues: Json
+          normalized_market: Json | null
+          published_at: string | null
+          published_market_id: string | null
+          question_hash: string | null
+          raw_market: Json
+          row_index: number
+          slug: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          batch_id: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          issues?: Json
+          normalized_market?: Json | null
+          published_at?: string | null
+          published_market_id?: string | null
+          question_hash?: string | null
+          raw_market: Json
+          row_index: number
+          slug?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          batch_id?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          issues?: Json
+          normalized_market?: Json | null
+          published_at?: string | null
+          published_market_id?: string | null
+          question_hash?: string | null
+          raw_market?: Json
+          row_index?: number
+          slug?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_import_rows_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "market_import_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "market_import_rows_published_market_id_fkey"
+            columns: ["published_market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       market_outcomes: {
         Row: {
           created_at: string
