@@ -35,7 +35,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       { to: "/admin/markets", label: "Active Markets", icon: BarChart3 },
       { to: "/admin/markets/queue", label: "Creation Queue", icon: Inbox },
       { to: "/admin/markets/oracle-suggestions", label: "Oracle Suggestions", icon: Sparkles },
-      { to: "/admin/markets/new", label: "New Market", icon: Plus, roles: ["admin", "super_admin", "market_manager"] },
+      { to: "/admin/markets/new", label: "Import Markets", icon: Plus, roles: ["admin", "super_admin", "market_manager"] },
       { to: "/admin/markets/resolution", label: "Resolution", icon: Scale },
       { to: "/admin/markets/liquidity", label: "Liquidity", icon: Droplet },
       { to: "/admin/markets/sources", label: "Sources", icon: Database },
