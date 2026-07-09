@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Activity, BarChart3, Plus, Scale, Droplet, Database,
   Landmark, RefreshCw, ShieldAlert, Gavel, Users, FileText, LineChart, Settings,
-  Inbox, Sparkles, Brain, Radio, History, Workflow, ListChecks, Coins,
+  Inbox, Sparkles, Brain, Radio, History, Workflow, ListChecks, Coins, Zap,
 } from "lucide-react";
 import type { AdminRole } from "@/hooks/useAdminRole";
 
@@ -77,6 +77,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     items: [
       { to: "/admin/audit/logs", label: "Audit Logs", icon: FileText, roles: ["admin", "super_admin"] },
       { to: "/admin/audit/system", label: "System Analytics", icon: LineChart },
+      { to: "/admin/audit/automation", label: "Automation", icon: Zap, roles: ["admin", "super_admin"] },
       { to: "/admin/audit/markets", label: "Market History", icon: History },
       { to: "/admin/audit/settings", label: "Settings", icon: Settings, roles: ["super_admin"] },
     ],
