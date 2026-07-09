@@ -71,6 +71,7 @@ const AdminPredictionHistoryPage = lazy(() => import("./pages/admin/AdminPredict
 const AdminPromotionsPage = lazy(() => import("./pages/admin/AdminPromotionsPage"));
 const AdminMarketHistoryPage = lazy(() => import("./pages/admin/AdminMarketHistoryPage"));
 const AdminCreatorPayoutsPage = lazy(() => import("./pages/admin/AdminCreatorPayoutsPage"));
+const AdminAutomationPage = lazy(() => import("./pages/admin/AdminAutomationPage"));
 const CreatorDashboard = lazy(() => import("./pages/CreatorDashboard"));
 
 // Lazy loads — misc
@@ -186,6 +187,7 @@ const AnimatedRoutes = () => {
             {/* Audit */}
             <Route path="audit/logs" element={<Suspense fallback={<PageLoader />}><AdminAuditPage /></Suspense>} />
             <Route path="audit/system" element={<Suspense fallback={<PageLoader />}><AdminAnalyticsPage /></Suspense>} />
+            <Route path="audit/automation" element={<Suspense fallback={<PageLoader />}><AdminAutomationPage /></Suspense>} />
             <Route path="audit/markets" element={<Suspense fallback={<PageLoader />}><AdminMarketHistoryPage /></Suspense>} />
             <Route path="audit/settings" element={<Suspense fallback={<PageLoader />}><AdminSettingsPage /></Suspense>} />
           </Route>

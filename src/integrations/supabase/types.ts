@@ -385,6 +385,48 @@ export type Database = {
           },
         ]
       }
+      job_definitions: {
+        Row: {
+          created_at: string
+          cron_expression: string | null
+          default_payload: Json
+          description: string | null
+          display_name: string
+          enabled: boolean
+          handler: string
+          job_type: string
+          owner_group: string
+          timeout_seconds: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          cron_expression?: string | null
+          default_payload?: Json
+          description?: string | null
+          display_name: string
+          enabled?: boolean
+          handler: string
+          job_type: string
+          owner_group?: string
+          timeout_seconds?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          cron_expression?: string | null
+          default_payload?: Json
+          description?: string | null
+          display_name?: string
+          enabled?: boolean
+          handler?: string
+          job_type?: string
+          owner_group?: string
+          timeout_seconds?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ledger_entries: {
         Row: {
           amount: number
@@ -1569,41 +1611,76 @@ export type Database = {
       system_jobs: {
         Row: {
           attempts: number
+          cancel_reason: string | null
           created_at: string
+          duration_ms: number | null
+          finished_at: string | null
           id: string
           job_type: string
           last_error: string | null
           locked_until: string | null
+          max_attempts: number
+          parent_job_id: string | null
           payload: Json
+          priority: number
+          result: Json | null
           run_after: string
+          scheduled_by: string
+          started_at: string | null
           status: string
           updated_at: string
         }
         Insert: {
           attempts?: number
+          cancel_reason?: string | null
           created_at?: string
+          duration_ms?: number | null
+          finished_at?: string | null
           id?: string
           job_type: string
           last_error?: string | null
           locked_until?: string | null
+          max_attempts?: number
+          parent_job_id?: string | null
           payload?: Json
+          priority?: number
+          result?: Json | null
           run_after?: string
+          scheduled_by?: string
+          started_at?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
           attempts?: number
+          cancel_reason?: string | null
           created_at?: string
+          duration_ms?: number | null
+          finished_at?: string | null
           id?: string
           job_type?: string
           last_error?: string | null
           locked_until?: string | null
+          max_attempts?: number
+          parent_job_id?: string | null
           payload?: Json
+          priority?: number
+          result?: Json | null
           run_after?: string
+          scheduled_by?: string
+          started_at?: string | null
           status?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "system_jobs_parent_job_id_fkey"
+            columns: ["parent_job_id"]
+            isOneToOne: false
+            referencedRelation: "system_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       trades: {
         Row: {
@@ -1953,6 +2030,48 @@ export type Database = {
             | Database["public"]["Enums"]["subscription_plan"]
             | null
           username?: string | null
+        }
+        Relationships: []
+      }
+      v_job_health: {
+        Row: {
+          avg_duration_ms: number | null
+          cron_expression: string | null
+          display_name: string | null
+          enabled: boolean | null
+          failure_24h: number | null
+          job_type: string | null
+          last_run: string | null
+          next_run: string | null
+          pending_count: number | null
+          running_count: number | null
+          success_24h: number | null
+        }
+        Insert: {
+          avg_duration_ms?: never
+          cron_expression?: string | null
+          display_name?: string | null
+          enabled?: boolean | null
+          failure_24h?: never
+          job_type?: string | null
+          last_run?: never
+          next_run?: never
+          pending_count?: never
+          running_count?: never
+          success_24h?: never
+        }
+        Update: {
+          avg_duration_ms?: never
+          cron_expression?: string | null
+          display_name?: string | null
+          enabled?: boolean | null
+          failure_24h?: never
+          job_type?: string | null
+          last_run?: never
+          next_run?: never
+          pending_count?: never
+          running_count?: never
+          success_24h?: never
         }
         Relationships: []
       }
