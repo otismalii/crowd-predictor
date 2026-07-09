@@ -52,13 +52,13 @@ export default function AdminAutomationPage() {
 
   const load = async () => {
     const [d, h, r] = await Promise.all([
-      supabase.from("job_definitions").select("*").order("owner_group"),
+      supabase.from("job_definitions" as any).select("*").order("owner_group"),
       supabase.from("v_job_health" as any).select("*"),
       supabase.from("system_jobs").select("*").order("created_at", { ascending: false }).limit(100),
     ]);
-    setDefs((d.data as JobDef[]) ?? []);
-    setHealth((h.data as Health[]) ?? []);
-    setRuns((r.data as Run[]) ?? []);
+    setDefs(((d.data as unknown) as JobDef[]) ?? []);
+    setHealth(((h.data as unknown) as Health[]) ?? []);
+    setRuns(((r.data as unknown) as Run[]) ?? []);
     setLoading(false);
   };
 
