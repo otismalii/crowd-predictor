@@ -118,7 +118,7 @@ export default function AdminAutomationPage() {
     <div className="p-4 lg:p-6 space-y-4">
       <AdminPageHeader
         title="Automation"
-        description="Background jobs, cron schedules, and worker health."
+        subtitle="Background jobs, cron schedules, and worker health."
         actions={<Button size="sm" variant="outline" onClick={load}><RefreshCw className="h-3.5 w-3.5 mr-1.5" />Refresh</Button>}
       />
 
