@@ -1,129 +1,116 @@
-# Market Foundry v2 — JSON-First Import Pipeline
+## LDX Master Spec — Gap Analysis & Phase 1 Plan
 
-Replace the current "New Market" form with an operations-grade import center. Operators generate JSON anywhere (ChatGPT, GLM, Gemini, scripts, feeds) and publish hundreds of markets in minutes.
+### Part A — Gap Analysis (current state vs. LDX spec)
 
-## 1. Canonical Pagaza Market Package Schema
+Legend: ✅ built · 🟡 partial · ❌ missing
 
-One schema, provider-agnostic. Version-locked.
+**Foundations (mostly done)**
+- ✅ React/Vite/TS/Tailwind/shadcn/TanStack/RHF/Zod/Monaco stack
+- ✅ Supabase (Postgres + RLS + Edge Functions + Realtime + Storage)
+- ✅ Double-entry ledger (`ledger_entries`, treasury buckets, drift invariant)
+- ✅ Immutable audit (`audit_logs`, `market_audit_log`, `market_import_audit`)
+- ✅ Idempotency on wallet/ledger writes
+- ✅ PesaPal deposit/withdraw + retry
+- ✅ Market Foundry v2 (JSON import: upload/paste/history/rollback)
+- ✅ LOGIK Oracle as suggestion-only (advisory, never auto-settles)
+- ✅ Realtime channels with cleanup pattern
+- ✅ MCP server + OAuth consent
 
-```json
-{
-  "version": "1.0",
-  "batchName": "EPL Matchweek 20",
-  "generatedBy": "chatgpt|glm|gemini|claude|deepseek|script|api|manual",
-  "generatedAt": "2026-07-08T10:00:00Z",
-  "description": "optional",
-  "markets": [
-    {
-      "question": "Will Arsenal beat Chelsea on 2026-07-15?",
-      "slug": "arsenal-chelsea-2026-07-15",         // optional, auto-generated
-      "category": "sports",                           // must match allowed set
-      "subcategory": "football",
-      "marketType": "binary|multi",
-      "outcomes": [{ "label": "Yes", "initialProbability": 0.55 }, ...],
-      "closesAt": "2026-07-15T16:00:00Z",
-      "resolvesAt": "2026-07-15T18:00:00Z",
-      "resolutionRules": "text",
-      "initialLiquidity": 1000,
-      "sources": [{ "url": "...", "publisher": "..." }],  // optional
-      "tags": ["epl","football"]
-    }
-  ]
-}
-```
+**Roles & Governance**
+- 🟡 Roles: `super_admin/admin/market_manager/market_operator/analyst/verified_creator/market_creator/trusted_predictor` exist — but no **Mini Admin** role per spec (map to `market_creator` + explicit "submit for approval" workflow)
+- 🟡 Creation queue exists (`AdminCreationQueuePage`) but no formal draft→pending→approved state machine on markets
+- ✅ Role promotions with mandatory reason
 
-## 2. Route + IA changes
+**Market Lifecycle**
+- 🟡 Statuses exist but LDX defines 9 stages (Draft → Pending Approval → Approved → Scheduled → Open → Locked → Awaiting Resolution → Resolved → Cancelled/Refunded → Archived). Current schema likely lacks `pending_approval`, `approved`, `scheduled`, `locked`, `archived` transitions
+- ❌ Market types beyond binary/multi (Over/Under, Numeric Range, Tournament, Ranking, Custom) not modeled
 
-- `/admin/markets/new` becomes **Import Markets** (three tabs only: Upload · Paste · History).
-- Legacy `MarketBuilder` form is removed from that route. It stays available only as an internal component behind an "Advanced / Single Market" collapsed panel — no top-level UI.
-- Sidebar label: "New Market" → "Import Markets".
+**Resolution & Evidence**
+- 🟡 Resolution page exists; `market_sources` table exists
+- ❌ Dedicated Evidence Center (uploads, screenshots, reliability score, AI summary linkage)
+- ❌ Resolution tabs (Awaiting Evidence / Ready / Manual Review / Appealed / Resolved) not fully formalized
+- ❌ Appeals / dispute escalation workflow beyond `market_disputes` table
 
-## 3. New tables (one migration)
+**Finance**
+- 🟡 Treasury + reconciliation pages exist
+- ❌ Configurable fees UI (trading/withdrawal/settlement/creator reward/commission) — only `app_settings` KV exists
+- ❌ Revenue dashboards by period/category/method
+- ❌ Per-market liquidity controls (seed/increase/reduce/pause/close) UI
 
-- `market_import_batches` — id, batch_name, generated_by, generated_at, description, operator_id, source_mode (upload|paste|api), raw_payload (jsonb), markets_total, markets_ready, markets_warned, markets_failed, markets_published, status (parsing|validated|publishing|completed|rolled_back), processing_ms, created_at.
-- `market_import_rows` — id, batch_id, row_index, raw_market (jsonb), normalized_market (jsonb), slug, status (ready|warning|error|published|rejected), issues (jsonb array of `{code,severity,message,field}`), published_market_id (nullable fk markets), created_at.
-- `market_import_audit` — id, batch_id, row_id (nullable), operator_id, action (import|validate|edit|publish|reject|rollback|delete), payload (jsonb), created_at.
+**Automation / Jobs** ← **Phase 1 target**
+- 🟡 `system_jobs` table exists (job_type, status, attempts, locked_until, run_after, last_error, payload)
+- ❌ No worker/dispatcher edge function consuming it
+- ❌ No admin dashboard surfacing job health
+- ❌ No pg_cron scheduling wired to enqueue recurring jobs
 
-RLS: readable + writable only by roles admin, super_admin, market_manager. Service_role full access. All three tables get standard GRANTs, updated_at trigger where relevant, and indexes on (batch_id), (status), (created_at desc).
+**Risk / Notifications / Analytics**
+- 🟡 `risk_signals`, `notifications`, `analyticsService` exist — but no unified Risk Engine rules config, no notification channel fan-out (push/email/SMS), analytics dashboards partial
 
-## 4. Validation engine (`src/lib/foundry/validate.ts`)
+**PWA / Offline**
+- 🟡 SW guard implemented; offline-aware caching minimal
 
-Pure client-side + server-side (edge function reuses same module via shared code). Rules:
+---
 
-- Schema shape (zod).
-- Required fields per market.
-- `closesAt` in future, `resolvesAt >= closesAt`.
-- Slug uniqueness — within batch AND against existing `markets.slug`.
-- Duplicate question detection within batch (normalized text hash).
-- Category in allowed enum (from existing category list).
-- Outcomes: binary needs exactly 2; multi needs 2–8; probabilities sum ≈ 1.0 (±0.02); each in [0.01, 0.99].
-- Liquidity: number, min 100, max from `app_settings`.
-- Duplicate batch detection: hash of `raw_payload` vs last 30 days.
-- Auto-fixes: trim strings, generate missing slug, normalize probabilities to sum 1, strip HTML.
+### Part B — Phase 1: Automation & Jobs Dashboard
 
-Output per market: `{ status: 'ready'|'warning'|'error', issues: [...] }`. Errors block publish; warnings don't.
+**Goal:** Turn the existing `system_jobs` table into a first-class, observable job system with an admin dashboard, a generic worker, and cron-driven enqueue of the recurring jobs Pagaza already runs (sync-matches, compute-trends, reconcile-ledger, retry-payments, creator-payouts, oracle queue).
 
-## 5. Import UI (`/admin/markets/new`)
+#### 1. Database (migration)
+- Extend `system_jobs`:
+  - `priority int default 100`, `max_attempts int default 5`
+  - `started_at`, `finished_at`, `duration_ms`, `result jsonb`
+  - `scheduled_by text` (cron | manual | event)
+  - `parent_job_id uuid` (for chained jobs)
+  - Index on `(status, run_after, priority)` for the claim query
+- New table `job_definitions` (catalog of known job types):
+  - `job_type` PK, `display_name`, `description`, `cron_expression`, `enabled bool`, `timeout_seconds`, `handler` (edge function name), `default_payload jsonb`, `owner_group text`
+  - Seed rows for: `sync-matches`, `compute-trends`, `reconcile-ledger`, `retry-payments`, `creator-payouts`, `oracle-analyze`, `notification-flush`
+- View `v_job_health`: per `job_type` — last_run, next_run, success_rate_24h, avg_duration_ms, failure_count_24h, pending_count
+- RLS: admin/super_admin read all; service_role full; nothing for anon/authenticated
+- GRANTs included
 
-Three tabs, no other UI:
+#### 2. Backend edge functions
+- `jobs-dispatch` (invoked every minute by pg_cron):
+  - `SELECT ... FOR UPDATE SKIP LOCKED` up to N jobs where `status='queued' AND run_after<=now()`
+  - Sets `status='running'`, `locked_until=now()+timeout`, `started_at`, increments `attempts`
+  - Invokes handler edge function; on completion writes `result`, `finished_at`, `duration_ms`, `status='succeeded'|'failed'`
+  - On failure with `attempts < max_attempts`: reschedules with exponential backoff
+  - Emits `event_log` entry `job.completed` / `job.failed`
+- `jobs-enqueue` (admin-only): manually enqueue any registered job type with payload
+- `jobs-cancel` (admin-only): cancel a queued/running job with reason (audit logged)
+- Refactor existing recurring functions to be idempotent handlers callable by dispatcher (no logic change — just accept `{job_id}` and record result)
 
-**Upload tab**
-- Drag-drop `.json` file(s), max 5MB each.
-- On drop → parse → create batch (client-side preview, not persisted until user clicks "Save Batch") → render preview grid.
+#### 3. pg_cron wiring
+- One cron job every minute → HTTP POST to `jobs-dispatch`
+- Cron entries per `job_definitions` row that has a `cron_expression` → insert a queued row into `system_jobs` (dispatcher then runs it)
+- Uses `supabase--insert` (not migration) per rules, because it contains project URL + anon key
 
-**Paste tab**
-- Monaco Editor (`@monaco-editor/react`, add dep) with JSON language, schema hint, live validation gutter markers, format shortcut, auto-complete via injected JSON schema.
-- "Validate" button runs the engine; "Save Batch" persists.
+#### 4. Admin UI — `/admin/audit/automation` (new route, moved from a placeholder)
+- **Overview cards**: Queued, Running, Succeeded (24h), Failed (24h), Avg latency
+- **Job Definitions table**: type, cron, enabled toggle, last run, next run, success rate, avg duration, action menu (Run now, Pause, Edit payload)
+- **Live Runs table** (realtime on `system_jobs`): id, type, status pill, started_at, duration, attempts, actions (View payload/result, Cancel, Retry)
+- **Run detail drawer**: full payload, result, error, timeline, related event_log entries
+- **Filters**: job_type, status, date range; virtualized table (react-window already installed)
+- Uses existing `AdminDataTable`, `AdminPageHeader`, `AdminStatGrid` primitives
 
-**History tab**
-- Table of `market_import_batches` — batch name, operator, date, totals, status, actions (View · Rollback · Export errors).
-- Filters: operator, date range, status.
+#### 5. Nav & routing
+- Rename `adminNav.ts` entry `Audit > System Analytics` group: add **"Automation"** item pointing at `/admin/audit/automation`, roles `admin/super_admin`
+- Add route in `App.tsx`
 
-## 6. Preview grid (shared, appears below tabs after validation)
+#### 6. Realtime & audit
+- Add `system_jobs` to `supabase_realtime` publication
+- Every manual enqueue/cancel writes `audit_logs` with reason
 
-- Summary bar: `✓ 187 Ready  ⚠ 8 Warnings  ✖ 3 Errors`.
-- Virtualized grid of preview cards (question, category, close time, market type, liquidity, top-outcome probability, status pill, warning badges).
-- Row actions: Publish · Edit (inline dialog to fix one field) · Reject.
-- Bulk actions: Publish All Ready · Publish Selected · Reject Selected · Export Errors (CSV).
-- Publishing runs in chunks of 25 via edge function `import-markets-publish`, with live progress bar and per-row status updates via realtime subscription on `market_import_rows`.
+#### 7. Out of scope for Phase 1
+- Fees config UI, Evidence Center, Mini Admin role rename, appeals workflow, expanded market types, push/SMS fan-out, revenue dashboards — deferred to later phases (plans to follow after Phase 1 lands)
 
-## 7. Edge functions
+#### Deliverables
+- 1 migration (schema + view + RLS + grants + seed job_definitions)
+- 1 insert-tool call (pg_cron schedule)
+- 3 new edge functions (`jobs-dispatch`, `jobs-enqueue`, `jobs-cancel`)
+- 1 refactor pass on existing recurring functions to conform to handler contract
+- 1 new admin page + subcomponents
+- Nav + route updates
+- Memory entry: `mem://architecture/automation-jobs` documenting the contract
 
-- `import-markets-validate` — accepts a batch payload, runs the shared validator, upserts `market_import_batches` + `market_import_rows`, returns summary. Idempotent by client-generated batch idempotency key.
-- `import-markets-publish` — takes `batch_id` + optional `row_ids`. For each ready row: inserts `markets` + `market_outcomes` + sources inside a transaction (RPC), updates row status, writes `market_import_audit`. Chunked, resumable.
-- `import-markets-rollback` — soft-deletes markets created by a batch (uses existing `markets.deleted_at` from Wave 4 migration), marks batch `rolled_back`, audits.
-
-All three: role-gated (admin/super_admin/market_manager), zod-validated input, CORS, structured envelope responses.
-
-## 8. GLM as one JSON provider (optional helper)
-
-- `supabase/functions/foundry-generate/index.ts` — thin helper that calls NVIDIA GLM (uses existing `NVIDIA_API_KEY`) or GLM direct (uses new `GLM_API_KEY`) with a prompt template and returns Pagaza JSON. Output flows back through the same Upload/Paste path — never bypasses validation. Purely optional; platform works without it.
-
-## 9. Files touched
-
-**New**
-- `src/lib/foundry/schema.ts` (zod), `src/lib/foundry/validate.ts`, `src/lib/foundry/normalize.ts`, `src/lib/foundry/slug.ts`
-- `src/pages/admin/AdminMarketsImportPage.tsx` (replaces new-page content)
-- `src/components/admin/foundry/UploadTab.tsx`, `PasteTab.tsx`, `HistoryTab.tsx`, `PreviewGrid.tsx`, `PreviewCard.tsx`, `IssueBadge.tsx`, `BatchProgressBar.tsx`, `BatchDetailDrawer.tsx`
-- `supabase/functions/import-markets-validate/index.ts`, `import-markets-publish/index.ts`, `import-markets-rollback/index.ts`, `foundry-generate/index.ts`
-- `supabase/functions/_shared/foundry-validate.ts` (mirror of client validator for edge)
-
-**Edited**
-- `src/App.tsx` — route `/admin/markets/new` → `AdminMarketsImportPage`
-- `src/components/admin/shell/adminNav.ts` — relabel "New Market" → "Import Markets"
-- `src/pages/admin/AdminMarketsNewPage.tsx` — delete or convert to redirect
-- One DB migration for the three new tables + GRANTs + RLS + indexes + triggers
-
-**Deps**
-- `@monaco-editor/react`, `monaco-editor`, `react-window` (virtualized preview), `papaparse` (CSV export)
-
-## 10. Out of scope for this wave
-
-- Sports/election/crypto automation generators (they will output the same JSON later).
-- AI-driven publishing (Oracle stays advisory).
-- Import from URL / RSS.
-
-## Approval gates
-- One DB migration.
-- Three dependencies added.
-- Zero new secrets (GLM_API_KEY already added).
+Approve to proceed with Phase 1, or say which phase you want next.
