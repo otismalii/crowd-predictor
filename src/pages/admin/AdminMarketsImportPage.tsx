@@ -8,6 +8,7 @@ import { PasteTab } from "@/components/admin/foundry/PasteTab";
 import { HistoryTab } from "@/components/admin/foundry/HistoryTab";
 import { PreviewGrid } from "@/components/admin/foundry/PreviewGrid";
 import { validatePackage } from "@/lib/foundry/validate";
+import { normalizeIncoming } from "@/lib/foundry/adapters";
 import type { RowResult } from "@/lib/foundry/schema";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -23,7 +24,8 @@ const AdminMarketsImportPage = () => {
 
   const handleLoaded = async (payload: unknown) => {
     setBatchId(null);
-    const result = await validatePackage(payload);
+    const normalized = normalizeIncoming(payload);
+    const result = await validatePackage(normalized);
     if (result.fatal?.length) {
       toast.error(`Package invalid: ${result.fatal[0].message}`);
       setRows([]);

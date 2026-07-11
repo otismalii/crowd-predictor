@@ -1,8 +1,12 @@
 import { z } from "zod";
 
+/** Canonical schema version. Bump when breaking changes ship. */
+export const SCHEMA_VERSION = "1.1";
+
 export const ALLOWED_CATEGORIES = [
-  "politics", "economics", "sports", "social", "local", "regional", "international",
+  "politics", "economics", "economy", "sports", "social", "local", "regional", "international",
   "match_result", "over_under", "entertainment", "technology", "crypto", "weather",
+  "forex", "commodities",
 ] as const;
 
 export const ALLOWED_GENERATORS = [
@@ -36,10 +40,11 @@ export const MarketInputSchema = z.object({
   sources: z.array(SourceSchema).optional(),
   tags: z.array(z.string().trim().max(30)).max(10).optional(),
   imageUrl: z.string().url().optional(),
+  autoSettle: z.boolean().optional(),
 });
 
 export const MarketPackageSchema = z.object({
-  version: z.string().default("1.0"),
+  version: z.string().default(SCHEMA_VERSION),
   batchName: z.string().trim().min(3).max(120),
   generatedBy: z.string().trim().min(1),
   generatedAt: z.string().optional(),
