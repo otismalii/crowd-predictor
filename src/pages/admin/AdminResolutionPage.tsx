@@ -8,10 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Scale, Clock, BarChart3, AlertTriangle, ShieldCheck } from "lucide-react";
+import { Scale, Clock, BarChart3, AlertTriangle, ShieldCheck, Gavel, Undo2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
+import { callAdminAction } from "@/hooks/useMarketsAdmin";
 
 interface ResolutionQueueItem {
   id: string;
@@ -31,6 +33,10 @@ const AdminResolutionPage = () => {
   const [overrideMarket, setOverrideMarket] = useState<string | null>(null);
   const [overrideReason, setOverrideReason] = useState("");
   const [processing, setProcessing] = useState(false);
+  const [resolvingFor, setResolvingFor] = useState<string | null>(null);
+  const [resolveOutcomes, setResolveOutcomes] = useState<Record<string, { id: string; label: string }[]>>({});
+  const [winningOutcomeId, setWinningOutcomeId] = useState<string>("");
+  const [resolveReason, setResolveReason] = useState("");
 
   useEffect(() => { fetchQueue(); }, []);
 
@@ -81,6 +87,47 @@ const AdminResolutionPage = () => {
     toast({ title: "🦅 Override logged", description: "Resolution override recorded in audit trail" });
     setOverrideMarket(null);
     setOverrideReason("");
+    setProcessing(false);
+  };
+
+  const openResolve = async (marketId: string) => {
+    setResolvingFor(marketId);
+    setWinningOutcomeId("");
+    setResolveReason("");
+    if (!resolveOutcomes[marketId]) {
+      const { data } = await supabase.from("market_outcomes").select("id,label").eq("market_id", marketId).order("sort_order");
+      setResolveOutcomes((prev) => ({ ...prev, [marketId]: (data as any) ?? [] }));
+    }
+  };
+
+  const submitResolve = async (marketId: string) => {
+    if (!winningOutcomeId || !resolveReason.trim()) {
+      toast({ title: "Winning outcome and reason required", variant: "destructive" });
+      return;
+    }
+    setProcessing(true);
+    try {
+      await callAdminAction({ action: "resolve", marketId, winningOutcomeId, reason: resolveReason });
+      toast({ title: "🦅 Market resolved", description: "Settlement enqueued" });
+      setResolvingFor(null); setWinningOutcomeId(""); setResolveReason("");
+      fetchQueue();
+    } catch (e: any) {
+      toast({ title: "Resolve failed", description: e.message, variant: "destructive" });
+    }
+    setProcessing(false);
+  };
+
+  const submitRefund = async (marketId: string) => {
+    const reason = prompt("Refund reason (required, audited):");
+    if (!reason?.trim()) return;
+    setProcessing(true);
+    try {
+      await callAdminAction({ action: "refund", marketId, reason });
+      toast({ title: "Refund enqueued" });
+      fetchQueue();
+    } catch (e: any) {
+      toast({ title: "Refund failed", description: e.message, variant: "destructive" });
+    }
     setProcessing(false);
   };
 
@@ -173,15 +220,34 @@ const AdminResolutionPage = () => {
                           </Button>
                         </div>
                       </div>
+                    ) : resolvingFor === item.id ? (
+                      <div className="mt-3 space-y-2">
+                        <Select value={winningOutcomeId} onValueChange={setWinningOutcomeId}>
+                          <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select winning outcome" /></SelectTrigger>
+                          <SelectContent>
+                            {(resolveOutcomes[item.id] ?? []).map((o) => (
+                              <SelectItem key={o.id} value={o.id}>{o.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Textarea value={resolveReason} onChange={(e) => setResolveReason(e.target.value)} placeholder="Reason + evidence link (audited)" rows={2} />
+                        <div className="flex gap-2">
+                          <Button size="sm" onClick={() => submitResolve(item.id)} disabled={processing || !winningOutcomeId || !resolveReason.trim()} className="text-xs gap-1">
+                            <Gavel className="h-3 w-3" /> Confirm Resolve
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => setResolvingFor(null)} className="text-xs">Cancel</Button>
+                        </div>
+                      </div>
                     ) : (
-                      <div className="mt-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-xs gap-1"
-                          onClick={() => setOverrideMarket(item.id)}
-                        >
-                          <ShieldCheck className="h-3 w-3" /> Admin Override
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <Button size="sm" className="text-xs gap-1" onClick={() => openResolve(item.id)} disabled={item.source_count === 0}>
+                          <Gavel className="h-3 w-3" /> Resolve
+                        </Button>
+                        <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => submitRefund(item.id)} disabled={processing}>
+                          <Undo2 className="h-3 w-3" /> Refund
+                        </Button>
+                        <Button size="sm" variant="ghost" className="text-xs gap-1" onClick={() => setOverrideMarket(item.id)}>
+                          <ShieldCheck className="h-3 w-3" /> Override
                         </Button>
                       </div>
                     )}
