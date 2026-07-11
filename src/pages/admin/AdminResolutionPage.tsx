@@ -8,10 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Scale, Clock, BarChart3, AlertTriangle, ShieldCheck } from "lucide-react";
+import { Scale, Clock, BarChart3, AlertTriangle, ShieldCheck, Gavel, Undo2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
+import { callAdminAction } from "@/hooks/useMarketsAdmin";
 
 interface ResolutionQueueItem {
   id: string;
@@ -31,6 +33,10 @@ const AdminResolutionPage = () => {
   const [overrideMarket, setOverrideMarket] = useState<string | null>(null);
   const [overrideReason, setOverrideReason] = useState("");
   const [processing, setProcessing] = useState(false);
+  const [resolvingFor, setResolvingFor] = useState<string | null>(null);
+  const [resolveOutcomes, setResolveOutcomes] = useState<Record<string, { id: string; label: string }[]>>({});
+  const [winningOutcomeId, setWinningOutcomeId] = useState<string>("");
+  const [resolveReason, setResolveReason] = useState("");
 
   useEffect(() => { fetchQueue(); }, []);
 
