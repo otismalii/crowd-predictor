@@ -90,6 +90,47 @@ const AdminResolutionPage = () => {
     setProcessing(false);
   };
 
+  const openResolve = async (marketId: string) => {
+    setResolvingFor(marketId);
+    setWinningOutcomeId("");
+    setResolveReason("");
+    if (!resolveOutcomes[marketId]) {
+      const { data } = await supabase.from("market_outcomes").select("id,label").eq("market_id", marketId).order("sort_order");
+      setResolveOutcomes((prev) => ({ ...prev, [marketId]: (data as any) ?? [] }));
+    }
+  };
+
+  const submitResolve = async (marketId: string) => {
+    if (!winningOutcomeId || !resolveReason.trim()) {
+      toast({ title: "Winning outcome and reason required", variant: "destructive" });
+      return;
+    }
+    setProcessing(true);
+    try {
+      await callAdminAction({ action: "resolve", marketId, winningOutcomeId, reason: resolveReason });
+      toast({ title: "🦅 Market resolved", description: "Settlement enqueued" });
+      setResolvingFor(null); setWinningOutcomeId(""); setResolveReason("");
+      fetchQueue();
+    } catch (e: any) {
+      toast({ title: "Resolve failed", description: e.message, variant: "destructive" });
+    }
+    setProcessing(false);
+  };
+
+  const submitRefund = async (marketId: string) => {
+    const reason = prompt("Refund reason (required, audited):");
+    if (!reason?.trim()) return;
+    setProcessing(true);
+    try {
+      await callAdminAction({ action: "refund", marketId, reason });
+      toast({ title: "Refund enqueued" });
+      fetchQueue();
+    } catch (e: any) {
+      toast({ title: "Refund failed", description: e.message, variant: "destructive" });
+    }
+    setProcessing(false);
+  };
+
   return (
     <div className="min-h-screen bg-background pb-20">
       <SEOHead title="Admin - Resolution" path="/admin/resolution" />
