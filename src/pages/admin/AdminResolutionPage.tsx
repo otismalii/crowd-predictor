@@ -220,15 +220,34 @@ const AdminResolutionPage = () => {
                           </Button>
                         </div>
                       </div>
+                    ) : resolvingFor === item.id ? (
+                      <div className="mt-3 space-y-2">
+                        <Select value={winningOutcomeId} onValueChange={setWinningOutcomeId}>
+                          <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select winning outcome" /></SelectTrigger>
+                          <SelectContent>
+                            {(resolveOutcomes[item.id] ?? []).map((o) => (
+                              <SelectItem key={o.id} value={o.id}>{o.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Textarea value={resolveReason} onChange={(e) => setResolveReason(e.target.value)} placeholder="Reason + evidence link (audited)" rows={2} />
+                        <div className="flex gap-2">
+                          <Button size="sm" onClick={() => submitResolve(item.id)} disabled={processing || !winningOutcomeId || !resolveReason.trim()} className="text-xs gap-1">
+                            <Gavel className="h-3 w-3" /> Confirm Resolve
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => setResolvingFor(null)} className="text-xs">Cancel</Button>
+                        </div>
+                      </div>
                     ) : (
-                      <div className="mt-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-xs gap-1"
-                          onClick={() => setOverrideMarket(item.id)}
-                        >
-                          <ShieldCheck className="h-3 w-3" /> Admin Override
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <Button size="sm" className="text-xs gap-1" onClick={() => openResolve(item.id)} disabled={item.source_count === 0}>
+                          <Gavel className="h-3 w-3" /> Resolve
+                        </Button>
+                        <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => submitRefund(item.id)} disabled={processing}>
+                          <Undo2 className="h-3 w-3" /> Refund
+                        </Button>
+                        <Button size="sm" variant="ghost" className="text-xs gap-1" onClick={() => setOverrideMarket(item.id)}>
+                          <ShieldCheck className="h-3 w-3" /> Override
                         </Button>
                       </div>
                     )}
