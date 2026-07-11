@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { MoreHorizontal, Edit, Copy, Send, X, Download, ScrollText } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -171,12 +171,13 @@ const EditMarketDialog = ({ market, onClose, onSaved }: { market: AdminMarket | 
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
 
-  useState(() => {
+  useEffect(() => {
     if (market) {
       setTitle(market.title);
       setClosesAt(market.closes_at ? market.closes_at.slice(0, 16) : "");
+      setReason("");
     }
-  });
+  }, [market]);
 
   if (!market) return null;
 
