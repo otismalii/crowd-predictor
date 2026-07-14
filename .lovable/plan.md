@@ -1,76 +1,93 @@
-# Phase 3 + 6 — Market Engine & Admin Dashboard Completion
+## Slice 1 — Market Intelligence Page
 
-Scope: finish the market lifecycle end-to-end in the existing admin, harmonize the JSON schema so the 10 pasted markets import through the same pipeline as everything else, and wire the disconnected buttons on the current admin pages. No redesign — build on what exists.
+Turn `/market/:id` into an intelligence hub. Non-destructive: existing trade panel, comments, activity, related, chart all stay. We add a new **Intelligence** column and back it with a NIM-powered edge function + a cache table.
 
-## 1. Canonical Market Schema (single source of truth)
+### 1. Database — `market_intelligence` cache
 
-Keep `src/lib/foundry/schema.ts` as the one schema. Extend it so the pasted JSON, the Manual Builder, the AI Oracle, and future CSV/API imports all normalize to the same shape.
+New table (one row per market, upserted):
 
-Changes:
-- Add categories: `economy`, `forex`, `commodities` (map `Economy → economy`, etc.).
-- Add optional top-level fields already in the pasted JSON: `title`, `closeTime`, `settlementSource`, `settlementRule`, `autoSettle`, `marketType`.
-- Add an **adapter layer** (`src/lib/foundry/adapters.ts`) with `normalizeIncoming(raw)` that maps:
-  - `title → question`
-  - `closeTime → closesAt`
-  - `settlementRule → resolutionRules`
-  - `settlementSource → sources[0].publisher`
-  - `autoSettle → metadata.autoSettle`
-  - Binary markets with no `outcomes` → auto-inject `[{label:"YES"},{label:"NO"}]`.
-- If input is a bare array (no `MarketPackage` wrapper), auto-wrap: `{ version:"1.0", batchName:"Untitled batch", generatedBy:"manual", markets:[...] }`.
-- Version bump the schema to `1.1` with a `SCHEMA_VERSION` const; all writers stamp it.
+```
+market_intelligence
+  market_id (PK, FK markets.id)
+  summary text
+  bull_case text
+  bear_case text
+  risk_level text ('low'|'medium'|'high'|'critical')
+  risk_notes text
+  confidence integer  -- 0..100 from LOGIK quality score
+  momentum numeric    -- signed 24h price delta of top outcome
+  buy_pressure numeric  -- share of buy KES vs total in 24h (0..1)
+  sell_pressure numeric
+  liquidity_score integer  -- derived from liquidity_param + volume
+  event_timeline jsonb  -- [{ts,label,kind}]
+  sources jsonb  -- normalized from market_sources for quick render
+  generated_by text  -- 'logik-oracle' | 'system'
+  oracle_run_id uuid null
+  generated_at timestamptz
+  updated_at timestamptz
+```
 
-## 2. Import the 10 sample markets
+RLS: public SELECT (markets are public); INSERT/UPDATE service_role only. Grants: `SELECT` to `anon`+`authenticated`, `ALL` to `service_role`.
 
-- Feed the pasted JSON through the extended validator on `/admin/markets/new` (Paste tab). Result: 10 rows, status = ready.
-- Publish via existing `import-markets-publish` edge function into `markets` as `draft`.
-- No manual DB insert — proves the harmonized pipeline works end-to-end.
+### 2. Edge function `market-intelligence`
 
-## 3. `/admin/markets` — real Market Management page
+`POST { market_id, force?: boolean }` → returns cached row if fresh (< 30 min) unless `force`.
 
-Today the page only lists matches. Replace body (keep header + `MarketBuilder`) with a lifecycle-aware table:
+On refresh:
+- Load market + outcomes + sources + last 200 trades + latest `market_quality_scores`.
+- Compute deterministic metrics server-side: momentum, buy/sell pressure, liquidity score, unique traders, event timeline (created, first trade, big trades > p95, close, resolve).
+- Call NIM (reuse pattern from `logik-oracle`) with a single prompt requesting JSON `{ summary, bull_case, bear_case, risk_level, risk_notes }`. Grounded in market + sources; multilingual passthrough (EN default, honor `?lang=sw`).
+- Upsert `market_intelligence`; write `oracle_runs` entry (stage `intelligence`).
+- Never touches funds, never publishes/settles — respects LDX v4 invariants.
 
-- Tabs: **Draft · Scheduled · Live · Closed · Resolved**, counts on each.
-- Columns: title, category, status pill, volume, closes_at, creator, actions.
-- Row actions (each behind role + audit reason where required):
-  - **Edit** — opens `MarketBuilder` in edit mode (extend it to accept an existing market).
-  - **Clone** — duplicates as a new draft.
-  - **Publish** — draft → scheduled/live (via `manage-markets` edge fn).
-  - **Close now** — sets `status='closed'`, sends to Resolution Console.
-  - **Export JSON** — download the market in canonical schema (single-market MarketPackage).
-  - **View audit** — opens right drawer with `market_audit_log` entries.
-- Bulk actions: multi-select → Publish / Close / Export.
-- Filters: search, category, creator, date range.
+Admin-only `force=true` (verified via `has_any_role`).
 
-Files:
-- Rewrite `src/pages/admin/AdminMarketsPage.tsx` (matches list moves to a separate `/admin/markets/matches` subroute or drops — kept only if AdminMatches is still linked; will be removed from this page).
-- New: `src/components/admin/markets/MarketsTable.tsx`, `MarketRowActions.tsx`, `MarketAuditDrawer.tsx`, `useMarketsAdmin.ts`.
-- Extend `MarketBuilder` to accept `market?: Market` for edit mode.
-- Extend `supabase/functions/manage-markets/index.ts` with `action: 'clone' | 'publish' | 'close' | 'update'` (all audited).
+### 3. Client service + hook
 
-## 4. Wire the Resolution Console
+- `src/services/marketIntelligenceService.ts`: `fetchIntelligence(marketId)`, `refreshIntelligence(marketId)` (admin), Zod types.
+- `src/hooks/useMarketIntelligence.ts`: TanStack Query, 60s stale, realtime subscription on `market_intelligence` row.
 
-`AdminResolutionPage` currently only logs "admin_override" — it does not actually resolve. Add:
-- **Resolve** button per row → picks winning outcome → calls new edge fn `resolve-market` which:
-  - Validates `market_sources` count ≥ 1 (enforced by existing trigger).
-  - Writes `market_audit_log` `action='resolve'` with reason (mandatory).
-  - Sets market `status='resolved'`, `winning_outcome_id`.
-  - Enqueues settlement via existing `jobs-enqueue` (`handler: 'settle-market'`).
-- **Refund** button → same flow with `action='refund'`, credits positions back through `fn_post_double_entry`.
-- Both require a typed reason and land in `audit_logs`.
+### 4. UI — Intelligence panel
 
-## 5. Naming & cleanup
+New folder `src/components/markets/intelligence/`:
 
-- Delete duplicate `AdminMarketsNewPage.tsx` (currently unused — router uses `AdminMarketsImportPage`).
-- Consolidate market status pill usage on `MarketStatusPill`.
-- Ensure everything reads status from `src/lib/market-state.ts` (single lifecycle helper).
+```
+IntelligencePanel.tsx       -- container, tabs: Overview | AI | Timeline | Sources
+OverviewCard.tsx            -- confidence, momentum, buy/sell pressure bars, liquidity meter
+AiBriefingCard.tsx          -- summary + Bull/Bear tabs + risk pill, "AI-generated" disclaimer
+EventTimeline.tsx           -- vertical timeline from event_timeline jsonb
+SourceList.tsx              -- publisher chips + external links
+PressureBar.tsx             -- shared bar viz (recharts BarChart or plain divs)
+```
 
-## Out of scope (later phases)
+Design tokens only (no hardcoded colors); mobile-first stacked, desktop side-column.
 
-Treasury/payments audit, DB normalization, performance/security passes, full 16-phase deliverables. Those become follow-up plans once this slice is merged.
+### 5. MarketDetail wiring
 
-## Technical notes
+- Add `<IntelligencePanel marketId={id} />` under `<TrendSummary>` on mobile, and as right column on `lg` (change grid to `lg:grid-cols-6`: main 4 / intel 2). Existing trade sheet unchanged.
+- Extend `PriceChart` with a lightweight **volume-per-bucket** area behind the probability lines (same recharts, no new dep) — off by default toggle "Show volume".
+- Add "Related markets" now populated for non-match markets too: query by shared `category` + `tags` intersection when `match_id` is null.
 
-- All new admin writes go through edge functions (never direct table writes for privileged actions) per LDX invariants.
-- Every state-changing admin action requires a reason string persisted in `audit_logs` or `market_audit_log`.
-- New categories require a DB migration if `markets.category` is an enum — will check `supabase--read_query` on the enum before writing SQL; if it is an enum, the migration adds `economy`, `forex`, `commodities` values in the same file that ships the schema extension.
-- Import flow reuses `import-markets-validate` / `import-markets-publish` unchanged — the adapter runs client-side before validation.
+### 6. Realtime + caching
+
+- `useMarketIntelligence` subscribes to `market_intelligence` upserts for the market id (unique channel name pattern already in memory).
+- Client triggers `market-intelligence` (non-force) on mount; if row is stale, function refreshes inline and returns.
+
+### 7. Cron refresh (light)
+
+Extend existing `compute-trends` cron OR add a job def: every 15 min, refresh intelligence for the top 25 markets by 24h volume. No new scheduler infra — reuse `job_definitions` / `jobs-dispatch`.
+
+### 8. Out of scope (later slices)
+Discovery rails, portfolio analytics, social/reputation, notifications, dashboards, i18n beyond EN/SW passthrough.
+
+### Technical notes
+- New table + RLS via `supabase--migration` (with `GRANT`s).
+- Edge function follows existing corsHeaders + NIM pattern from `logik-oracle`; input validated with Zod.
+- No changes to `wallets`, `ledger_entries`, `markets` rows.
+- Types file regenerates after migration; service imports typed row.
+
+### Deliverables
+- Migration: `market_intelligence` table + RLS + grants.
+- Edge function: `supabase/functions/market-intelligence/index.ts`.
+- Client: service, hook, 6 components, MarketDetail wiring, PriceChart volume overlay, related-markets fallback.
+- Job definition row for periodic refresh.
