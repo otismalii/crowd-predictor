@@ -21,6 +21,7 @@ import PriceChart from "@/components/PriceChart";
 import TradePanel from "@/components/markets/TradePanel";
 import TrendSummary from "@/components/markets/TrendSummary";
 import CommentThread from "@/components/markets/CommentThread";
+import IntelligencePanel from "@/components/markets/intelligence/IntelligencePanel";
 
 interface MarketOutcome {
   id: string; label: string; pool_shares: number; is_winner: boolean | null; sort_order: number;
@@ -93,6 +94,9 @@ const MarketDetail = () => {
       setMarket(mRes.data);
       if (mRes.data.match_id) {
         const relRes = await supabase.from("markets").select("id, title, status, total_volume, category").eq("match_id", mRes.data.match_id).neq("id", id!).limit(10) as any;
+        if (relRes.data) setRelatedMarkets(relRes.data);
+      } else if (mRes.data.category) {
+        const relRes = await supabase.from("markets").select("id, title, status, total_volume, category").eq("category", mRes.data.category).neq("id", id!).eq("status", "open").order("total_volume", { ascending: false }).limit(6) as any;
         if (relRes.data) setRelatedMarkets(relRes.data);
       }
     }
@@ -179,6 +183,7 @@ const MarketDetail = () => {
           <h1 className="font-display text-xl sm:text-2xl font-bold tracking-wider text-foreground">{market.title}</h1>
           {market.description && <p className="text-sm text-muted-foreground mt-1">{market.description}</p>}
           <div className="mt-3"><TrendSummary marketId={market.id} /></div>
+          <div className="mt-3 lg:hidden"><IntelligencePanel marketId={market.id} /></div>
           <div className="flex flex-wrap items-center gap-3 mt-3">
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/30 px-2.5 py-1.5 rounded-lg">
               <BarChart3 className="h-3 w-3 text-primary" /><span className="font-bold text-foreground">{Math.round(market.total_volume).toLocaleString()}</span> KES
@@ -356,6 +361,8 @@ const MarketDetail = () => {
                 onTradeComplete={fetchAll}
                 matchScore={market.matches ? { home: market.matches.home_score, away: market.matches.away_score } : null}
               />
+
+              <div className="hidden lg:block"><IntelligencePanel marketId={market.id} /></div>
 
               {/* My positions */}
               {positions.filter(p => p.shares > 0).length > 0 && (
