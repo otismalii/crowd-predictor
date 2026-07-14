@@ -791,6 +791,77 @@ export type Database = {
           },
         ]
       }
+      market_intelligence: {
+        Row: {
+          bear_case: string | null
+          bull_case: string | null
+          buy_pressure: number | null
+          confidence: number | null
+          event_timeline: Json | null
+          generated_at: string | null
+          generated_by: string | null
+          lang: string | null
+          liquidity_score: number | null
+          market_id: string
+          momentum: number | null
+          oracle_run_id: string | null
+          risk_level: string | null
+          risk_notes: string | null
+          sell_pressure: number | null
+          sources: Json | null
+          summary: string | null
+          updated_at: string
+        }
+        Insert: {
+          bear_case?: string | null
+          bull_case?: string | null
+          buy_pressure?: number | null
+          confidence?: number | null
+          event_timeline?: Json | null
+          generated_at?: string | null
+          generated_by?: string | null
+          lang?: string | null
+          liquidity_score?: number | null
+          market_id: string
+          momentum?: number | null
+          oracle_run_id?: string | null
+          risk_level?: string | null
+          risk_notes?: string | null
+          sell_pressure?: number | null
+          sources?: Json | null
+          summary?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bear_case?: string | null
+          bull_case?: string | null
+          buy_pressure?: number | null
+          confidence?: number | null
+          event_timeline?: Json | null
+          generated_at?: string | null
+          generated_by?: string | null
+          lang?: string | null
+          liquidity_score?: number | null
+          market_id?: string
+          momentum?: number | null
+          oracle_run_id?: string | null
+          risk_level?: string | null
+          risk_notes?: string | null
+          sell_pressure?: number | null
+          sources?: Json | null
+          summary?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_intelligence_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: true
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       market_outcomes: {
         Row: {
           created_at: string
