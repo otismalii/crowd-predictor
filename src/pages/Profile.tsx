@@ -325,6 +325,8 @@ const Profile = () => {
             )}
           </div>
         </motion.div>
+          </TabsContent>
+        </Tabs>
       </div>
       <Footer />
     </div>
