@@ -1,24 +1,10 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAdminRole } from "@/hooks/useAdminRole";
 
 /**
- * Hook that checks admin role. Returns { isAdmin, loading }.
- * Centralizes the admin check used across all admin pages.
+ * @deprecated Use `useAdminRole()` directly — richer role info and a `can(...roles)` helper.
+ * Thin shim kept for backward compatibility.
  */
 export function useAdminGuard() {
-  const { user, loading: authLoading } = useAuth();
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    if (authLoading || !user) {
-      if (!authLoading && !user) setIsAdmin(false);
-      return;
-    }
-    supabase
-      .rpc("has_role", { _user_id: user.id, _role: "admin" })
-      .then(({ data }) => setIsAdmin(data === true));
-  }, [user, authLoading]);
-
-  return { isAdmin, loading: authLoading || isAdmin === null };
+  const { isAdmin, loading } = useAdminRole();
+  return { isAdmin, loading };
 }

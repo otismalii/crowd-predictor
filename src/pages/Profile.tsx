@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useSearchParams } from "react-router-dom";
+import ProfileCreatorTab from "@/components/profile/ProfileCreatorTab";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { CardContent } from "@/components/ui/card";
@@ -24,6 +26,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 const Profile = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = searchParams.get("tab") ?? "overview";
+  const setTab = (v: string) => setSearchParams((prev) => { const p = new URLSearchParams(prev); p.set("tab", v); return p; }, { replace: true });
   const [profile, setProfile] = useState<any>(null);
   const [trades, setTrades] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -232,6 +237,18 @@ const Profile = () => {
           )}
         </AnimatePresence>
 
+        {/* Tabs */}
+        <Tabs value={tab} onValueChange={setTab} className="mt-2">
+          <TabsList className="w-full justify-start overflow-x-auto">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="creator">Creator</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="creator" className="mt-4">
+            <ProfileCreatorTab userId={id!} isOwn={isOwnProfile} />
+          </TabsContent>
+
+          <TabsContent value="overview" className="mt-4">
         {/* Recent trades */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -308,6 +325,8 @@ const Profile = () => {
             )}
           </div>
         </motion.div>
+          </TabsContent>
+        </Tabs>
       </div>
       <Footer />
     </div>

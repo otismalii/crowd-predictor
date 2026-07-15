@@ -49,7 +49,9 @@ const Watchlist = lazy(() => import("./pages/Watchlist"));
 const AdminLayout = lazy(() => import("./components/admin/shell/AdminLayout"));
 const AdminOverviewPage = lazy(() => import("./pages/admin/AdminOverviewPage"));
 const AdminMarketsPage = lazy(() => import("./pages/admin/AdminMarketsPage"));
-const AdminMarketsNewPage = lazy(() => import("./pages/admin/AdminMarketsImportPage"));
+const AdminMarketsImportPage = lazy(() => import("./pages/admin/AdminMarketsImportPage"));
+const AdminInboxPage = lazy(() => import("./pages/admin/AdminInboxPage"));
+const AdminTodayPage = lazy(() => import("./pages/admin/AdminTodayPage"));
 const AdminResolutionPage = lazy(() => import("./pages/admin/AdminResolutionPage"));
 const AdminAnalyticsPage = lazy(() => import("./pages/admin/AdminAnalyticsPage"));
 const AdminUsersPage = lazy(() => import("./pages/admin/AdminUsersPage"));
@@ -154,6 +156,10 @@ const AnimatedRoutes = () => {
           <Route path="/admin" element={<AdminRoute><Suspense fallback={<PageLoader />}><AdminLayout /></Suspense></AdminRoute>}>
             <Route index element={<Suspense fallback={<PageLoader />}><AdminOverviewPage /></Suspense>} />
 
+            {/* Workspace */}
+            <Route path="inbox" element={<Suspense fallback={<PageLoader />}><AdminInboxPage /></Suspense>} />
+            <Route path="today" element={<Suspense fallback={<PageLoader />}><AdminTodayPage /></Suspense>} />
+
             {/* Operations */}
             <Route path="operations/events" element={<Suspense fallback={<PageLoader />}><AdminEventStreamPage /></Suspense>} />
 
@@ -161,7 +167,8 @@ const AnimatedRoutes = () => {
             <Route path="markets" element={<Suspense fallback={<PageLoader />}><AdminMarketsPage /></Suspense>} />
             <Route path="markets/queue" element={<Suspense fallback={<PageLoader />}><AdminCreationQueuePage /></Suspense>} />
             <Route path="markets/oracle-suggestions" element={<Suspense fallback={<PageLoader />}><AdminOracleSuggestionsPage /></Suspense>} />
-            <Route path="markets/new" element={<Suspense fallback={<PageLoader />}><AdminMarketsNewPage /></Suspense>} />
+            <Route path="markets/import" element={<Suspense fallback={<PageLoader />}><AdminMarketsImportPage /></Suspense>} />
+            <Route path="markets/new" element={<Navigate to="/admin/markets/import" replace />} />
             <Route path="markets/resolution" element={<Suspense fallback={<PageLoader />}><AdminResolutionPage /></Suspense>} />
             <Route path="markets/liquidity" element={<Suspense fallback={<PageLoader />}><AdminLiquidityPage /></Suspense>} />
             <Route path="markets/sources" element={<Suspense fallback={<PageLoader />}><AdminSourcesPage /></Suspense>} />

@@ -1,93 +1,102 @@
-## Slice 1 — Market Intelligence Page
 
-Turn `/market/:id` into an intelligence hub. Non-destructive: existing trade panel, comments, activity, related, chart all stay. We add a new **Intelligence** column and back it with a NIM-powered edge function + a cache table.
+# LDX v5 — Governance, Admin Restructure & Unified Profile
 
-### 1. Database — `market_intelligence` cache
+Applies the LDX v5 implementation charter, then executes the first concrete slice the user asked for: **admin restructuring & harmonisation** and a **unified user + creator ("industry") profile**. No later-phase (trading engine, treasury rewrite, LOGIK v2) work is started here — that stays gated.
 
-New table (one row per market, upserted):
+---
 
+## 1. Save the LDX v5 charter as project memory
+
+- New file `.lovable/memory/architecture/ldx-v5-directive.md` (type: constraint) capturing:
+  - Implementation methodology (audit → extend → refactor → remove)
+  - Priority order (Financial > Security > Market > Data > Perf > UX > Intelligence > Growth > Cosmetic)
+  - Phase gates 2→8 with "no leap-frogging" rule
+  - Subsystem ownership boundaries (Trading / Finance / Resolution / LOGIK / Governance)
+  - DB principles (single source of truth, computed views, audit-on-mutate)
+  - UX principles (What happened / can I do / next; Available / Locked / Pending / Completed / Failed)
+  - Trust-first exposure requirements
+  - LOGIK is advisory only (mirrors existing ldx-v4-invariants)
+- Update `.lovable/memory/index.md` Core section with a one-liner pointer.
+
+## 2. Redundancy sweep (consolidate, do not delete yet)
+
+Findings from audit → consolidations in this slice:
+
+| Duplicate / drift | Consolidation |
+|---|---|
+| `useAdminGuard` + `useAdminRole` + `RequireRole` + inline `has_role` checks | Keep `useAdminRole` (richest). Reduce `useAdminGuard` to a thin re-export (`isAdmin` from `useAdminRole`). Guards continue to use `RequireRole`. |
+| `AdminSourcesPage` reused for both `/admin/markets/sources` and `/admin/intelligence/sources` | Collapse to one route `/admin/intelligence/sources`; markets menu links there. Redirect old path. |
+| `AdminMarketsImportPage` imported as `AdminMarketsNewPage` alias | Rename import + route to `/admin/markets/import`; redirect `/admin/markets/new`. |
+| `intelligenceService.ts` vs `marketIntelligenceService.ts` | Keep `marketIntelligenceService`; `intelligenceService` becomes a re-export shim, callers migrated. |
+| Creator profile lives in `/creator` (CreatorDashboard) disconnected from `/profile/:id` | Merge into single `/profile/:id` with tabbed sections (see §4). |
+| Profile "Creator Studio" button + separate route | Becomes a Creator tab on the unified profile; route `/creator` redirects to `/profile/:me?tab=creator`. |
+
+No files are deleted this slice — shims stay for one release, tagged `@deprecated`, to keep backward compatibility (LDX v5 rule: remove obsolete code only after migration).
+
+## 3. Admin (ACP) restructure — workflow-oriented, not page-oriented
+
+Keep the 6-domain IA but reshape each domain around a **workflow verb** instead of a page list. Concretely:
+
+### 3a. Sidebar & IA changes (`adminNav.ts`)
+- Add a top-level **Workspace** section above domains with:
+  - `Inbox` — unified task queue (creation queue + oracle suggestions + disputes + promotions awaiting review) — new page `AdminInboxPage` that aggregates counts from existing tables (`market_suggestions`, `market_disputes`, `role_promotions`, `market_audit_log` where `action='oracle_suggestion'`). Read-only aggregator; each row deep-links to its existing page.
+  - `Today` — operator start-of-day: open markets closing in <24h, unreconciled ledger drift, failed payments, pending withdrawals. New page `AdminTodayPage`, purely a dashboard over existing tables.
+- Within each domain, group items into **Do / Monitor / Configure** subheadings (visual, in `AdminSidebar`, no route changes):
+  - Markets → Do: Creation Queue, Oracle Suggestions, Resolution, Import. Monitor: Active Markets, Liquidity. Configure: Sources.
+  - Finance → Do: Settlements, Reconciliation, Creator Payouts. Monitor: Treasury.
+  - Intelligence → Monitor: LOGIK Insights, Prediction History, Risk Signals. Configure: Event Sources.
+  - Governance → Do: Promotions, Disputes, Fraud. Monitor: Users.
+  - Audit → Monitor: Audit Logs, System Analytics, Market History, Automation. Configure: Settings.
+- Remove the `/admin/intelligence/sources` duplicate; point sidebar to Markets → Sources only (or vice versa — pick Intelligence and redirect from Markets).
+
+### 3b. Shared admin primitives (harmonisation)
+- Every admin page adopts `AdminPageHeader` + `AdminPageBody` (already exists — audit pages that skip it: `AdminMarketsPage`, `AdminAuditPage`, etc. and normalise).
+- Every mutating admin action must go through `AdminConfirmDialog` with a mandatory `reason` field (already the pattern for resolution — extend to promotions, disputes, fraud actions, liquidity subsidies). Reason is written to `audit_logs` / `market_audit_log`.
+- Add a small `<AdminWhyBanner>` at the top of every "Do" page answering the LDX v5 UX triad (What happened / What can I do / What next) — pure presentational.
+
+### 3c. Command palette
+- Extend `AdminCommandPalette` with the new `Inbox` and `Today` entries and with quick-actions ("Resolve market…", "Promote user…") that open the respective confirm dialog pre-filled — pure UI, no new business logic.
+
+## 4. Unified user + industry (creator) profile
+
+Merge `Profile.tsx` and `CreatorDashboard.tsx` into a single route `/profile/:id` with tabs:
+
+```text
+[ Overview ] [ Trades ] [ Positions ] [ Creator ] [ Reputation ] [ Settings* ]
+                                                                    (*self only)
 ```
-market_intelligence
-  market_id (PK, FK markets.id)
-  summary text
-  bull_case text
-  bear_case text
-  risk_level text ('low'|'medium'|'high'|'critical')
-  risk_notes text
-  confidence integer  -- 0..100 from LOGIK quality score
-  momentum numeric    -- signed 24h price delta of top outcome
-  buy_pressure numeric  -- share of buy KES vs total in 24h (0..1)
-  sell_pressure numeric
-  liquidity_score integer  -- derived from liquidity_param + volume
-  event_timeline jsonb  -- [{ts,label,kind}]
-  sources jsonb  -- normalized from market_sources for quick render
-  generated_by text  -- 'logik-oracle' | 'system'
-  oracle_run_id uuid null
-  generated_at timestamptz
-  updated_at timestamptz
-```
 
-RLS: public SELECT (markets are public); INSERT/UPDATE service_role only. Grants: `SELECT` to `anon`+`authenticated`, `ALL` to `service_role`.
+- **Overview** — current header (avatar, bio, plan, streak, follower count, 3 stat tiles).
+- **Trades** — the existing "Recent trades" list, paginated.
+- **Positions** — pulled from `PositionsList` (already exists in `src/components/portfolio`).
+- **Creator** — only visible when the profile has a row in `creator_profiles` OR the viewer is that user. Shows: markets published, total volume attributed, payout rate, pending payouts, "Create market" CTA (routes to existing MarketBuilder). Content lifted from `CreatorDashboard.tsx`.
+- **Reputation** — accuracy over time (Recharts), calibration bucket chart if data exists in `market_intelligence`/`positions`, badges (`AchievementBadges`).
+- **Settings** — self only: current `ProfileEdit` inline; add "Become a creator" action if not yet a creator (opens promotion request → writes to `role_promotions` with reason, existing table).
 
-### 2. Edge function `market-intelligence`
+Data:
+- Extend the existing `public_profiles` view / `get_own_profile` RPC usage — no schema change required for this slice. If `public_profiles` lacks `creator_profile` join, add a lightweight `get_profile_bundle(p_user_id)` RPC returning profile + creator_profile + counts. This is optional; can fall back to two parallel queries.
 
-`POST { market_id, force?: boolean }` → returns cached row if fresh (< 30 min) unless `force`.
+Route changes:
+- `/creator` → `<Navigate to="/profile/{me}?tab=creator" />`. `CreatorDashboard.tsx` marked `@deprecated`, contents moved into a `ProfileCreatorTab.tsx` under `src/components/profile/`.
+- New folder `src/components/profile/` with `ProfileHeader`, `ProfileTabs`, `ProfileOverviewTab`, `ProfileTradesTab`, `ProfilePositionsTab`, `ProfileCreatorTab`, `ProfileReputationTab`, `ProfileSettingsTab`.
 
-On refresh:
-- Load market + outcomes + sources + last 200 trades + latest `market_quality_scores`.
-- Compute deterministic metrics server-side: momentum, buy/sell pressure, liquidity score, unique traders, event timeline (created, first trade, big trades > p95, close, resolve).
-- Call NIM (reuse pattern from `logik-oracle`) with a single prompt requesting JSON `{ summary, bull_case, bear_case, risk_level, risk_notes }`. Grounded in market + sources; multilingual passthrough (EN default, honor `?lang=sw`).
-- Upsert `market_intelligence`; write `oracle_runs` entry (stage `intelligence`).
-- Never touches funds, never publishes/settles — respects LDX v4 invariants.
+## 5. Validation
 
-Admin-only `force=true` (verified via `has_any_role`).
+- `tsgo` typecheck.
+- Manual click-through via Playwright: `/admin` (Inbox + Today load), `/admin/markets` (redirected sources), `/profile/{me}` (all tabs render, Creator tab appears only for creators), `/creator` (redirects).
+- Confirm no existing route 404s (legacy redirects preserved).
 
-### 3. Client service + hook
+## 6. Out of scope for this slice (explicit gates)
 
-- `src/services/marketIntelligenceService.ts`: `fetchIntelligence(marketId)`, `refreshIntelligence(marketId)` (admin), Zod types.
-- `src/hooks/useMarketIntelligence.ts`: TanStack Query, 60s stale, realtime subscription on `market_intelligence` row.
+- Trading engine refactor, treasury ledger changes, LOGIK v2 calibration, resolution workflow rewrite. All deferred to Phase 4–7 per the directive.
+- Deleting the deprecated files (`useAdminGuard`, `intelligenceService`, `CreatorDashboard`) — done in a follow-up once telemetry shows no imports remain.
 
-### 4. UI — Intelligence panel
+---
 
-New folder `src/components/markets/intelligence/`:
+## Technical notes
 
-```
-IntelligencePanel.tsx       -- container, tabs: Overview | AI | Timeline | Sources
-OverviewCard.tsx            -- confidence, momentum, buy/sell pressure bars, liquidity meter
-AiBriefingCard.tsx          -- summary + Bull/Bear tabs + risk pill, "AI-generated" disclaimer
-EventTimeline.tsx           -- vertical timeline from event_timeline jsonb
-SourceList.tsx              -- publisher chips + external links
-PressureBar.tsx             -- shared bar viz (recharts BarChart or plain divs)
-```
+- No DB migration required. Optional `get_profile_bundle` RPC is additive and only if the double-query pattern is too chatty.
+- Zero changes to financial functions (`fn_settle_trade`, `fn_post_double_entry`, wallet RPCs) — LDX invariants preserved.
+- All new admin actions with side-effects go through `admin-market-actions` edge function pattern (already established) and write `audit_logs` with `reason`.
+- Realtime: unified profile subscribes to `profiles`, `trades`, `positions` for the viewed `id` using the existing `useRealtimeChannel` hook (unique channel per profile id).
 
-Design tokens only (no hardcoded colors); mobile-first stacked, desktop side-column.
-
-### 5. MarketDetail wiring
-
-- Add `<IntelligencePanel marketId={id} />` under `<TrendSummary>` on mobile, and as right column on `lg` (change grid to `lg:grid-cols-6`: main 4 / intel 2). Existing trade sheet unchanged.
-- Extend `PriceChart` with a lightweight **volume-per-bucket** area behind the probability lines (same recharts, no new dep) — off by default toggle "Show volume".
-- Add "Related markets" now populated for non-match markets too: query by shared `category` + `tags` intersection when `match_id` is null.
-
-### 6. Realtime + caching
-
-- `useMarketIntelligence` subscribes to `market_intelligence` upserts for the market id (unique channel name pattern already in memory).
-- Client triggers `market-intelligence` (non-force) on mount; if row is stale, function refreshes inline and returns.
-
-### 7. Cron refresh (light)
-
-Extend existing `compute-trends` cron OR add a job def: every 15 min, refresh intelligence for the top 25 markets by 24h volume. No new scheduler infra — reuse `job_definitions` / `jobs-dispatch`.
-
-### 8. Out of scope (later slices)
-Discovery rails, portfolio analytics, social/reputation, notifications, dashboards, i18n beyond EN/SW passthrough.
-
-### Technical notes
-- New table + RLS via `supabase--migration` (with `GRANT`s).
-- Edge function follows existing corsHeaders + NIM pattern from `logik-oracle`; input validated with Zod.
-- No changes to `wallets`, `ledger_entries`, `markets` rows.
-- Types file regenerates after migration; service imports typed row.
-
-### Deliverables
-- Migration: `market_intelligence` table + RLS + grants.
-- Edge function: `supabase/functions/market-intelligence/index.ts`.
-- Client: service, hook, 6 components, MarketDetail wiring, PriceChart volume overlay, related-markets fallback.
-- Job definition row for periodic refresh.

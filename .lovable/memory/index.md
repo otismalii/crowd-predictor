@@ -7,10 +7,13 @@
 - Trading and withdrawals require a verified 254 Kenyan phone number.
 - All KES transactions are double-entry in `ledger_entries` with NOT NULL `treasury_bucket`. Drift in `v_treasury_balances` must be 0.
 - AI (LOGIK Oracle) is suggestion-only. AI cannot publish markets, settle markets, or move funds. Humans approve all financial and governance actions.
-- ACP information architecture (v4): Operations / Markets / Finance / Intelligence / Governance / Audit.
+- LDX v5: evolve don't rewrite; priority order Financial > Security > Market > Data > Perf > UX > Intelligence > Growth > Cosmetic; respect phase gates; no parallel systems.
+- ACP information architecture: Workspace (Inbox/Today) + 6 domains (Operations / Markets / Finance / Intelligence / Governance / Audit), grouped by Do/Monitor/Configure.
+- Unified profile at `/profile/:id` with tabs Overview/Positions/Creator/Reputation/Settings. `/creator` redirects to profile Creator tab.
 - MCP server exposed at supabase/functions/mcp via @lovable.dev/mcp-js; tools live under src/lib/mcp/tools. Supabase OAuth 2.1 issuer bound to project ref, consent route at /.lovable/oauth/consent.
 
 ## Memories
+- [LDX v5 Directive](mem://architecture/ldx-v5-directive) — Governance charter: methodology, priority order, phase gates, subsystem ownership
 - [LDX v4 Invariants](mem://architecture/ldx-v4-invariants) — Non-negotiable rules; AI never moves money or publishes/settles
 - [Automation Jobs](mem://architecture/automation-jobs) — system_jobs queue + jobs-dispatch worker + pg_cron; handlers must be idempotent
 - [Oracle Resolution Policy](mem://admin/oracle-resolution-policy) — LOGIK Oracle is advisory; runs on NVIDIA NIM via logik-oracle edge function
