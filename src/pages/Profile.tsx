@@ -237,6 +237,18 @@ const Profile = () => {
           )}
         </AnimatePresence>
 
+        {/* Tabs */}
+        <Tabs value={tab} onValueChange={setTab} className="mt-2">
+          <TabsList className="w-full justify-start overflow-x-auto">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="creator">Creator</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="creator" className="mt-4">
+            <ProfileCreatorTab userId={id!} isOwn={isOwnProfile} />
+          </TabsContent>
+
+          <TabsContent value="overview" className="mt-4">
         {/* Recent trades */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
