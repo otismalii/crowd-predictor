@@ -14,3 +14,9 @@ verify_jwt = true
 
 [functions.creator-payouts]
 verify_jwt = true
+
+[functions.provider-sync]
+verify_jwt = false
+
+[functions.api]
+verify_jwt = false

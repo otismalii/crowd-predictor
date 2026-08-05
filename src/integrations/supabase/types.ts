@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_keys: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          name: string
+          owner_id: string | null
+          product: string
+          revoked_at: string | null
+          scopes: string[]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          name: string
+          owner_id?: string | null
+          product?: string
+          revoked_at?: string | null
+          scopes?: string[]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          name?: string
+          owner_id?: string | null
+          product?: string
+          revoked_at?: string | null
+          scopes?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           category: string
@@ -107,6 +155,75 @@ export type Database = {
           name?: string
           slug?: string
           threshold?: number
+        }
+        Relationships: []
+      }
+      cache_entries: {
+        Row: {
+          created_at: string
+          expires_at: string
+          key: string
+          tags: string[]
+          value: Json
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          key: string
+          tags?: string[]
+          value: Json
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          key?: string
+          tags?: string[]
+          value?: Json
+        }
+        Relationships: []
+      }
+      competitions: {
+        Row: {
+          competition_type: string
+          country: string | null
+          country_code: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          logo_url: string | null
+          name: string
+          short_name: string | null
+          slug: string
+          tier: number | null
+          updated_at: string
+        }
+        Insert: {
+          competition_type?: string
+          country?: string | null
+          country_code?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name: string
+          short_name?: string | null
+          slug: string
+          tier?: number | null
+          updated_at?: string
+        }
+        Update: {
+          competition_type?: string
+          country?: string | null
+          country_code?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name?: string
+          short_name?: string | null
+          slug?: string
+          tier?: number | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -284,6 +401,42 @@ export type Database = {
           id?: string
           idempotency_key?: string | null
           payload?: Json
+        }
+        Relationships: []
+      }
+      feature_flags: {
+        Row: {
+          created_at: string
+          description: string | null
+          is_enabled: boolean
+          key: string
+          payload: Json
+          product: string
+          rollout_percentage: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          is_enabled?: boolean
+          key: string
+          payload?: Json
+          product?: string
+          rollout_percentage?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          is_enabled?: boolean
+          key?: string
+          payload?: Json
+          product?: string
+          rollout_percentage?: number
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -1133,6 +1286,7 @@ export type Database = {
           image_url: string | null
           liquidity_param: number
           match_id: string | null
+          platform_match_id: string | null
           resolution_rule: string | null
           resolution_source: string | null
           resolved_at: string | null
@@ -1159,6 +1313,7 @@ export type Database = {
           image_url?: string | null
           liquidity_param?: number
           match_id?: string | null
+          platform_match_id?: string | null
           resolution_rule?: string | null
           resolution_source?: string | null
           resolved_at?: string | null
@@ -1185,6 +1340,7 @@ export type Database = {
           image_url?: string | null
           liquidity_param?: number
           match_id?: string | null
+          platform_match_id?: string | null
           resolution_rule?: string | null
           resolution_source?: string | null
           resolved_at?: string | null
@@ -1204,6 +1360,70 @@ export type Database = {
             columns: ["match_id"]
             isOneToOne: false
             referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "markets_platform_match_id_fkey"
+            columns: ["platform_match_id"]
+            isOneToOne: false
+            referencedRelation: "platform_matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      match_events: {
+        Row: {
+          created_at: string
+          detail: string | null
+          event_type: string
+          extra_minute: number | null
+          id: string
+          match_id: string
+          minute: number | null
+          player_name: string | null
+          related_player_name: string | null
+          sort_order: number
+          team_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          detail?: string | null
+          event_type: string
+          extra_minute?: number | null
+          id?: string
+          match_id: string
+          minute?: number | null
+          player_name?: string | null
+          related_player_name?: string | null
+          sort_order?: number
+          team_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          detail?: string | null
+          event_type?: string
+          extra_minute?: number | null
+          id?: string
+          match_id?: string
+          minute?: number | null
+          player_name?: string | null
+          related_player_name?: string | null
+          sort_order?: number
+          team_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_events_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "platform_matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_events_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
             referencedColumns: ["id"]
           },
         ]
@@ -1459,6 +1679,99 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_matches: {
+        Row: {
+          away_score: number | null
+          away_team_id: string | null
+          competition_id: string | null
+          created_at: string
+          home_score: number | null
+          home_team_id: string | null
+          id: string
+          kickoff_at: string
+          last_synced_at: string | null
+          legacy_match_id: string | null
+          minute: number | null
+          round: string | null
+          season_id: string | null
+          status: Database["public"]["Enums"]["match_status"]
+          updated_at: string
+          venue: string | null
+        }
+        Insert: {
+          away_score?: number | null
+          away_team_id?: string | null
+          competition_id?: string | null
+          created_at?: string
+          home_score?: number | null
+          home_team_id?: string | null
+          id?: string
+          kickoff_at: string
+          last_synced_at?: string | null
+          legacy_match_id?: string | null
+          minute?: number | null
+          round?: string | null
+          season_id?: string | null
+          status?: Database["public"]["Enums"]["match_status"]
+          updated_at?: string
+          venue?: string | null
+        }
+        Update: {
+          away_score?: number | null
+          away_team_id?: string | null
+          competition_id?: string | null
+          created_at?: string
+          home_score?: number | null
+          home_team_id?: string | null
+          id?: string
+          kickoff_at?: string
+          last_synced_at?: string | null
+          legacy_match_id?: string | null
+          minute?: number | null
+          round?: string | null
+          season_id?: string | null
+          status?: Database["public"]["Enums"]["match_status"]
+          updated_at?: string
+          venue?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_matches_away_team_id_fkey"
+            columns: ["away_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_matches_competition_id_fkey"
+            columns: ["competition_id"]
+            isOneToOne: false
+            referencedRelation: "competitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_matches_home_team_id_fkey"
+            columns: ["home_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_matches_legacy_match_id_fkey"
+            columns: ["legacy_match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_matches_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       positions: {
         Row: {
           avg_price: number
@@ -1564,6 +1877,102 @@ export type Database = {
           risk_score?: number
           subscription_plan?: Database["public"]["Enums"]["subscription_plan"]
           username?: string | null
+        }
+        Relationships: []
+      }
+      provider_connections: {
+        Row: {
+          base_url: string
+          config: Json
+          created_at: string
+          display_name: string
+          environment: string
+          health_status: string
+          id: string
+          is_enabled: boolean
+          last_checked_at: string | null
+          last_error: string | null
+          last_latency_ms: number | null
+          priority: number
+          provider: string
+          rate_limit_per_min: number | null
+          retry_policy: Json
+          secret_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          base_url: string
+          config?: Json
+          created_at?: string
+          display_name: string
+          environment?: string
+          health_status?: string
+          id?: string
+          is_enabled?: boolean
+          last_checked_at?: string | null
+          last_error?: string | null
+          last_latency_ms?: number | null
+          priority?: number
+          provider: string
+          rate_limit_per_min?: number | null
+          retry_policy?: Json
+          secret_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          base_url?: string
+          config?: Json
+          created_at?: string
+          display_name?: string
+          environment?: string
+          health_status?: string
+          id?: string
+          is_enabled?: boolean
+          last_checked_at?: string | null
+          last_error?: string | null
+          last_latency_ms?: number | null
+          priority?: number
+          provider?: string
+          rate_limit_per_min?: number | null
+          retry_policy?: Json
+          secret_name?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      provider_mappings: {
+        Row: {
+          canonical_id: string
+          confidence: number
+          created_at: string
+          entity_type: string
+          external_id: string
+          id: string
+          provider: string
+          raw_label: string | null
+          updated_at: string
+        }
+        Insert: {
+          canonical_id: string
+          confidence?: number
+          created_at?: string
+          entity_type: string
+          external_id: string
+          id?: string
+          provider: string
+          raw_label?: string | null
+          updated_at?: string
+        }
+        Update: {
+          canonical_id?: string
+          confidence?: number
+          created_at?: string
+          entity_type?: string
+          external_id?: string
+          id?: string
+          provider?: string
+          raw_label?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1686,6 +2095,50 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      seasons: {
+        Row: {
+          competition_id: string
+          created_at: string
+          ends_on: string | null
+          id: string
+          is_current: boolean
+          name: string
+          starts_on: string | null
+          updated_at: string
+          year: number | null
+        }
+        Insert: {
+          competition_id: string
+          created_at?: string
+          ends_on?: string | null
+          id?: string
+          is_current?: boolean
+          name: string
+          starts_on?: string | null
+          updated_at?: string
+          year?: number | null
+        }
+        Update: {
+          competition_id?: string
+          created_at?: string
+          ends_on?: string | null
+          id?: string
+          is_current?: boolean
+          name?: string
+          starts_on?: string | null
+          updated_at?: string
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seasons_competition_id_fkey"
+            columns: ["competition_id"]
+            isOneToOne: false
+            referencedRelation: "competitions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       source_registry: {
         Row: {
@@ -1834,10 +2287,62 @@ export type Database = {
             foreignKeyName: "system_jobs_parent_job_id_fkey"
             columns: ["parent_job_id"]
             isOneToOne: false
+            referencedRelation: "sync_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "system_jobs_parent_job_id_fkey"
+            columns: ["parent_job_id"]
+            isOneToOne: false
             referencedRelation: "system_jobs"
             referencedColumns: ["id"]
           },
         ]
+      }
+      teams: {
+        Row: {
+          code: string | null
+          country: string | null
+          created_at: string
+          founded: number | null
+          id: string
+          is_national: boolean
+          logo_url: string | null
+          name: string
+          short_name: string | null
+          slug: string
+          updated_at: string
+          venue_name: string | null
+        }
+        Insert: {
+          code?: string | null
+          country?: string | null
+          created_at?: string
+          founded?: number | null
+          id?: string
+          is_national?: boolean
+          logo_url?: string | null
+          name: string
+          short_name?: string | null
+          slug: string
+          updated_at?: string
+          venue_name?: string | null
+        }
+        Update: {
+          code?: string | null
+          country?: string | null
+          created_at?: string
+          founded?: number | null
+          id?: string
+          is_national?: boolean
+          logo_url?: string | null
+          name?: string
+          short_name?: string | null
+          slug?: string
+          updated_at?: string
+          venue_name?: string | null
+        }
+        Relationships: []
       }
       trades: {
         Row: {
@@ -2225,6 +2730,131 @@ export type Database = {
           username?: string | null
         }
         Relationships: []
+      }
+      sync_jobs: {
+        Row: {
+          attempts: number | null
+          cancel_reason: string | null
+          created_at: string | null
+          duration_ms: number | null
+          finished_at: string | null
+          id: string | null
+          job_type: string | null
+          last_error: string | null
+          locked_until: string | null
+          max_attempts: number | null
+          parent_job_id: string | null
+          payload: Json | null
+          priority: number | null
+          result: Json | null
+          run_after: string | null
+          scheduled_by: string | null
+          started_at: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          attempts?: number | null
+          cancel_reason?: string | null
+          created_at?: string | null
+          duration_ms?: number | null
+          finished_at?: string | null
+          id?: string | null
+          job_type?: string | null
+          last_error?: string | null
+          locked_until?: string | null
+          max_attempts?: number | null
+          parent_job_id?: string | null
+          payload?: Json | null
+          priority?: number | null
+          result?: Json | null
+          run_after?: string | null
+          scheduled_by?: string | null
+          started_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          attempts?: number | null
+          cancel_reason?: string | null
+          created_at?: string | null
+          duration_ms?: number | null
+          finished_at?: string | null
+          id?: string | null
+          job_type?: string | null
+          last_error?: string | null
+          locked_until?: string | null
+          max_attempts?: number | null
+          parent_job_id?: string | null
+          payload?: Json | null
+          priority?: number | null
+          result?: Json | null
+          run_after?: string | null
+          scheduled_by?: string | null
+          started_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_jobs_parent_job_id_fkey"
+            columns: ["parent_job_id"]
+            isOneToOne: false
+            referencedRelation: "sync_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "system_jobs_parent_job_id_fkey"
+            columns: ["parent_job_id"]
+            isOneToOne: false
+            referencedRelation: "system_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sync_logs: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          id: string | null
+          raw_data: Json | null
+          records_fetched: number | null
+          records_processed: number | null
+          source_id: string | null
+          source_name: string | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string | null
+          raw_data?: Json | null
+          records_fetched?: number | null
+          records_processed?: number | null
+          source_id?: string | null
+          source_name?: string | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string | null
+          raw_data?: Json | null
+          records_fetched?: number | null
+          records_processed?: number | null
+          source_id?: string | null
+          source_name?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingestion_logs_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "source_registry"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       v_job_health: {
         Row: {
