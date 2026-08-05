@@ -1,102 +1,77 @@
+# Shared Football Platform Backend
 
-# LDX v5 — Governance, Admin Restructure & Unified Profile
+Turn this project's Supabase backend into the single source of truth that both Pagaza Markets (this app) and the separate LOGIK Betwise PWA consume. No second backend, no duplicated logic: Betwise is built later as a presentation layer only, talking to the same `/api/v1` gateway.
 
-Applies the LDX v5 implementation charter, then executes the first concrete slice the user asked for: **admin restructuring & harmonisation** and a **unified user + creator ("industry") profile**. No later-phase (trading engine, treasury rewrite, LOGIK v2) work is started here — that stays gated.
+Confirmed decisions: canonical football core + provider mappings only (players/coaches/timelines/statistics deferred), reuse the football API already in use (TheSportsDB, currently hardcoded inside `sync-matches`), absorb-and-rename existing overlapping subsystems rather than deleting them.
 
----
+## Current state (verified)
 
-## 1. Save the LDX v5 charter as project memory
+- `matches` is a thin table: `league`, `home_team`, `away_team` as free text, plus `external_match_id`. No teams, competitions, seasons, or match events tables exist.
+- The only football provider is TheSportsDB, hardcoded in `supabase/functions/sync-matches/index.ts` (key + league IDs inline). `source_registry` exists but is used for market resolution sources, not football data ingestion.
+- Business logic is split between `src/services/*` (client-side, hits Supabase directly), edge functions, and SQL functions. Many pages also query Supabase directly, so there is no single reusable interface a second app could consume.
+- Job infrastructure already exists (`system_jobs`, `job_definitions`, `jobs-dispatch` on pg_cron) and can become the Sync Center rather than being rebuilt.
 
-- New file `.lovable/memory/architecture/ldx-v5-directive.md` (type: constraint) capturing:
-  - Implementation methodology (audit → extend → refactor → remove)
-  - Priority order (Financial > Security > Market > Data > Perf > UX > Intelligence > Growth > Cosmetic)
-  - Phase gates 2→8 with "no leap-frogging" rule
-  - Subsystem ownership boundaries (Trading / Finance / Resolution / LOGIK / Governance)
-  - DB principles (single source of truth, computed views, audit-on-mutate)
-  - UX principles (What happened / can I do / next; Available / Locked / Pending / Completed / Failed)
-  - Trust-first exposure requirements
-  - LOGIK is advisory only (mirrors existing ldx-v4-invariants)
-- Update `.lovable/memory/index.md` Core section with a one-liner pointer.
+## Phase 1 — Canonical football core + provider mappings
 
-## 2. Redundancy sweep (consolidate, do not delete yet)
+One migration adding:
 
-Findings from audit → consolidations in this slice:
+- `competitions`, `seasons`, `teams` — canonical UUID primary keys, slug, country, logo, plus display metadata.
+- `platform_matches` — canonical fixture table with `competition_id`, `season_id`, `home_team_id`, `away_team_id`, kickoff, status, scores, venue.
+- `match_events` — goals/cards/subs with minute, team, player name (text for now, no players table yet).
+- `provider_connections` — one row per provider (name, base URL, priority, enabled, health, rate limit, last latency). Credentials stay in Supabase secrets; only the secret's *name* is stored here.
+- `provider_mappings` — `(provider, entity_type, external_id) -> canonical_id`. This is the only place external IDs live.
+- `sync_jobs` / `sync_logs` views over the existing `system_jobs` tables so the Sync Center reads one surface.
+- `feature_flags` (product-scoped: `pagaza`, `betwise`, `all`).
+- `api_keys` — hashed keys with scopes, for server-to-server platform consumers.
 
-| Duplicate / drift | Consolidation |
-|---|---|
-| `useAdminGuard` + `useAdminRole` + `RequireRole` + inline `has_role` checks | Keep `useAdminRole` (richest). Reduce `useAdminGuard` to a thin re-export (`isAdmin` from `useAdminRole`). Guards continue to use `RequireRole`. |
-| `AdminSourcesPage` reused for both `/admin/markets/sources` and `/admin/intelligence/sources` | Collapse to one route `/admin/intelligence/sources`; markets menu links there. Redirect old path. |
-| `AdminMarketsImportPage` imported as `AdminMarketsNewPage` alias | Rename import + route to `/admin/markets/import`; redirect `/admin/markets/new`. |
-| `intelligenceService.ts` vs `marketIntelligenceService.ts` | Keep `marketIntelligenceService`; `intelligenceService` becomes a re-export shim, callers migrated. |
-| Creator profile lives in `/creator` (CreatorDashboard) disconnected from `/profile/:id` | Merge into single `/profile/:id` with tabbed sections (see §4). |
-| Profile "Creator Studio" button + separate route | Becomes a Creator tab on the unified profile; route `/creator` redirects to `/profile/:me?tab=creator`. |
+Existing `matches` stays in place and is backfilled into `platform_matches` + `teams` + `competitions` via a one-time normalizer, so current markets keep working. `markets.match_id` gets a nullable `platform_match_id` alongside it; the old column is retired once backfill is verified.
 
-No files are deleted this slice — shims stay for one release, tagged `@deprecated`, to keep backward compatibility (LDX v5 rule: remove obsolete code only after migration).
+Every new public table gets explicit GRANTs, RLS enabled, and read policies (football data is public-readable; provider/api-key/sync tables are admin-only).
 
-## 3. Admin (ACP) restructure — workflow-oriented, not page-oriented
+## Phase 2 — Provider Manager
 
-Keep the 6-domain IA but reshape each domain around a **workflow verb** instead of a page list. Concretely:
+- `packages`-style directory `supabase/functions/_shared/providers/`: a `FootballProvider` interface (`listCompetitions`, `listFixtures`, `getFixture`, `listEvents`), a `thesportsdb.ts` adapter, and a `normalize.ts` that maps raw payloads to canonical entities via `provider_mappings`.
+- New `provider-sync` edge function replaces the ingest half of `sync-matches`: reads enabled providers by priority from `provider_connections`, runs adapter → normalizer → upsert, writes a `sync_logs` row with raw + normalized payload for the inspector, and emits events.
+- `sync-matches` becomes a thin shim that enqueues `provider-sync` so the existing cron keeps working.
+- Adding a provider later = one adapter file + one `provider_connections` row. Zero frontend change.
 
-### 3a. Sidebar & IA changes (`adminNav.ts`)
-- Add a top-level **Workspace** section above domains with:
-  - `Inbox` — unified task queue (creation queue + oracle suggestions + disputes + promotions awaiting review) — new page `AdminInboxPage` that aggregates counts from existing tables (`market_suggestions`, `market_disputes`, `role_promotions`, `market_audit_log` where `action='oracle_suggestion'`). Read-only aggregator; each row deep-links to its existing page.
-  - `Today` — operator start-of-day: open markets closing in <24h, unreconciled ledger drift, failed payments, pending withdrawals. New page `AdminTodayPage`, purely a dashboard over existing tables.
-- Within each domain, group items into **Do / Monitor / Configure** subheadings (visual, in `AdminSidebar`, no route changes):
-  - Markets → Do: Creation Queue, Oracle Suggestions, Resolution, Import. Monitor: Active Markets, Liquidity. Configure: Sources.
-  - Finance → Do: Settlements, Reconciliation, Creator Payouts. Monitor: Treasury.
-  - Intelligence → Monitor: LOGIK Insights, Prediction History, Risk Signals. Configure: Event Sources.
-  - Governance → Do: Promotions, Disputes, Fraud. Monitor: Users.
-  - Audit → Monitor: Audit Logs, System Analytics, Market History, Automation. Configure: Settings.
-- Remove the `/admin/intelligence/sources` duplicate; point sidebar to Markets → Sources only (or vice versa — pick Intelligence and redirect from Markets).
+## Phase 3 — Platform API `/api/v1`
 
-### 3b. Shared admin primitives (harmonisation)
-- Every admin page adopts `AdminPageHeader` + `AdminPageBody` (already exists — audit pages that skip it: `AdminMarketsPage`, `AdminAuditPage`, etc. and normalise).
-- Every mutating admin action must go through `AdminConfirmDialog` with a mandatory `reason` field (already the pattern for resolution — extend to promotions, disputes, fraud actions, liquidity subsidies). Reason is written to `audit_logs` / `market_audit_log`.
-- Add a small `<AdminWhyBanner>` at the top of every "Do" page answering the LDX v5 UX triad (What happened / What can I do / What next) — pure presentational.
-
-### 3c. Command palette
-- Extend `AdminCommandPalette` with the new `Inbox` and `Today` entries and with quick-actions ("Resolve market…", "Promote user…") that open the respective confirm dialog pre-filled — pure UI, no new business logic.
-
-## 4. Unified user + industry (creator) profile
-
-Merge `Profile.tsx` and `CreatorDashboard.tsx` into a single route `/profile/:id` with tabs:
+A single edge function `api` with internal routing, so both apps share one versioned surface:
 
 ```text
-[ Overview ] [ Trades ] [ Positions ] [ Creator ] [ Reputation ] [ Settings* ]
-                                                                    (*self only)
+/api/v1/auth/session        /api/v1/matches      /api/v1/markets
+/api/v1/profile             /api/v1/teams        /api/v1/predictions
+/api/v1/users               /api/v1/leagues      /api/v1/slips
+/api/v1/intelligence        /api/v1/events       /api/v1/comments
+/api/v1/notifications       /api/v1/search       /api/v1/system
+/api/v1/providers           /api/v1/admin/*
 ```
 
-- **Overview** — current header (avatar, bio, plan, streak, follower count, 3 stat tiles).
-- **Trades** — the existing "Recent trades" list, paginated.
-- **Positions** — pulled from `PositionsList` (already exists in `src/components/portfolio`).
-- **Creator** — only visible when the profile has a row in `creator_profiles` OR the viewer is that user. Shows: markets published, total volume attributed, payout rate, pending payouts, "Create market" CTA (routes to existing MarketBuilder). Content lifted from `CreatorDashboard.tsx`.
-- **Reputation** — accuracy over time (Recharts), calibration bucket chart if data exists in `market_intelligence`/`positions`, badges (`AchievementBadges`).
-- **Settings** — self only: current `ProfileEdit` inline; add "Become a creator" action if not yet a creator (opens promotion request → writes to `role_promotions` with reason, existing table).
+- Auth: Supabase JWT via `getClaims()` for user calls, or `x-api-key` for server consumers; RBAC enforced by the existing `has_role`.
+- Every handler delegates to a service in `supabase/functions/_shared/services/*` — the service layer is the only place business rules live. Money-moving paths keep calling the existing SQL functions and the event envelope.
+- Response shape is uniform (`{ ok, data, error, meta }`) and versioned; CORS open so the Betwise PWA on another origin can call it.
+- Read endpoints get short-TTL caching through a `cache_entries` table with tag-based invalidation driven off the event bus.
 
-Data:
-- Extend the existing `public_profiles` view / `get_own_profile` RPC usage — no schema change required for this slice. If `public_profiles` lacks `creator_profile` join, add a lightweight `get_profile_bundle(p_user_id)` RPC returning profile + creator_profile + counts. This is optional; can fall back to two parallel queries.
+## Phase 4 — Client SDK for both apps
 
-Route changes:
-- `/creator` → `<Navigate to="/profile/{me}?tab=creator" />`. `CreatorDashboard.tsx` marked `@deprecated`, contents moved into a `ProfileCreatorTab.tsx` under `src/components/profile/`.
-- New folder `src/components/profile/` with `ProfileHeader`, `ProfileTabs`, `ProfileOverviewTab`, `ProfileTradesTab`, `ProfilePositionsTab`, `ProfileCreatorTab`, `ProfileReputationTab`, `ProfileSettingsTab`.
+- `src/platform/` in this repo: generated-style typed API client + hooks (`useMatches`, `useMarkets`, `useIntelligence`, …) plus shared canonical types.
+- This app's `src/services/*` and pages are migrated onto the client so no component talks to Supabase or a provider directly.
+- `src/platform/` is written to be copy-portable into the Betwise PWA (no Pagaza-specific imports, no design tokens), and I'll export a small README describing base URL + auth so Betwise needs zero backend work.
 
-## 5. Validation
+## Phase 5 — Absorb and rename, admin consoles
 
-- `tsgo` typecheck.
-- Manual click-through via Playwright: `/admin` (Inbox + Today load), `/admin/markets` (redirected sources), `/profile/{me}` (all tabs render, Creator tab appears only for creators), `/creator` (redirects).
-- Confirm no existing route 404s (legacy redirects preserved).
-
-## 6. Out of scope for this slice (explicit gates)
-
-- Trading engine refactor, treasury ledger changes, LOGIK v2 calibration, resolution workflow rewrite. All deferred to Phase 4–7 per the directive.
-- Deleting the deprecated files (`useAdminGuard`, `intelligenceService`, `CreatorDashboard`) — done in a follow-up once telemetry shows no imports remain.
-
----
+- LOGIK Oracle → `IntelligenceService`; Market Foundry import → `MarketService.import*`; `system_jobs` → Sync Center; treasury/creator economy stay but are exposed only through `SettlementService` / `CreatorService`.
+- New admin pages under the existing shell: **Providers** (connection test, latency, health, priority, raw vs normalized payload viewer, replay request), **Sync Monitor** (queued/running/failed/dead-letter, bulk re-sync, worker health), **Feature Flags**, **API Keys**. Existing Automation page is folded into Sync Monitor.
+- Football core admin: Competitions, Teams, Matches (canonical, read-mostly with manual override + re-sync per row).
 
 ## Technical notes
 
-- No DB migration required. Optional `get_profile_bundle` RPC is additive and only if the double-query pattern is too chatty.
-- Zero changes to financial functions (`fn_settle_trade`, `fn_post_double_entry`, wallet RPCs) — LDX invariants preserved.
-- All new admin actions with side-effects go through `admin-market-actions` edge function pattern (already established) and write `audit_logs` with `reason`.
-- Realtime: unified profile subscribes to `profiles`, `trades`, `positions` for the viewed `id` using the existing `useRealtimeChannel` hook (unique channel per profile id).
+- The directive's `apps/` + `packages/` monorepo can't run here — this stack builds one Vite SPA. The equivalent separation is: Supabase (DB + `/api/v1` + service layer) is the platform; this repo's `src/` is `apps/pagaza-web`; your Betwise PWA is a second repo consuming the same API. `src/platform/` plays the role of `packages/api-client` + `shared-types` + `shared-hooks` and is duplicated by copy, not by npm, until you want a published package.
+- Event bus reuses `event_log`; new event types (`match.*`, `provider.*`, `sync.*`, `cache.invalidated`) get emitted through the existing `emitEvent` envelope, and workers subscribe by polling `system_jobs` — no new infrastructure.
+- Webhook verification, signed requests, and rate limiting land in `_shared/security.ts` used by every `/api/v1` handler.
+- Deferred until a richer provider is connected: `players`, `coaches`, `match_timelines`, aggregate `statistics`, and the AI recommendation engine.
 
+## Sequencing
+
+Phases run in order, each ending in a working app. Phase 1 needs a migration approval; Phase 2–5 are code only. I'll stop after Phase 1 + 2 for you to verify sync health before the API gateway lands.
