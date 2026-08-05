@@ -1325,6 +1325,92 @@ export type Database = {
         }
         Relationships: []
       }
+      p2p_audit_log: {
+        Row: {
+          action: string
+          challenge_id: string | null
+          created_at: string
+          details: Json | null
+          id: string
+          performed_by: string
+        }
+        Insert: {
+          action: string
+          challenge_id?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          performed_by: string
+        }
+        Update: {
+          action?: string
+          challenge_id?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          performed_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "p2p_audit_log_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "p2p_challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      p2p_challenges: {
+        Row: {
+          admin_resolution: string | null
+          challenger_id: string
+          created_at: string
+          escrow_locked: boolean
+          id: string
+          opponent_id: string | null
+          outcome_source: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          rules: string
+          stake: number
+          status: string
+          updated_at: string
+          winner_id: string | null
+        }
+        Insert: {
+          admin_resolution?: string | null
+          challenger_id: string
+          created_at?: string
+          escrow_locked?: boolean
+          id?: string
+          opponent_id?: string | null
+          outcome_source?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          rules: string
+          stake: number
+          status?: string
+          updated_at?: string
+          winner_id?: string | null
+        }
+        Update: {
+          admin_resolution?: string | null
+          challenger_id?: string
+          created_at?: string
+          escrow_locked?: boolean
+          id?: string
+          opponent_id?: string | null
+          outcome_source?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          rules?: string
+          stake?: number
+          status?: string
+          updated_at?: string
+          winner_id?: string | null
+        }
+        Relationships: []
+      }
       payment_failures: {
         Row: {
           amount: number | null
@@ -2056,6 +2142,42 @@ export type Database = {
       }
     }
     Views: {
+      public_creator_profiles: {
+        Row: {
+          bio: string | null
+          created_at: string | null
+          id: string | null
+          is_active: boolean | null
+          markets_published: number | null
+          score: number | null
+          tier: Database["public"]["Enums"]["creator_tier"] | null
+          total_volume_attributed: number | null
+          user_id: string | null
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          markets_published?: number | null
+          score?: number | null
+          tier?: Database["public"]["Enums"]["creator_tier"] | null
+          total_volume_attributed?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          markets_published?: number | null
+          score?: number | null
+          tier?: Database["public"]["Enums"]["creator_tier"] | null
+          total_volume_attributed?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       public_profiles: {
         Row: {
           accuracy_rate: number | null
@@ -2193,6 +2315,36 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      claim_jobs: {
+        Args: { p_limit?: number; p_worker?: string }
+        Returns: {
+          attempts: number
+          cancel_reason: string | null
+          created_at: string
+          duration_ms: number | null
+          finished_at: string | null
+          id: string
+          job_type: string
+          last_error: string | null
+          locked_until: string | null
+          max_attempts: number
+          parent_job_id: string | null
+          payload: Json
+          priority: number
+          result: Json | null
+          run_after: string
+          scheduled_by: string
+          started_at: string | null
+          status: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "system_jobs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       credit_balance: {
         Args: { p_amount: number; p_balance_type?: string; p_user_id: string }
         Returns: boolean
@@ -2211,6 +2363,14 @@ export type Database = {
         Returns: boolean
       }
       derived_balance: { Args: { p_user_id: string }; Returns: number }
+      fn_admin_reject_withdrawal: {
+        Args: { p_admin_id: string; p_reason: string; p_request_id: string }
+        Returns: Json
+      }
+      fn_admin_settle_withdrawal: {
+        Args: { p_admin_id: string; p_reference?: string; p_request_id: string }
+        Returns: Json
+      }
       fn_attribute_creator_payout: {
         Args: {
           p_basis_volume: number
@@ -2218,6 +2378,46 @@ export type Database = {
           p_market_id: string
         }
         Returns: string
+      }
+      fn_increment_creator_payout: {
+        Args: { p_amount: number; p_user_id: string }
+        Returns: undefined
+      }
+      fn_p2p_accept_challenge: {
+        Args: {
+          p_challenge_id: string
+          p_idempotency_key: string
+          p_opponent_id: string
+        }
+        Returns: Json
+      }
+      fn_p2p_cancel_challenge: {
+        Args: {
+          p_challenge_id: string
+          p_idempotency_key: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      fn_p2p_create_challenge: {
+        Args: {
+          p_challenger_id: string
+          p_idempotency_key: string
+          p_outcome_source: string
+          p_rules: string
+          p_stake: number
+        }
+        Returns: Json
+      }
+      fn_p2p_resolve_challenge: {
+        Args: {
+          p_admin_id: string
+          p_challenge_id: string
+          p_idempotency_key: string
+          p_reason: string
+          p_winner_id: string
+        }
+        Returns: Json
       }
       fn_post_double_entry: {
         Args: {
@@ -2234,6 +2434,18 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_refund_market: {
+        Args: { p_idempotency_key: string; p_market_id: string }
+        Returns: Json
+      }
+      fn_settle_market_payout: {
+        Args: {
+          p_idempotency_key: string
+          p_market_id: string
+          p_winning_outcome_id: string
+        }
+        Returns: Json
+      }
       fn_settle_trade: {
         Args: {
           p_amount: number
@@ -2242,6 +2454,7 @@ export type Database = {
           p_outcome_id: string
           p_price: number
           p_shares: number
+          p_side?: string
           p_user_id: string
         }
         Returns: Json
