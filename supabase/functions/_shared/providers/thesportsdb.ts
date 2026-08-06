@@ -153,4 +153,11 @@ export class TheSportsDbProvider implements FootballProvider {
       detail: t.strTimelineDetail ?? null,
     }));
   }
+
+  async getTeamBadge(name: string): Promise<string | null> {
+    const res = await this.get(`/searchteams.php?t=${encodeURIComponent(name)}`);
+    const team = (res?.teams ?? []).find((t: any) => t?.strSport === "Soccer") ?? res?.teams?.[0];
+    return team?.strBadge ?? team?.strLogo ?? null;
+  }
 }
+

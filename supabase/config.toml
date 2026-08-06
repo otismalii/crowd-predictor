@@ -20,3 +20,10 @@ verify_jwt = false
 
 [functions.api]
 verify_jwt = false
+
+[functions.sync-live]
+verify_jwt = false
+
+[functions.sync-content]
+verify_jwt = false
+
