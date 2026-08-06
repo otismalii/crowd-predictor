@@ -68,7 +68,10 @@ export interface FootballProvider {
   listFixtures(opts?: { window?: "upcoming" | "recent" | "today" }): Promise<RawFixture[]>;
   getFixture(externalId: string): Promise<RawFixture | null>;
   listEvents(externalId: string): Promise<RawMatchEvent[]>;
+  /** Optional: resolve a team badge/logo URL by team name. */
+  getTeamBadge?(name: string): Promise<string | null>;
   stats(): FetchStats;
+
 }
 
 export function slugify(value: string): string {
