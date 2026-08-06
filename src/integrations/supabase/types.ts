@@ -1371,6 +1371,65 @@ export type Database = {
           },
         ]
       }
+      match_bets: {
+        Row: {
+          created_at: string
+          id: string
+          idempotency_key: string | null
+          market: string
+          match_id: string
+          odds: number
+          payout: number
+          potential_payout: number
+          selection: string
+          settled_at: string | null
+          stake: number
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          idempotency_key?: string | null
+          market: string
+          match_id: string
+          odds: number
+          payout?: number
+          potential_payout?: number
+          selection: string
+          settled_at?: string | null
+          stake: number
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          idempotency_key?: string | null
+          market?: string
+          match_id?: string
+          odds?: number
+          payout?: number
+          potential_payout?: number
+          selection?: string
+          settled_at?: string | null
+          stake?: number
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_bets_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "platform_matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       match_events: {
         Row: {
           created_at: string
@@ -1428,6 +1487,41 @@ export type Database = {
           },
         ]
       }
+      match_votes: {
+        Row: {
+          created_at: string
+          id: string
+          match_id: string
+          pick: Database["public"]["Enums"]["match_pick"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          match_id: string
+          pick: Database["public"]["Enums"]["match_pick"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          match_id?: string
+          pick?: Database["public"]["Enums"]["match_pick"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_votes_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "platform_matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       matches: {
         Row: {
           away_score: number | null
@@ -1464,6 +1558,42 @@ export type Database = {
           kickoff?: string
           league?: string
           status?: Database["public"]["Enums"]["match_status"]
+        }
+        Relationships: []
+      }
+      news_items: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string | null
+          published_at: string
+          source: string
+          summary: string | null
+          team_tags: string[]
+          title: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          published_at?: string
+          source: string
+          summary?: string | null
+          team_tags?: string[]
+          title: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          published_at?: string
+          source?: string
+          summary?: string | null
+          team_tags?: string[]
+          title?: string
+          url?: string
         }
         Relationships: []
       }
@@ -3049,6 +3179,18 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_place_match_bet: {
+        Args: {
+          p_idempotency_key: string
+          p_market: string
+          p_match_id: string
+          p_odds: number
+          p_selection: string
+          p_stake: number
+          p_user_id: string
+        }
+        Returns: Json
+      }
       fn_post_double_entry: {
         Args: {
           p_amount: number
@@ -3076,6 +3218,7 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_settle_match_bets: { Args: { p_match_id: string }; Returns: Json }
       fn_settle_trade: {
         Args: {
           p_amount: number
@@ -3167,6 +3310,16 @@ export type Database = {
         Args: { p_amount: number; p_user_id: string }
         Returns: boolean
       }
+      match_vote_tally: {
+        Args: { p_match_ids: string[] }
+        Returns: {
+          away_votes: number
+          draw_votes: number
+          home_votes: number
+          match_id: string
+          total_votes: number
+        }[]
+      }
       release_withdrawal_lock: {
         Args: { p_amount: number; p_user_id: string }
         Returns: boolean
@@ -3203,6 +3356,7 @@ export type Database = {
         | "frozen"
         | "settled"
         | "archived"
+      match_pick: "home" | "draw" | "away"
       match_status: "upcoming" | "live" | "finished" | "postponed" | "cancelled"
       p2p_status:
         | "draft"
@@ -3395,6 +3549,7 @@ export const Constants = {
         "settled",
         "archived",
       ],
+      match_pick: ["home", "draw", "away"],
       match_status: ["upcoming", "live", "finished", "postponed", "cancelled"],
       p2p_status: [
         "draft",
