@@ -158,6 +158,222 @@ export type Database = {
         }
         Relationships: []
       }
+      bet_legs: {
+        Row: {
+          bet_id: string
+          created_at: string
+          fixture_id: string
+          fixture_label: string
+          id: string
+          market_label: string
+          market_type: string
+          odds: number
+          result: string
+          selection_id: string
+          selection_label: string
+        }
+        Insert: {
+          bet_id: string
+          created_at?: string
+          fixture_id: string
+          fixture_label: string
+          id?: string
+          market_label: string
+          market_type: string
+          odds: number
+          result?: string
+          selection_id: string
+          selection_label: string
+        }
+        Update: {
+          bet_id?: string
+          created_at?: string
+          fixture_id?: string
+          fixture_label?: string
+          id?: string
+          market_label?: string
+          market_type?: string
+          odds?: number
+          result?: string
+          selection_id?: string
+          selection_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bet_legs_bet_id_fkey"
+            columns: ["bet_id"]
+            isOneToOne: false
+            referencedRelation: "bets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bet_legs_fixture_id_fkey"
+            columns: ["fixture_id"]
+            isOneToOne: false
+            referencedRelation: "sport_fixtures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bet_legs_selection_id_fkey"
+            columns: ["selection_id"]
+            isOneToOne: false
+            referencedRelation: "bet_selections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bet_markets: {
+        Row: {
+          created_at: string
+          fixture_id: string
+          id: string
+          label: string
+          market_type: string
+          sort_order: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          fixture_id: string
+          id?: string
+          label: string
+          market_type: string
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          fixture_id?: string
+          id?: string
+          label?: string
+          market_type?: string
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bet_markets_fixture_id_fkey"
+            columns: ["fixture_id"]
+            isOneToOne: false
+            referencedRelation: "sport_fixtures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bet_selections: {
+        Row: {
+          code: string
+          created_at: string
+          feed_odds: number | null
+          fixture_id: string
+          id: string
+          label: string
+          market_id: string
+          odds: number
+          override_odds: number | null
+          result: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          feed_odds?: number | null
+          fixture_id: string
+          id?: string
+          label: string
+          market_id: string
+          odds?: number
+          override_odds?: number | null
+          result?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          feed_odds?: number | null
+          fixture_id?: string
+          id?: string
+          label?: string
+          market_id?: string
+          odds?: number
+          override_odds?: number | null
+          result?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bet_selections_fixture_id_fkey"
+            columns: ["fixture_id"]
+            isOneToOne: false
+            referencedRelation: "sport_fixtures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bet_selections_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "bet_markets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bets: {
+        Row: {
+          bet_type: string
+          created_at: string
+          id: string
+          idempotency_key: string | null
+          legs_count: number
+          payout: number
+          potential_payout: number
+          settled_at: string | null
+          stake: number
+          status: string
+          total_odds: number
+          updated_at: string
+          user_id: string
+          void_reason: string | null
+        }
+        Insert: {
+          bet_type?: string
+          created_at?: string
+          id?: string
+          idempotency_key?: string | null
+          legs_count?: number
+          payout?: number
+          potential_payout: number
+          settled_at?: string | null
+          stake: number
+          status?: string
+          total_odds: number
+          updated_at?: string
+          user_id: string
+          void_reason?: string | null
+        }
+        Update: {
+          bet_type?: string
+          created_at?: string
+          id?: string
+          idempotency_key?: string | null
+          legs_count?: number
+          payout?: number
+          potential_payout?: number
+          settled_at?: string | null
+          stake?: number
+          status?: string
+          total_odds?: number
+          updated_at?: string
+          user_id?: string
+          void_reason?: string | null
+        }
+        Relationships: []
+      }
       cache_entries: {
         Row: {
           created_at: string
@@ -1630,6 +1846,44 @@ export type Database = {
         }
         Relationships: []
       }
+      odds_history: {
+        Row: {
+          changed_by: string | null
+          created_at: string
+          id: string
+          new_odds: number
+          old_odds: number | null
+          selection_id: string
+          source: string
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          new_odds: number
+          old_odds?: number | null
+          selection_id: string
+          source?: string
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          new_odds?: number
+          old_odds?: number | null
+          selection_id?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "odds_history_selection_id_fkey"
+            columns: ["selection_id"]
+            isOneToOne: false
+            referencedRelation: "bet_selections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       oracle_runs: {
         Row: {
           action: string
@@ -2306,6 +2560,75 @@ export type Database = {
           name?: string
           priority?: number | null
           source_type?: string
+        }
+        Relationships: []
+      }
+      sport_fixtures: {
+        Row: {
+          away_logo: string | null
+          away_score: number | null
+          away_team: string
+          country: string | null
+          created_at: string
+          external_id: string | null
+          graded_at: string | null
+          home_logo: string | null
+          home_score: number | null
+          home_team: string
+          id: string
+          is_featured: boolean
+          kickoff: string
+          league: string
+          league_external_id: string | null
+          minute: number | null
+          odds_synced_at: string | null
+          sport: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          away_logo?: string | null
+          away_score?: number | null
+          away_team: string
+          country?: string | null
+          created_at?: string
+          external_id?: string | null
+          graded_at?: string | null
+          home_logo?: string | null
+          home_score?: number | null
+          home_team: string
+          id?: string
+          is_featured?: boolean
+          kickoff: string
+          league: string
+          league_external_id?: string | null
+          minute?: number | null
+          odds_synced_at?: string | null
+          sport?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          away_logo?: string | null
+          away_score?: number | null
+          away_team?: string
+          country?: string | null
+          created_at?: string
+          external_id?: string | null
+          graded_at?: string | null
+          home_logo?: string | null
+          home_score?: number | null
+          home_team?: string
+          id?: string
+          is_featured?: boolean
+          kickoff?: string
+          league?: string
+          league_external_id?: string | null
+          minute?: number | null
+          odds_synced_at?: string | null
+          sport?: string
+          status?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -3139,6 +3462,7 @@ export type Database = {
         }
         Returns: string
       }
+      fn_grade_fixture: { Args: { p_fixture_id: string }; Returns: Json }
       fn_increment_creator_payout: {
         Args: { p_amount: number; p_user_id: string }
         Returns: undefined
@@ -3179,6 +3503,16 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_place_bet: {
+        Args: {
+          p_bet_type: string
+          p_idempotency_key: string
+          p_legs: Json
+          p_stake: number
+          p_user_id: string
+        }
+        Returns: Json
+      }
       fn_place_match_bet: {
         Args: {
           p_idempotency_key: string
@@ -3210,6 +3544,7 @@ export type Database = {
         Args: { p_idempotency_key: string; p_market_id: string }
         Returns: Json
       }
+      fn_settle_bet: { Args: { p_bet_id: string }; Returns: Json }
       fn_settle_market_payout: {
         Args: {
           p_idempotency_key: string
