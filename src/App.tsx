@@ -256,10 +256,13 @@ const App = () => (
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <AuthProvider>
               <GuestProvider>
-                <OfflineIndicator />
-                <AnimatedRoutes />
+                <BetSlipProvider>
+                  <OfflineIndicator />
+                  <AnimatedRoutes />
+                </BetSlipProvider>
               </GuestProvider>
             </AuthProvider>
+
           </BrowserRouter>
         </TooltipProvider>
       </ThemeProvider>
