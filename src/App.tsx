@@ -19,8 +19,9 @@ import OfflineIndicator from "@/components/OfflineIndicator";
 
 const MarketAliasRedirect = () => {
   const { id } = useParams();
-  return <Navigate to={`/markets/${id}`} replace />;
+  return <Navigate to={`/match/${id}`} replace />;
 };
+
 
 // Eager loads — critical path
 import Sportsbook from "./pages/Sportsbook";
