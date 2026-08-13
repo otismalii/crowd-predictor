@@ -16,22 +16,25 @@ import { Navigate, useParams } from "react-router-dom";
 import PageLoader from "@/components/PageLoader";
 import { PlayerRoute, AdminRoute } from "@/routes/route-guards";
 import OfflineIndicator from "@/components/OfflineIndicator";
+import { BetSlipProvider } from "@/contexts/BetSlipContext";
+import BetSlipDrawer from "@/components/sportsbook/BetSlipDrawer";
 
 const MarketAliasRedirect = () => {
   const { id } = useParams();
-  return <Navigate to={`/markets/${id}`} replace />;
+  return <Navigate to={`/match/${id}`} replace />;
 };
 
+
 // Eager loads — critical path
-import Feed from "./pages/Feed";
+import Sportsbook from "./pages/Sportsbook";
 import Auth from "./pages/Auth";
 
-// Lazy loads — public
-const Markets = lazy(() => import("./pages/Markets"));
-const MarketDetail = lazy(() => import("./pages/MarketDetail"));
+// Lazy loads — public sportsbook
+const MatchDetail = lazy(() => import("./pages/MatchDetail"));
+const MyBets = lazy(() => import("./pages/MyBets"));
 const Leaderboard = lazy(() => import("./pages/Leaderboard"));
 const Rules = lazy(() => import("./pages/Rules"));
-const Sources = lazy(() => import("./pages/Sources"));
+
 
 // Lazy loads — auth
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
@@ -129,14 +132,21 @@ const AnimatedRoutes = () => {
     <>
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
-          {/* ========== PUBLIC ========== */}
-          <Route path="/" element={<AnimatedPage><Feed /></AnimatedPage>} />
-          <Route path="/markets" element={<AnimatedPage><Markets /></AnimatedPage>} />
-          <Route path="/markets/:id" element={<AnimatedPage><MarketDetail /></AnimatedPage>} />
-          <Route path="/market/:id" element={<MarketAliasRedirect />} />
+          {/* ========== PUBLIC SPORTSBOOK ========== */}
+          <Route path="/" element={<AnimatedPage><Sportsbook /></AnimatedPage>} />
+          <Route path="/sports" element={<AnimatedPage><Sportsbook /></AnimatedPage>} />
+          <Route path="/sports/:competitionSlug" element={<AnimatedPage><Sportsbook /></AnimatedPage>} />
+          <Route path="/match/:id" element={<AnimatedPage><MatchDetail /></AnimatedPage>} />
+          <Route path="/my-bets" element={<AnimatedPage><PlayerRoute><MyBets /></PlayerRoute></AnimatedPage>} />
           <Route path="/leaderboard" element={<AnimatedPage><Leaderboard /></AnimatedPage>} />
           <Route path="/rules" element={<AnimatedPage><Rules /></AnimatedPage>} />
-          <Route path="/sources" element={<AnimatedPage><Sources /></AnimatedPage>} />
+          <Route path="/markets" element={<Navigate to="/sports" replace />} />
+          <Route path="/markets/:id" element={<Navigate to="/sports" replace />} />
+          <Route path="/portfolio" element={<Navigate to="/my-bets" replace />} />
+          <Route path="/watchlist" element={<Navigate to="/sports" replace />} />
+          <Route path="/creator" element={<Navigate to="/sports" replace />} />
+          <Route path="/sources" element={<Navigate to="/rules" replace />} />
+
 
           {/* ========== AUTH ========== */}
           <Route path="/auth" element={<AnimatedPage><Auth /></AnimatedPage>} />
@@ -218,10 +228,10 @@ const AnimatedRoutes = () => {
 
 
           {/* ========== LEGACY REDIRECTS (kept for inbound links / shares) ========== */}
-          <Route path="/trending" element={<Navigate to="/markets?sort=trending" replace />} />
-          <Route path="/closing-soon" element={<Navigate to="/markets?sort=closing" replace />} />
-          <Route path="/resolved" element={<Navigate to="/markets?filter=resolved" replace />} />
-          <Route path="/categories/:slug" element={<Navigate to="/markets" replace />} />
+          <Route path="/trending" element={<Navigate to="/sports" replace />} />
+          <Route path="/closing-soon" element={<Navigate to="/sports" replace />} />
+          <Route path="/resolved" element={<Navigate to="/sports" replace />} />
+          <Route path="/categories/:slug" element={<Navigate to="/sports" replace />} />
           <Route path="/faq" element={<Navigate to="/rules" replace />} />
           <Route path="/about" element={<Navigate to="/rules" replace />} />
           <Route path="/challenges" element={<Navigate to="/leaderboard" replace />} />
@@ -229,6 +239,7 @@ const AnimatedRoutes = () => {
           <Route path="*" element={<AnimatedPage><NotFound /></AnimatedPage>} />
         </Routes>
       </AnimatePresence>
+      {!isAuthPage && !isAdminPage && <BetSlipDrawer />}
       {!isAuthPage && !isAdminPage && <MobileNav />}
       <InstallBanner />
     </>
@@ -245,10 +256,13 @@ const App = () => (
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <AuthProvider>
               <GuestProvider>
-                <OfflineIndicator />
-                <AnimatedRoutes />
+                <BetSlipProvider>
+                  <OfflineIndicator />
+                  <AnimatedRoutes />
+                </BetSlipProvider>
               </GuestProvider>
             </AuthProvider>
+
           </BrowserRouter>
         </TooltipProvider>
       </ThemeProvider>
