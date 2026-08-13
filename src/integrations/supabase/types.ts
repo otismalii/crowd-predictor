@@ -3100,42 +3100,6 @@ export type Database = {
       }
     }
     Views: {
-      public_creator_profiles: {
-        Row: {
-          bio: string | null
-          created_at: string | null
-          id: string | null
-          is_active: boolean | null
-          markets_published: number | null
-          score: number | null
-          tier: Database["public"]["Enums"]["creator_tier"] | null
-          total_volume_attributed: number | null
-          user_id: string | null
-        }
-        Insert: {
-          bio?: string | null
-          created_at?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          markets_published?: number | null
-          score?: number | null
-          tier?: Database["public"]["Enums"]["creator_tier"] | null
-          total_volume_attributed?: number | null
-          user_id?: string | null
-        }
-        Update: {
-          bio?: string | null
-          created_at?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          markets_published?: number | null
-          score?: number | null
-          tier?: Database["public"]["Enums"]["creator_tier"] | null
-          total_volume_attributed?: number | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       public_profiles: {
         Row: {
           accuracy_rate: number | null
