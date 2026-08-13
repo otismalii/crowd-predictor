@@ -23,15 +23,15 @@ const MarketAliasRedirect = () => {
 };
 
 // Eager loads — critical path
-import Feed from "./pages/Feed";
+import Sportsbook from "./pages/Sportsbook";
 import Auth from "./pages/Auth";
 
-// Lazy loads — public
-const Markets = lazy(() => import("./pages/Markets"));
-const MarketDetail = lazy(() => import("./pages/MarketDetail"));
+// Lazy loads — public sportsbook
+const MatchDetail = lazy(() => import("./pages/MatchDetail"));
+const MyBets = lazy(() => import("./pages/MyBets"));
 const Leaderboard = lazy(() => import("./pages/Leaderboard"));
 const Rules = lazy(() => import("./pages/Rules"));
-const Sources = lazy(() => import("./pages/Sources"));
+
 
 // Lazy loads — auth
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
