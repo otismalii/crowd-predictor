@@ -129,14 +129,21 @@ const AnimatedRoutes = () => {
     <>
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
-          {/* ========== PUBLIC ========== */}
-          <Route path="/" element={<AnimatedPage><Feed /></AnimatedPage>} />
-          <Route path="/markets" element={<AnimatedPage><Markets /></AnimatedPage>} />
-          <Route path="/markets/:id" element={<AnimatedPage><MarketDetail /></AnimatedPage>} />
-          <Route path="/market/:id" element={<MarketAliasRedirect />} />
+          {/* ========== PUBLIC SPORTSBOOK ========== */}
+          <Route path="/" element={<AnimatedPage><Sportsbook /></AnimatedPage>} />
+          <Route path="/sports" element={<AnimatedPage><Sportsbook /></AnimatedPage>} />
+          <Route path="/sports/:competitionSlug" element={<AnimatedPage><Sportsbook /></AnimatedPage>} />
+          <Route path="/match/:id" element={<AnimatedPage><MatchDetail /></AnimatedPage>} />
+          <Route path="/my-bets" element={<AnimatedPage><PlayerRoute><MyBets /></PlayerRoute></AnimatedPage>} />
           <Route path="/leaderboard" element={<AnimatedPage><Leaderboard /></AnimatedPage>} />
           <Route path="/rules" element={<AnimatedPage><Rules /></AnimatedPage>} />
-          <Route path="/sources" element={<AnimatedPage><Sources /></AnimatedPage>} />
+          <Route path="/markets" element={<Navigate to="/sports" replace />} />
+          <Route path="/markets/:id" element={<Navigate to="/sports" replace />} />
+          <Route path="/portfolio" element={<Navigate to="/my-bets" replace />} />
+          <Route path="/watchlist" element={<Navigate to="/sports" replace />} />
+          <Route path="/creator" element={<Navigate to="/sports" replace />} />
+          <Route path="/sources" element={<Navigate to="/rules" replace />} />
+
 
           {/* ========== AUTH ========== */}
           <Route path="/auth" element={<AnimatedPage><Auth /></AnimatedPage>} />
