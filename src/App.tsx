@@ -16,6 +16,8 @@ import { Navigate, useParams } from "react-router-dom";
 import PageLoader from "@/components/PageLoader";
 import { PlayerRoute, AdminRoute } from "@/routes/route-guards";
 import OfflineIndicator from "@/components/OfflineIndicator";
+import { BetSlipProvider } from "@/contexts/BetSlipContext";
+import BetSlipDrawer from "@/components/sportsbook/BetSlipDrawer";
 
 const MarketAliasRedirect = () => {
   const { id } = useParams();
@@ -226,10 +228,10 @@ const AnimatedRoutes = () => {
 
 
           {/* ========== LEGACY REDIRECTS (kept for inbound links / shares) ========== */}
-          <Route path="/trending" element={<Navigate to="/markets?sort=trending" replace />} />
-          <Route path="/closing-soon" element={<Navigate to="/markets?sort=closing" replace />} />
-          <Route path="/resolved" element={<Navigate to="/markets?filter=resolved" replace />} />
-          <Route path="/categories/:slug" element={<Navigate to="/markets" replace />} />
+          <Route path="/trending" element={<Navigate to="/sports" replace />} />
+          <Route path="/closing-soon" element={<Navigate to="/sports" replace />} />
+          <Route path="/resolved" element={<Navigate to="/sports" replace />} />
+          <Route path="/categories/:slug" element={<Navigate to="/sports" replace />} />
           <Route path="/faq" element={<Navigate to="/rules" replace />} />
           <Route path="/about" element={<Navigate to="/rules" replace />} />
           <Route path="/challenges" element={<Navigate to="/leaderboard" replace />} />
@@ -237,6 +239,7 @@ const AnimatedRoutes = () => {
           <Route path="*" element={<AnimatedPage><NotFound /></AnimatedPage>} />
         </Routes>
       </AnimatePresence>
+      {!isAuthPage && !isAdminPage && <BetSlipDrawer />}
       {!isAuthPage && !isAdminPage && <MobileNav />}
       <InstallBanner />
     </>
