@@ -3300,6 +3300,7 @@ export type Database = {
         Returns: string
       }
       fn_generate_match_odds: { Args: { p_match_id: string }; Returns: number }
+      fn_grade_match: { Args: { p_match_id: string }; Returns: Json }
       fn_grade_selection: {
         Args: {
           p_away: number
@@ -3388,6 +3389,7 @@ export type Database = {
         Returns: Json
       }
       fn_settle_match_bets: { Args: { p_match_id: string }; Returns: Json }
+      fn_settle_slip: { Args: { p_slip_id: string }; Returns: Json }
       fn_settle_trade: {
         Args: {
           p_amount: number
