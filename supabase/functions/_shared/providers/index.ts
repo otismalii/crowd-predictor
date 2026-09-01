@@ -1,5 +1,6 @@
 // Provider registry: builds a FootballProvider from a provider_connections row.
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { FootballDataProvider } from "./footballdata.ts";
 import { TheSportsDbProvider } from "./thesportsdb.ts";
 import type { FootballProvider, ProviderConnection } from "./types.ts";
 
