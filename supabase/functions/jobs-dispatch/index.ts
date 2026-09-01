@@ -83,18 +83,21 @@ Deno.serve(async (req) => {
     results.push({ id: job.id, type: job.job_type, ok, duration });
   }
 
-  // Enqueue cron-scheduled jobs whose next slot has arrived
+  // Enqueue cron-scheduled jobs whose next slot has arrived.
+  // Every insert carries a deterministic dedupe_key (unique index) so a slow or
+  // concurrent dispatch can never fan the queue out.
   const { data: defs } = await admin.from("job_definitions").select("*").eq("enabled", true).not("cron_expression", "is", null);
   const enqueued: string[] = [];
   for (const d of defs ?? []) {
-    // Simple guard: only enqueue if no pending or running row for this type
+    const cadenceMs = cronCadenceMs(d.cron_expression);
+
+    // never stack a second row for a type that is already waiting or running
     const { count } = await admin.from("system_jobs")
       .select("id", { count: "exact", head: true })
       .eq("job_type", d.job_type)
       .in("status", ["queued", "running"]);
     if ((count ?? 0) > 0) continue;
-    // Basic cron cadence check: if last succeeded/failed within cadence window, skip.
-    const cadenceMs = cronCadenceMs(d.cron_expression);
+
     const { data: last } = await admin.from("system_jobs")
       .select("finished_at")
       .eq("job_type", d.job_type)
@@ -103,18 +106,23 @@ Deno.serve(async (req) => {
       .limit(1).maybeSingle();
     if (last?.finished_at && Date.now() - new Date(last.finished_at).getTime() < cadenceMs) continue;
 
-    await admin.from("system_jobs").insert({
+    const slot = Math.floor(Date.now() / cadenceMs);
+    const { error: insErr } = await admin.from("system_jobs").insert({
       job_type: d.job_type,
       payload: d.default_payload ?? {},
+      status: "queued",
       scheduled_by: "cron",
       max_attempts: 5,
+      dedupe_key: `${d.job_type}:${slot}`,
     });
+    if (insErr) continue; // duplicate slot — another dispatch already queued it
     enqueued.push(d.job_type);
   }
 
-  return new Response(JSON.stringify({ ran: results.length, results, enqueued }), {
+  return new Response(JSON.stringify({ ran: results.length, reaped: reaped ?? 0, results, enqueued }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+
 });
 
 // Approximate cadence in ms from a small cron subset ("* * * * *", "*/N * * * *", "0 * * * *", "0 N * * *")
