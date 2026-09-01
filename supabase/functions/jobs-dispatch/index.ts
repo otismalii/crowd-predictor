@@ -12,29 +12,20 @@ Deno.serve(async (req) => {
 
   const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
-  // Claim jobs atomically via RPC-less pattern (single UPDATE ... RETURNING).
-  const { data: claimed, error: claimErr } = await admin.rpc("claim_jobs", { p_limit: BATCH_SIZE }).select();
-  // If RPC doesn't exist yet, fall back to plain query.
-  let jobs: any[] = claimed ?? [];
-  if (claimErr || !claimed) {
-    const { data } = await admin
-      .from("system_jobs")
-      .select("*")
-      .eq("status", "queued")
-      .lte("run_after", new Date().toISOString())
-      .order("priority", { ascending: true })
-      .order("run_after", { ascending: true })
-      .limit(BATCH_SIZE);
-    jobs = data ?? [];
-    for (const j of jobs) {
-      await admin.from("system_jobs").update({
-        status: "running",
-        started_at: new Date().toISOString(),
-        attempts: (j.attempts ?? 0) + 1,
-        locked_until: new Date(Date.now() + 5 * 60_000).toISOString(),
-      }).eq("id", j.id).eq("status", "queued");
-    }
+  // Recover jobs whose worker died mid-run before claiming anything new.
+  const { data: reaped } = await admin.rpc("reap_stale_jobs");
+
+  // Claim jobs atomically (single UPDATE ... RETURNING inside the RPC).
+  const { data: claimed, error: claimErr } = await admin.rpc("claim_jobs", { p_limit: BATCH_SIZE });
+  if (claimErr) {
+    console.error("[jobs-dispatch] claim_jobs failed:", claimErr.message);
+    return new Response(JSON.stringify({ ok: false, error: claimErr.message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
+  const jobs: any[] = Array.isArray(claimed) ? claimed : [];
+
 
   const results: any[] = [];
   for (const job of jobs) {
