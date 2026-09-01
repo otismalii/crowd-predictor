@@ -28,9 +28,11 @@ Deno.serve(async (req) => {
   const { data: row, error } = await admin.from("system_jobs").insert({
     job_type: jobType,
     payload: body?.payload ?? def.default_payload ?? {},
+    status: "queued",
     scheduled_by: "manual",
     max_attempts: body?.max_attempts ?? 3,
   }).select("id").single();
+
   if (error) return json({ error: error.message }, 500);
 
   await admin.from("audit_logs").insert({

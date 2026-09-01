@@ -12,29 +12,20 @@ Deno.serve(async (req) => {
 
   const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
-  // Claim jobs atomically via RPC-less pattern (single UPDATE ... RETURNING).
-  const { data: claimed, error: claimErr } = await admin.rpc("claim_jobs", { p_limit: BATCH_SIZE }).select();
-  // If RPC doesn't exist yet, fall back to plain query.
-  let jobs: any[] = claimed ?? [];
-  if (claimErr || !claimed) {
-    const { data } = await admin
-      .from("system_jobs")
-      .select("*")
-      .eq("status", "queued")
-      .lte("run_after", new Date().toISOString())
-      .order("priority", { ascending: true })
-      .order("run_after", { ascending: true })
-      .limit(BATCH_SIZE);
-    jobs = data ?? [];
-    for (const j of jobs) {
-      await admin.from("system_jobs").update({
-        status: "running",
-        started_at: new Date().toISOString(),
-        attempts: (j.attempts ?? 0) + 1,
-        locked_until: new Date(Date.now() + 5 * 60_000).toISOString(),
-      }).eq("id", j.id).eq("status", "queued");
-    }
+  // Recover jobs whose worker died mid-run before claiming anything new.
+  const { data: reaped } = await admin.rpc("reap_stale_jobs");
+
+  // Claim jobs atomically (single UPDATE ... RETURNING inside the RPC).
+  const { data: claimed, error: claimErr } = await admin.rpc("claim_jobs", { p_limit: BATCH_SIZE });
+  if (claimErr) {
+    console.error("[jobs-dispatch] claim_jobs failed:", claimErr.message);
+    return new Response(JSON.stringify({ ok: false, error: claimErr.message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
+  const jobs: any[] = Array.isArray(claimed) ? claimed : [];
+
 
   const results: any[] = [];
   for (const job of jobs) {
@@ -92,18 +83,21 @@ Deno.serve(async (req) => {
     results.push({ id: job.id, type: job.job_type, ok, duration });
   }
 
-  // Enqueue cron-scheduled jobs whose next slot has arrived
+  // Enqueue cron-scheduled jobs whose next slot has arrived.
+  // Every insert carries a deterministic dedupe_key (unique index) so a slow or
+  // concurrent dispatch can never fan the queue out.
   const { data: defs } = await admin.from("job_definitions").select("*").eq("enabled", true).not("cron_expression", "is", null);
   const enqueued: string[] = [];
   for (const d of defs ?? []) {
-    // Simple guard: only enqueue if no pending or running row for this type
+    const cadenceMs = cronCadenceMs(d.cron_expression);
+
+    // never stack a second row for a type that is already waiting or running
     const { count } = await admin.from("system_jobs")
       .select("id", { count: "exact", head: true })
       .eq("job_type", d.job_type)
       .in("status", ["queued", "running"]);
     if ((count ?? 0) > 0) continue;
-    // Basic cron cadence check: if last succeeded/failed within cadence window, skip.
-    const cadenceMs = cronCadenceMs(d.cron_expression);
+
     const { data: last } = await admin.from("system_jobs")
       .select("finished_at")
       .eq("job_type", d.job_type)
@@ -112,18 +106,23 @@ Deno.serve(async (req) => {
       .limit(1).maybeSingle();
     if (last?.finished_at && Date.now() - new Date(last.finished_at).getTime() < cadenceMs) continue;
 
-    await admin.from("system_jobs").insert({
+    const slot = Math.floor(Date.now() / cadenceMs);
+    const { error: insErr } = await admin.from("system_jobs").insert({
       job_type: d.job_type,
       payload: d.default_payload ?? {},
+      status: "queued",
       scheduled_by: "cron",
       max_attempts: 5,
+      dedupe_key: `${d.job_type}:${slot}`,
     });
+    if (insErr) continue; // duplicate slot — another dispatch already queued it
     enqueued.push(d.job_type);
   }
 
-  return new Response(JSON.stringify({ ran: results.length, results, enqueued }), {
+  return new Response(JSON.stringify({ ran: results.length, reaped: reaped ?? 0, results, enqueued }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+
 });
 
 // Approximate cadence in ms from a small cron subset ("* * * * *", "*/N * * * *", "0 * * * *", "0 N * * *")

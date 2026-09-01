@@ -30,7 +30,17 @@ Deno.serve(async (req) => {
     syncError = e instanceof Error ? e.message : String(e);
   }
 
-  // ---- 2. settle bets on finished matches
+  // ---- 2. watchdog: expire fixtures stuck in the wrong state (voids/refunds their bets)
+  let expired: unknown = null;
+  {
+    const { data, error } = await db.rpc("fn_expire_stale_fixtures", {
+      p_upcoming_grace_hours: 6,
+      p_live_grace_hours: 4,
+    });
+    expired = error ? { error: error.message } : data;
+  }
+
+  // ---- 3. settle bets on finished / cancelled / postponed matches
   const settled: Record<string, unknown>[] = [];
   let betsPaid = 0;
   let betsLost = 0;
@@ -49,7 +59,7 @@ Deno.serve(async (req) => {
       .from("platform_matches")
       .select("id")
       .in("id", matchIds)
-      .eq("status", "finished");
+      .in("status", ["finished", "cancelled", "postponed"]);
 
     for (const m of finished ?? []) {
       const { data, error } = await db.rpc("fn_settle_match_bets", { p_match_id: m.id });
@@ -57,13 +67,14 @@ Deno.serve(async (req) => {
         settled.push({ match_id: m.id, error: error.message });
         continue;
       }
-      const r = (data ?? {}) as { paid?: number; lost?: number; void?: number };
-      betsPaid += r.paid ?? 0;
-      betsLost += r.lost ?? 0;
-      betsVoided += r.void ?? 0;
+      const r = (data ?? {}) as { slips_won?: number; slips_lost?: number; slips_void?: number };
+      betsPaid += r.slips_won ?? 0;
+      betsLost += r.slips_lost ?? 0;
+      betsVoided += r.slips_void ?? 0;
       settled.push({ match_id: m.id, ...r });
     }
   }
+
 
   const durationMs = Date.now() - started;
 

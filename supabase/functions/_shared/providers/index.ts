@@ -1,5 +1,6 @@
 // Provider registry: builds a FootballProvider from a provider_connections row.
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { FootballDataProvider } from "./footballdata.ts";
 import { TheSportsDbProvider } from "./thesportsdb.ts";
 import type { FootballProvider, ProviderConnection } from "./types.ts";
 
@@ -22,10 +23,18 @@ export function buildProvider(connection: ProviderConnection): FootballProvider 
   const secret = connection.secret_name ? Deno.env.get(connection.secret_name) : null;
 
   switch (connection.provider) {
+    case "footballdata": {
+      if (!secret) {
+        console.log("[providers] footballdata disabled: FOOTBALL_DATA_API_TOKEN missing");
+        return null;
+      }
+      return new FootballDataProvider(connection, secret);
+    }
     case "thesportsdb": {
       const key = secret ?? (connection.config?.api_key as string | undefined) ?? "123";
       return new TheSportsDbProvider(connection, key);
     }
+
     default:
       console.log(`[providers] no adapter registered for "${connection.provider}"`);
       return null;
