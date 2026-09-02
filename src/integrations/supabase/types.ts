@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.1"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -2549,6 +2549,7 @@ export type Database = {
           attempts: number
           cancel_reason: string | null
           created_at: string
+          dedupe_key: string | null
           duration_ms: number | null
           finished_at: string | null
           id: string
@@ -2570,6 +2571,7 @@ export type Database = {
           attempts?: number
           cancel_reason?: string | null
           created_at?: string
+          dedupe_key?: string | null
           duration_ms?: number | null
           finished_at?: string | null
           id?: string
@@ -2591,6 +2593,7 @@ export type Database = {
           attempts?: number
           cancel_reason?: string | null
           created_at?: string
+          dedupe_key?: string | null
           duration_ms?: number | null
           finished_at?: string | null
           id?: string
@@ -3241,6 +3244,7 @@ export type Database = {
           attempts: number
           cancel_reason: string | null
           created_at: string
+          dedupe_key: string | null
           duration_ms: number | null
           finished_at: string | null
           id: string
@@ -3298,6 +3302,10 @@ export type Database = {
           p_market_id: string
         }
         Returns: string
+      }
+      fn_expire_stale_fixtures: {
+        Args: { p_live_grace_hours?: number; p_upcoming_grace_hours?: number }
+        Returns: Json
       }
       fn_generate_match_odds: { Args: { p_match_id: string }; Returns: number }
       fn_grade_match: { Args: { p_match_id: string }; Returns: Json }
@@ -3389,6 +3397,7 @@ export type Database = {
         Returns: Json
       }
       fn_settle_match_bets: { Args: { p_match_id: string }; Returns: Json }
+      fn_settle_pending_matches: { Args: { p_limit?: number }; Returns: Json }
       fn_settle_slip: { Args: { p_slip_id: string }; Returns: Json }
       fn_settle_trade: {
         Args: {
@@ -3502,6 +3511,7 @@ export type Database = {
           total_votes: number
         }[]
       }
+      reap_stale_jobs: { Args: never; Returns: number }
       release_withdrawal_lock: {
         Args: { p_amount: number; p_user_id: string }
         Returns: boolean
