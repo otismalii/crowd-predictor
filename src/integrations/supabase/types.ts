@@ -266,6 +266,51 @@ export type Database = {
         }
         Relationships: []
       }
+      casino_games: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          house_edge: number
+          id: string
+          key: string
+          max_payout: number
+          max_stake: number
+          min_stake: number
+          name: string
+          sort_order: number
+          tagline: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          house_edge?: number
+          id?: string
+          key: string
+          max_payout?: number
+          max_stake?: number
+          min_stake?: number
+          name: string
+          sort_order?: number
+          tagline?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          house_edge?: number
+          id?: string
+          key?: string
+          max_payout?: number
+          max_stake?: number
+          min_stake?: number
+          name?: string
+          sort_order?: number
+          tagline?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       competitions: {
         Row: {
           competition_type: string
@@ -310,6 +355,125 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      crash_bets: {
+        Row: {
+          auto_cashout: number | null
+          cashout_multiplier: number | null
+          created_at: string
+          id: string
+          payout: number
+          round_id: string
+          stake: number
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_cashout?: number | null
+          cashout_multiplier?: number | null
+          created_at?: string
+          id?: string
+          payout?: number
+          round_id: string
+          stake: number
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_cashout?: number | null
+          cashout_multiplier?: number | null
+          created_at?: string
+          id?: string
+          payout?: number
+          round_id?: string
+          stake?: number
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crash_bets_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "crash_rounds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crash_bets_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "v_crash_rounds_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crash_rounds: {
+        Row: {
+          betting_ends_at: string
+          crash_point: number
+          crashed_at: string | null
+          created_at: string
+          game_key: string
+          id: string
+          round_no: number
+          seed_hash: string
+          seed_revealed: boolean
+          server_seed: string
+          settled_at: string | null
+          started_at: string | null
+          status: string
+          total_paid: number
+          total_staked: number
+          updated_at: string
+        }
+        Insert: {
+          betting_ends_at: string
+          crash_point: number
+          crashed_at?: string | null
+          created_at?: string
+          game_key?: string
+          id?: string
+          round_no?: number
+          seed_hash: string
+          seed_revealed?: boolean
+          server_seed: string
+          settled_at?: string | null
+          started_at?: string | null
+          status?: string
+          total_paid?: number
+          total_staked?: number
+          updated_at?: string
+        }
+        Update: {
+          betting_ends_at?: string
+          crash_point?: number
+          crashed_at?: string | null
+          created_at?: string
+          game_key?: string
+          id?: string
+          round_no?: number
+          seed_hash?: string
+          seed_revealed?: boolean
+          server_seed?: string
+          settled_at?: string | null
+          started_at?: string | null
+          status?: string
+          total_paid?: number
+          total_staked?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crash_rounds_game_key_fkey"
+            columns: ["game_key"]
+            isOneToOne: false
+            referencedRelation: "casino_games"
+            referencedColumns: ["key"]
+          },
+        ]
       }
       creator_payouts: {
         Row: {
@@ -3149,6 +3313,62 @@ export type Database = {
           },
         ]
       }
+      v_crash_rounds_public: {
+        Row: {
+          betting_ends_at: string | null
+          crash_point: number | null
+          crashed_at: string | null
+          created_at: string | null
+          game_key: string | null
+          id: string | null
+          round_no: number | null
+          seed_hash: string | null
+          server_seed: string | null
+          started_at: string | null
+          status: string | null
+          total_paid: number | null
+          total_staked: number | null
+        }
+        Insert: {
+          betting_ends_at?: string | null
+          crash_point?: never
+          crashed_at?: string | null
+          created_at?: string | null
+          game_key?: string | null
+          id?: string | null
+          round_no?: number | null
+          seed_hash?: string | null
+          server_seed?: never
+          started_at?: string | null
+          status?: string | null
+          total_paid?: number | null
+          total_staked?: number | null
+        }
+        Update: {
+          betting_ends_at?: string | null
+          crash_point?: never
+          crashed_at?: string | null
+          created_at?: string | null
+          game_key?: string | null
+          id?: string | null
+          round_no?: number | null
+          seed_hash?: string | null
+          server_seed?: never
+          started_at?: string | null
+          status?: string | null
+          total_paid?: number | null
+          total_staked?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crash_rounds_game_key_fkey"
+            columns: ["game_key"]
+            isOneToOne: false
+            referencedRelation: "casino_games"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
       v_job_health: {
         Row: {
           avg_duration_ms: number | null
@@ -3303,6 +3523,37 @@ export type Database = {
         }
         Returns: string
       }
+      fn_crash_cashout: {
+        Args: {
+          p_bet_id: string
+          p_idempotency_key: string
+          p_multiplier: number
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      fn_crash_place_bet: {
+        Args: {
+          p_auto_cashout: number
+          p_idempotency_key: string
+          p_round_id: string
+          p_stake: number
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      fn_crash_round_feed: {
+        Args: { p_round_id: string }
+        Returns: {
+          bet_id: string
+          cashout_multiplier: number
+          payout: number
+          stake: number
+          status: string
+          username: string
+        }[]
+      }
+      fn_crash_settle_round: { Args: { p_round_id: string }; Returns: Json }
       fn_expire_stale_fixtures: {
         Args: { p_live_grace_hours?: number; p_upcoming_grace_hours?: number }
         Returns: Json
