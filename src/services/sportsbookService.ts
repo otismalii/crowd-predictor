@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { safeFetch } from "@/lib/api";
+import { effectiveOdds } from "@/types/sportsbook";
 import type {
   BetSlip,
   BetSlipLeg,
@@ -8,6 +9,7 @@ import type {
   MatchOdds,
   SlipSelection,
 } from "@/types/sportsbook";
+
 
 const FIXTURE_SELECT = `
   id, kickoff_at, status, minute, home_score, away_score, venue, round,
