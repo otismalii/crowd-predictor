@@ -86,6 +86,55 @@ export async function fetchOddsForMatches(matchIds: string[]) {
   return { data: (data ?? []) as MatchOdds[], error };
 }
 
+export type RepriceResult = {
+  /** Selections still available, carrying the current live price. */
+  updated: SlipSelection[];
+  /** Selections whose price moved since they were added. */
+  changed: { selection: SlipSelection; from: number; to: number }[];
+  /** Selections that are suspended, closed or no longer priced. */
+  dropped: SlipSelection[];
+};
+
+/**
+ * Re-reads live prices for every selection on the slip.
+ * The server is still the final authority at placement — this only lets the
+ * player see and accept a price move instead of having the bet rejected.
+ */
+export async function repriceSelections(selections: SlipSelection[]): Promise<RepriceResult> {
+  const result: RepriceResult = { updated: [], changed: [], dropped: [] };
+  if (selections.length === 0) return result;
+
+  const matchIds = [...new Set(selections.map((s) => s.matchId))];
+  const [{ data: odds }, { data: fixtures }] = await Promise.all([
+    fetchOddsForMatches(matchIds),
+    safeFetch<any[]>(supabase.from("platform_matches").select("id, status, kickoff_at").in("id", matchIds)),
+  ]);
+
+  const fixtureById = new Map((fixtures ?? []).map((f: any) => [f.id as string, f]));
+
+  for (const s of selections) {
+    const fixture = fixtureById.get(s.matchId);
+    const open = fixture?.status === "upcoming" && new Date(fixture.kickoff_at).getTime() > Date.now();
+    const row = odds.find(
+      (o) => o.match_id === s.matchId && o.market === s.market && o.selection === s.selection && o.line === s.line,
+    );
+
+    if (!open || !row || row.is_suspended) {
+      result.dropped.push(s);
+      continue;
+    }
+
+    const live = Number(effectiveOdds(row).toFixed(2));
+    if (Math.abs(live - s.odds) >= 0.01) {
+      result.changed.push({ selection: s, from: s.odds, to: live });
+    }
+    result.updated.push({ ...s, odds: live });
+  }
+
+  return result;
+}
+
+
 export async function fetchNews(limit = 8) {
   const { data, error } = await safeFetch<any[]>(
     supabase.from("news_items").select("id, title, summary, source, url, published_at, image_url")
