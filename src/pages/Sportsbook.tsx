@@ -33,21 +33,17 @@ const Sportsbook = () => {
   const [competitions, setCompetitions] = useState<{ slug: string; name: string; short_name: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [tick, setTick] = useState(0);
 
   useEffect(() => {
     fetchCompetitions().then(({ data }) => setCompetitions(data as any[]));
   }, []);
 
   // Scores, statuses and prices arrive live — no refresh needed.
-  const subscriptions = useMemo(
-    () => [
-      { changes: { event: "*" as const, table: "platform_matches" }, callback: () => setTick((t) => t + 1) },
-      { changes: { event: "*" as const, table: "match_odds" }, callback: () => setTick((t) => t + 1) },
-    ],
-    [],
-  );
-  useRealtimeChannel("sportsbook-board", subscriptions);
+  const tick = useLiveRefresh("sportsbook-board", [
+    { table: "platform_matches" },
+    { table: "match_odds" },
+  ]);
+
 
   useEffect(() => {
     let cancelled = false;
