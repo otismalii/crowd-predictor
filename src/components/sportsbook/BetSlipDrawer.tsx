@@ -1,29 +1,33 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Ticket, Trash2, X } from "lucide-react";
+import { Loader2, Ticket, Trash2, X, TrendingUp, TrendingDown, AlertTriangle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useBetSlip } from "@/contexts/BetSlipContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { placeBet } from "@/services/sportsbookService";
+import { placeBet, repriceSelections } from "@/services/sportsbookService";
 import { formatKES } from "@/lib/format";
 import { useToast } from "@/hooks/use-toast";
 
 const QUICK_STAKES = [50, 100, 250, 500, 1000];
+const MIN_STAKE = 20;
 
 const BetSlipDrawer = () => {
   const {
     selections, stake, setStake, isOpen, open, close,
-    removeSelection, clear, combinedOdds, potentialPayout, slipType,
+    removeSelection, replaceSelections, clear, combinedOdds, potentialPayout, slipType,
   } = useBetSlip();
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
+  const [priceMoves, setPriceMoves] = useState<{ label: string; from: number; to: number }[]>([]);
+  const [dropped, setDropped] = useState<string[]>([]);
+  const lastSubmit = useRef(0);
 
   const count = selections.length;
 
@@ -33,11 +37,37 @@ const BetSlipDrawer = () => {
       navigate("/auth");
       return;
     }
+    // Duplicate-tap guard.
+    if (Date.now() - lastSubmit.current < 5000) return;
+
     setSubmitting(true);
+
+    // Re-read live prices first so the player accepts the real price, not a stale one.
+    const priced = await repriceSelections(selections);
+
+    if (priced.dropped.length > 0) {
+      setDropped(priced.dropped.map((s) => `${s.selectionLabel} — ${s.matchLabel}`));
+      setPriceMoves([]);
+      replaceSelections(priced.updated);
+      setSubmitting(false);
+      return;
+    }
+
+    if (priced.changed.length > 0 && priceMoves.length === 0) {
+      setDropped([]);
+      setPriceMoves(
+        priced.changed.map((c) => ({ label: c.selection.selectionLabel, from: c.from, to: c.to })),
+      );
+      replaceSelections(priced.updated);
+      setSubmitting(false);
+      return;
+    }
+
+    lastSubmit.current = Date.now();
     const { data, error } = await placeBet({
-      selections,
+      selections: priced.updated,
       stake,
-      idempotencyKey: `slip:${user.id}:${Date.now()}:${selections.map((s) => s.matchId).join(",")}`,
+      idempotencyKey: `slip:${user.id}:${lastSubmit.current}:${priced.updated.map((s) => s.matchId).join(",")}`,
     });
     setSubmitting(false);
 
@@ -45,6 +75,8 @@ const BetSlipDrawer = () => {
       toast({ title: "Bet not placed", description: error, variant: "destructive" });
       return;
     }
+    setPriceMoves([]);
+    setDropped([]);
     toast({
       title: slipType === "acca" ? "Accumulator placed" : "Bet placed",
       description: `KES ${formatKES(stake)} to return KES ${formatKES(data?.potential_payout ?? potentialPayout)}`,
@@ -53,6 +85,7 @@ const BetSlipDrawer = () => {
     close();
     navigate("/my-bets");
   };
+
 
   return (
     <>
