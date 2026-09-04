@@ -12,8 +12,11 @@ type BetSlipContextValue = {
   close: () => void;
   toggleSelection: (selection: SlipSelection) => void;
   removeSelection: (matchId: string, market: string, selection: string, line: number | null) => void;
+  /** Replace the slip wholesale — used when live prices are accepted. */
+  replaceSelections: (next: SlipSelection[]) => void;
   clear: () => void;
   has: (matchId: string, market: string, selection: string, line: number | null) => boolean;
+
   combinedOdds: number;
   potentialPayout: number;
   slipType: "single" | "acca";
