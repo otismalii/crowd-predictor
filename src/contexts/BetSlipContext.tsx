@@ -85,6 +85,8 @@ export const BetSlipProvider = ({ children }: { children: React.ReactNode }) => 
     close: () => setIsOpen(false),
     toggleSelection,
     removeSelection,
+    replaceSelections: (next: SlipSelection[]) => setSelections(next),
+
     clear,
     has,
     combinedOdds,
