@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -7,7 +7,8 @@ import FixtureCard from "@/components/sportsbook/FixtureCard";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Loader2, Radio } from "lucide-react";
+import { Radio } from "lucide-react";
+import { useRealtimeChannel } from "@/hooks/useRealtimeChannel";
 import {
   fetchCompetitions,
   fetchFixtures,
@@ -15,6 +16,7 @@ import {
   type FixtureWindow,
 } from "@/services/sportsbookService";
 import type { Fixture, MatchOdds } from "@/types/sportsbook";
+
 
 const WINDOWS: { key: FixtureWindow; label: string }[] = [
   { key: "today", label: "Today" },
