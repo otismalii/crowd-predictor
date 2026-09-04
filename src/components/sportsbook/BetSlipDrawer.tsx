@@ -149,16 +149,41 @@ const BetSlipDrawer = () => {
                 ))}
               </ul>
 
+              {dropped.length > 0 && (
+                <div className="space-y-1 rounded-lg border border-destructive/40 bg-destructive/10 p-2.5 text-xs">
+                  <p className="flex items-center gap-1.5 font-semibold text-destructive">
+                    <AlertTriangle className="h-3.5 w-3.5" /> No longer available
+                  </p>
+                  {dropped.map((d) => <p key={d} className="text-muted-foreground">{d}</p>)}
+                  <p className="text-muted-foreground">Removed from your slip — tap place bet again to continue.</p>
+                </div>
+              )}
+
+              {priceMoves.length > 0 && (
+                <div className="space-y-1 rounded-lg border border-primary/40 bg-primary/10 p-2.5 text-xs">
+                  <p className="font-semibold text-primary">Odds changed</p>
+                  {priceMoves.map((m) => (
+                    <p key={m.label} className="flex items-center gap-1.5 text-muted-foreground">
+                      {m.to > m.from
+                        ? <TrendingUp className="h-3.5 w-3.5 text-primary" />
+                        : <TrendingDown className="h-3.5 w-3.5 text-destructive" />}
+                      {m.label}: {m.from.toFixed(2)} → <span className="font-semibold text-foreground">{m.to.toFixed(2)}</span>
+                    </p>
+                  ))}
+                  <p className="text-muted-foreground">Tap again to accept the new price.</p>
+                </div>
+              )}
+
               <Separator />
 
               <div className="space-y-2">
                 <label htmlFor="stake" className="text-xs font-medium text-muted-foreground">
-                  Stake (KES)
+                  Stake (KES) — minimum {MIN_STAKE}
                 </label>
                 <Input
                   id="stake"
                   type="number"
-                  min={20}
+                  min={MIN_STAKE}
                   inputMode="numeric"
                   value={stake}
                   onChange={(e) => setStake(Math.max(0, Number(e.target.value)))}
@@ -186,13 +211,23 @@ const BetSlipDrawer = () => {
                 </div>
               </div>
 
-              <Button className="w-full" size="lg" disabled={submitting || stake <= 0} onClick={submit}>
+              <Button
+                className="w-full"
+                size="lg"
+                disabled={submitting || stake < MIN_STAKE}
+                onClick={submit}
+              >
                 {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                {user ? `Place bet — KES ${formatKES(stake)}` : "Sign in to bet"}
+                {!user
+                  ? "Sign in to bet"
+                  : priceMoves.length > 0
+                    ? `Accept new odds — KES ${formatKES(stake)}`
+                    : `Place bet — KES ${formatKES(stake)}`}
               </Button>
               <p className="text-center text-[11px] text-muted-foreground">
                 Stakes are debited immediately. Payouts settle automatically when the match finishes.
               </p>
+
             </div>
           )}
         </SheetContent>
