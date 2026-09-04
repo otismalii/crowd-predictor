@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -8,7 +8,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Radio } from "lucide-react";
-import { useRealtimeChannel } from "@/hooks/useRealtimeChannel";
+import { useLiveRefresh } from "@/hooks/useLiveRefresh";
+
 import {
   fetchCompetitions,
   fetchFixtures,
