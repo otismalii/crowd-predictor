@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Radio } from "lucide-react";
 import { formatDateTime } from "@/lib/format";
+import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 import { fetchFixture, fetchMarketDefinitions, fetchOddsForMatches } from "@/services/sportsbookService";
 import type { Fixture, MarketDefinition, MatchOdds } from "@/types/sportsbook";
 
@@ -18,10 +19,16 @@ const MatchDetail = () => {
   const [markets, setMarkets] = useState<MarketDefinition[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Live score, status and price changes for this fixture only.
+  const tick = useLiveRefresh("match-detail", [
+    { table: "platform_matches", filter: id ? `id=eq.${id}` : undefined },
+    { table: "match_odds", filter: id ? `match_id=eq.${id}` : undefined },
+  ], 2000);
+
   useEffect(() => {
     if (!id) return;
     let cancelled = false;
-    setLoading(true);
+    if (tick === 0) setLoading(true);
     Promise.all([fetchFixture(id), fetchOddsForMatches([id]), fetchMarketDefinitions()]).then(
       ([f, o, m]) => {
         if (cancelled) return;
@@ -32,7 +39,8 @@ const MatchDetail = () => {
       },
     );
     return () => { cancelled = true; };
-  }, [id]);
+  }, [id, tick]);
+
 
   const home = fixture?.home_team?.name ?? "Home";
   const away = fixture?.away_team?.name ?? "Away";

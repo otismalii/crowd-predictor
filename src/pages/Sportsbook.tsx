@@ -7,7 +7,9 @@ import FixtureCard from "@/components/sportsbook/FixtureCard";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Loader2, Radio } from "lucide-react";
+import { Radio } from "lucide-react";
+import { useLiveRefresh } from "@/hooks/useLiveRefresh";
+
 import {
   fetchCompetitions,
   fetchFixtures,
@@ -15,6 +17,7 @@ import {
   type FixtureWindow,
 } from "@/services/sportsbookService";
 import type { Fixture, MatchOdds } from "@/types/sportsbook";
+
 
 const WINDOWS: { key: FixtureWindow; label: string }[] = [
   { key: "today", label: "Today" },
@@ -36,9 +39,16 @@ const Sportsbook = () => {
     fetchCompetitions().then(({ data }) => setCompetitions(data as any[]));
   }, []);
 
+  // Scores, statuses and prices arrive live — no refresh needed.
+  const tick = useLiveRefresh("sportsbook-board", [
+    { table: "platform_matches" },
+    { table: "match_odds" },
+  ]);
+
+
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+    if (tick === 0) setLoading(true);
     setError(null);
 
     fetchFixtures({ window, competitionSlug: competitionSlug ?? null, limit: 40 }).then(async (res) => {
@@ -53,7 +63,8 @@ const Sportsbook = () => {
     });
 
     return () => { cancelled = true; };
-  }, [window, competitionSlug]);
+  }, [window, competitionSlug, tick]);
+
 
   const activeCompetition = competitions.find((c) => c.slug === competitionSlug);
 

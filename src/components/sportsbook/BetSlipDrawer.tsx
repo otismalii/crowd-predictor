@@ -1,29 +1,33 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Ticket, Trash2, X } from "lucide-react";
+import { Loader2, Ticket, Trash2, X, TrendingUp, TrendingDown, AlertTriangle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useBetSlip } from "@/contexts/BetSlipContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { placeBet } from "@/services/sportsbookService";
+import { placeBet, repriceSelections } from "@/services/sportsbookService";
 import { formatKES } from "@/lib/format";
 import { useToast } from "@/hooks/use-toast";
 
 const QUICK_STAKES = [50, 100, 250, 500, 1000];
+const MIN_STAKE = 20;
 
 const BetSlipDrawer = () => {
   const {
     selections, stake, setStake, isOpen, open, close,
-    removeSelection, clear, combinedOdds, potentialPayout, slipType,
+    removeSelection, replaceSelections, clear, combinedOdds, potentialPayout, slipType,
   } = useBetSlip();
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
+  const [priceMoves, setPriceMoves] = useState<{ label: string; from: number; to: number }[]>([]);
+  const [dropped, setDropped] = useState<string[]>([]);
+  const lastSubmit = useRef(0);
 
   const count = selections.length;
 
@@ -33,11 +37,37 @@ const BetSlipDrawer = () => {
       navigate("/auth");
       return;
     }
+    // Duplicate-tap guard.
+    if (Date.now() - lastSubmit.current < 5000) return;
+
     setSubmitting(true);
+
+    // Re-read live prices first so the player accepts the real price, not a stale one.
+    const priced = await repriceSelections(selections);
+
+    if (priced.dropped.length > 0) {
+      setDropped(priced.dropped.map((s) => `${s.selectionLabel} — ${s.matchLabel}`));
+      setPriceMoves([]);
+      replaceSelections(priced.updated);
+      setSubmitting(false);
+      return;
+    }
+
+    if (priced.changed.length > 0 && priceMoves.length === 0) {
+      setDropped([]);
+      setPriceMoves(
+        priced.changed.map((c) => ({ label: c.selection.selectionLabel, from: c.from, to: c.to })),
+      );
+      replaceSelections(priced.updated);
+      setSubmitting(false);
+      return;
+    }
+
+    lastSubmit.current = Date.now();
     const { data, error } = await placeBet({
-      selections,
+      selections: priced.updated,
       stake,
-      idempotencyKey: `slip:${user.id}:${Date.now()}:${selections.map((s) => s.matchId).join(",")}`,
+      idempotencyKey: `slip:${user.id}:${lastSubmit.current}:${priced.updated.map((s) => s.matchId).join(",")}`,
     });
     setSubmitting(false);
 
@@ -45,6 +75,8 @@ const BetSlipDrawer = () => {
       toast({ title: "Bet not placed", description: error, variant: "destructive" });
       return;
     }
+    setPriceMoves([]);
+    setDropped([]);
     toast({
       title: slipType === "acca" ? "Accumulator placed" : "Bet placed",
       description: `KES ${formatKES(stake)} to return KES ${formatKES(data?.potential_payout ?? potentialPayout)}`,
@@ -53,6 +85,7 @@ const BetSlipDrawer = () => {
     close();
     navigate("/my-bets");
   };
+
 
   return (
     <>
@@ -116,16 +149,41 @@ const BetSlipDrawer = () => {
                 ))}
               </ul>
 
+              {dropped.length > 0 && (
+                <div className="space-y-1 rounded-lg border border-destructive/40 bg-destructive/10 p-2.5 text-xs">
+                  <p className="flex items-center gap-1.5 font-semibold text-destructive">
+                    <AlertTriangle className="h-3.5 w-3.5" /> No longer available
+                  </p>
+                  {dropped.map((d) => <p key={d} className="text-muted-foreground">{d}</p>)}
+                  <p className="text-muted-foreground">Removed from your slip — tap place bet again to continue.</p>
+                </div>
+              )}
+
+              {priceMoves.length > 0 && (
+                <div className="space-y-1 rounded-lg border border-primary/40 bg-primary/10 p-2.5 text-xs">
+                  <p className="font-semibold text-primary">Odds changed</p>
+                  {priceMoves.map((m) => (
+                    <p key={m.label} className="flex items-center gap-1.5 text-muted-foreground">
+                      {m.to > m.from
+                        ? <TrendingUp className="h-3.5 w-3.5 text-primary" />
+                        : <TrendingDown className="h-3.5 w-3.5 text-destructive" />}
+                      {m.label}: {m.from.toFixed(2)} → <span className="font-semibold text-foreground">{m.to.toFixed(2)}</span>
+                    </p>
+                  ))}
+                  <p className="text-muted-foreground">Tap again to accept the new price.</p>
+                </div>
+              )}
+
               <Separator />
 
               <div className="space-y-2">
                 <label htmlFor="stake" className="text-xs font-medium text-muted-foreground">
-                  Stake (KES)
+                  Stake (KES) — minimum {MIN_STAKE}
                 </label>
                 <Input
                   id="stake"
                   type="number"
-                  min={20}
+                  min={MIN_STAKE}
                   inputMode="numeric"
                   value={stake}
                   onChange={(e) => setStake(Math.max(0, Number(e.target.value)))}
@@ -153,13 +211,23 @@ const BetSlipDrawer = () => {
                 </div>
               </div>
 
-              <Button className="w-full" size="lg" disabled={submitting || stake <= 0} onClick={submit}>
+              <Button
+                className="w-full"
+                size="lg"
+                disabled={submitting || stake < MIN_STAKE}
+                onClick={submit}
+              >
                 {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                {user ? `Place bet — KES ${formatKES(stake)}` : "Sign in to bet"}
+                {!user
+                  ? "Sign in to bet"
+                  : priceMoves.length > 0
+                    ? `Accept new odds — KES ${formatKES(stake)}`
+                    : `Place bet — KES ${formatKES(stake)}`}
               </Button>
               <p className="text-center text-[11px] text-muted-foreground">
                 Stakes are debited immediately. Payouts settle automatically when the match finishes.
               </p>
+
             </div>
           )}
         </SheetContent>

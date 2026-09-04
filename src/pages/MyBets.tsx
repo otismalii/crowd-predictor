@@ -6,6 +6,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDateTime, formatKES } from "@/lib/format";
+import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 import { fetchMySlips, fetchSlipLegs } from "@/services/sportsbookService";
 import { selectionLabel, type BetSlip, type BetSlipLeg } from "@/types/sportsbook";
 
@@ -19,9 +20,12 @@ const MyBets = () => {
   const [legs, setLegs] = useState<Record<string, BetSlipLeg[]>>({});
   const [loading, setLoading] = useState(true);
 
+  // Settlements land without a refresh.
+  const tick = useLiveRefresh("my-bets", [{ table: "bet_slips" }, { table: "match_bets" }], 2000);
+
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+    if (tick === 0) setLoading(true);
     fetchMySlips(tab).then(async ({ data }) => {
       if (cancelled) return;
       setSlips(data);
@@ -32,7 +36,8 @@ const MyBets = () => {
       }
     });
     return () => { cancelled = true; };
-  }, [tab]);
+  }, [tab, tick]);
+
 
   return (
     <div className="min-h-screen bg-background pb-28">
