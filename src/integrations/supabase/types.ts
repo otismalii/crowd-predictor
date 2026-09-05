@@ -1692,6 +1692,13 @@ export type Database = {
             referencedRelation: "bet_slips"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "match_bets_slip_id_fkey"
+            columns: ["slip_id"]
+            isOneToOne: false
+            referencedRelation: "v_unsettled_slips"
+            referencedColumns: ["slip_id"]
+          },
         ]
       }
       match_events: {
@@ -3096,44 +3103,59 @@ export type Database = {
       withdrawal_requests: {
         Row: {
           amount: number
+          auto_approved: boolean
           created_at: string
+          failure_reason: string | null
           id: string
           paid_at: string | null
           payment_method: string
           payout_reference: string | null
           phone_number: string | null
+          provider: string | null
           review_reason: string | null
           reviewed_at: string | null
           reviewer_id: string | null
           status: Database["public"]["Enums"]["withdrawal_status"]
+          transaction_id: string | null
+          updated_at: string
           user_id: string
         }
         Insert: {
           amount: number
+          auto_approved?: boolean
           created_at?: string
+          failure_reason?: string | null
           id?: string
           paid_at?: string | null
           payment_method?: string
           payout_reference?: string | null
           phone_number?: string | null
+          provider?: string | null
           review_reason?: string | null
           reviewed_at?: string | null
           reviewer_id?: string | null
           status?: Database["public"]["Enums"]["withdrawal_status"]
+          transaction_id?: string | null
+          updated_at?: string
           user_id: string
         }
         Update: {
           amount?: number
+          auto_approved?: boolean
           created_at?: string
+          failure_reason?: string | null
           id?: string
           paid_at?: string | null
           payment_method?: string
           payout_reference?: string | null
           phone_number?: string | null
+          provider?: string | null
           review_reason?: string | null
           reviewed_at?: string | null
           reviewer_id?: string | null
           status?: Database["public"]["Enums"]["withdrawal_status"]
+          transaction_id?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -3411,12 +3433,53 @@ export type Database = {
         }
         Relationships: []
       }
+      v_stuck_deposits: {
+        Row: {
+          amount: number | null
+          created_at: string | null
+          id: string | null
+          minutes_pending: number | null
+          pesapal_tracking_id: string | null
+          reference: string | null
+          user_id: string | null
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string | null
+          id?: string | null
+          minutes_pending?: never
+          pesapal_tracking_id?: string | null
+          reference?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string | null
+          id?: string | null
+          minutes_pending?: never
+          pesapal_tracking_id?: string | null
+          reference?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       v_treasury_balances: {
         Row: {
           bucket: Database["public"]["Enums"]["treasury_bucket"] | null
           cached_balance: number | null
           drift: number | null
           ledger_balance: number | null
+        }
+        Relationships: []
+      }
+      v_unsettled_slips: {
+        Row: {
+          created_at: string | null
+          last_kickoff: string | null
+          potential_payout: number | null
+          slip_id: string | null
+          stake: number | null
+          user_id: string | null
         }
         Relationships: []
       }
@@ -3554,8 +3617,20 @@ export type Database = {
         }[]
       }
       fn_crash_settle_round: { Args: { p_round_id: string }; Returns: Json }
+      fn_credit_deposit: {
+        Args: {
+          p_provider_reference: string
+          p_receipt: string
+          p_transaction_id: string
+        }
+        Returns: Json
+      }
       fn_expire_stale_fixtures: {
         Args: { p_live_grace_hours?: number; p_upcoming_grace_hours?: number }
+        Returns: Json
+      }
+      fn_fail_withdrawal_payout: {
+        Args: { p_reason: string; p_request_id: string }
         Returns: Json
       }
       fn_generate_match_odds: { Args: { p_match_id: string }; Returns: number }
@@ -3637,6 +3712,20 @@ export type Database = {
       }
       fn_refund_market: {
         Args: { p_idempotency_key: string; p_market_id: string }
+        Returns: Json
+      }
+      fn_request_withdrawal: {
+        Args: { p_amount: number; p_phone?: string; p_user_id: string }
+        Returns: Json
+      }
+      fn_seed_platform_funds: {
+        Args: {
+          p_admin_id: string
+          p_amount: number
+          p_bucket: Database["public"]["Enums"]["treasury_bucket"]
+          p_direction: string
+          p_reason: string
+        }
         Returns: Json
       }
       fn_settle_market_payout: {
