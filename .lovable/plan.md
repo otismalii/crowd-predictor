@@ -1,52 +1,52 @@
-# Finish Betting: Frontend/Backend Harmonisation, Live Data, Then Casino
+# Real Money Flow: Pesapal Deposits, Withdrawals, Auto-Settled Bets
 
-Close the loop on the sportsbook — bet placement, settlement, odds coverage and real-time data all agreeing with each other — then ship the Pop It casino front to back for a frictionless betting experience.
+Goal: money in, money out, and bets that settle themselves — with every shilling recorded once and only once.
 
-## Verified current state
+## 1. Deposits (Pesapal, end to end)
 
-- Casino backend partly landed: `casino_games` (1 game: Pop It), `crash_rounds`, `crash_bets` and the money functions exist. `crash_rounds` is empty.
-- Security gap: `authenticated` can still EXECUTE `fn_crash_place_bet` directly — the lock-down migration was interrupted and never ran. Any signed-in user could call it with someone else's user id.
-- No casino frontend and no `crash-game` edge function exist in this project yet.
-- Data is stale and thin: newest fixture row is dated 2026-09-01, **93** matches are stuck `live`, only **11** upcoming fixtures, and only **14** matches have odds (308 odds rows) across 5 enabled markets.
-- `system_jobs` is completely empty — no queued, running or historical rows — so the dispatcher/cron is not enqueuing `sync-live`, `sync-content` or `generate-odds` at all. That is the root cause of the stale fixtures and missing odds, not the sync function code.
-- No realtime subscriptions on `Sportsbook.tsx`, `MatchDetail.tsx` or `MyBets.tsx`; odds and scores only refresh on navigation.
+Today a deposit creates a pending record, sends the player to Pesapal, and the confirmation handler credits the wallet by writing the balance directly. That path can double-credit on a repeated notification and bypasses the double-entry ledger.
 
-## Phase 1 — Close the security gap
+New flow:
+1. Player enters an amount (minimum KES 10, maximum KES 150,000 per transaction) and taps Deposit.
+2. A payment intent is created: one pending transaction row with a unique reference, the Pesapal order id, and the phone number. The Pesapal notification URL is registered once and cached in settings instead of on every deposit.
+3. Player is sent to Pesapal checkout and returns to a Wallet "payment in progress" state that polls status for up to 3 minutes.
+4. Pesapal notifies our confirmation endpoint. That endpoint re-verifies the payment directly with Pesapal (never trusts the notification body), then credits the wallet through the ledger primitive with an idempotency key built from the order id — so repeats, retries and the return-redirect all land on the same single credit.
+5. Failed/invalid payments mark the intent failed and are recorded in the payment failures table with the provider reason. Pending stays pending for the retry job.
+6. Player sees a confirmed balance, a receipt code, and a notification.
 
-- Revoke EXECUTE on `fn_crash_place_bet`, `fn_crash_cashout`, `fn_crash_settle_round` from `anon`/`authenticated`/PUBLIC; grant to `service_role` only. Keep `fn_crash_round_feed` public.
+Also: a status-reconciliation job every 5 minutes queries Pesapal for intents still pending after 10 minutes, completing or failing them so nothing sits stuck.
 
-## Phase 2 — Automation and live data (root cause first)
+## 2. Withdrawals
 
-- Re-verify the cron/pg_net schedule and `job_definitions` rows, then repair enqueueing so `sync-live` (1 min), `generate-odds` (10 min) and `sync-content` (30 min) actually run. Confirm with fresh `system_jobs` rows after the fix — not by assuming.
-- Run the stale-fixture watchdog to clear the 93 stranded `live` matches and settle or void their bets through `fn_settle_pending_matches`.
-- Widen fixture intake so upcoming coverage is days deep, not 11 matches, and chain odds generation to every sync so new fixtures get priced immediately.
-- Admin: surface job health (last run, failures, backlog) on the Automation page so this failure mode is visible next time.
+Requests already hold funds atomically and respect the KES 50,000 daily cap, but they are only stored as transactions — the review table and the approve/reject money functions that exist in the database are not wired to them.
 
-## Phase 3 — Betting logic harmonisation
+- Minimum withdrawal KES 100 (the database already enforces this), maximum KES 50,000 per day.
+- Every request writes a withdrawal request row alongside the held funds, so it appears in the admin queue.
+- Admin approve pays out and admin reject releases the hold, both via the existing safe money functions with a mandatory reason and audit entry.
+- Withdrawal is blocked without a verified Kenyan 254 phone number, matching the platform rule.
+- Player sees request status (Pending review / Paid / Rejected with reason) in the Wallet history, updating live.
 
-- Odds integrity: server is the only price authority. `place-bet` re-reads live odds, rejects suspended markets, closed fixtures and expired kickoffs, and returns a structured odds-changed response the slip can act on.
-- Bet slip UX: accept-odds-change confirmation, min/max stake and max payout surfaced before submit, per-selection suspension state, one selection per match on accumulators, duplicate-submit guard, clear KES payout math from the server not the client.
-- Settlement: every bet leg grades through `fn_grade_selection`; slips settle acca-aware; void/refund paths for cancelled and postponed fixtures. Winnings land in the ledger, never a direct balance write.
-- My Bets: open/settled tabs showing stake, accepted odds per leg, combined odds, potential and actual payout, leg-level result badges.
-- Realtime: subscribe `Sportsbook`, `MatchDetail` and `MyBets` to `platform_matches`, `match_odds` and `bet_slips`/`match_bets` with unique channel names and `removeChannel` cleanup, so scores, prices, suspensions and settlements move without a refresh.
+## 3. Bets: full flow and automatic settlement
 
-## Phase 4 — Pop It casino, end to end
+- Automatic settlement already runs every minute against finished, cancelled and postponed fixtures. Add a settlement watchdog that reports any slip left open more than 3 hours after its last match finished, surfaced on the admin Today page.
+- Void handling for cancelled/postponed matches refunds the stake on singles and drops the leg from accumulators (already in the settlement function — verify with a test).
+- Add a "Cashout not available / settles automatically" note plus a settled-bet receipt (stake, odds, return) in My Bets.
+- Wallet, My Bets and notifications update live when a settlement lands.
 
-- `crash-game` edge function as the sole round authority: creates rounds with a committed seed hash, opens betting, starts the round, resolves the crash point, calls `fn_crash_settle_round`, reveals the seed. Bet placement and cash-out proxy to the locked-down money functions with idempotency keys.
-- Provably-fair proof visible to players: seed hash before the round, seed and crash point after.
-- Casino UI ported and restyled onto the Pagaza design system: game stage with the bubble multiplier, bet panel with quick stakes and auto cash-out, round history pills, live feed of anonymous cash-outs, all driven by realtime on `crash_rounds`/`crash_bets`.
-- Frictionless flow: one-tap stake chips, auto cash-out presets, instant balance reflection, low-balance path straight into deposit, no modal chains.
-- Routes and nav: `/casino` in desktop and mobile navigation; admin gets round history, staked-vs-paid exposure and a per-game enable switch.
+## 4. Next phase: Kenyan sports app conventions
 
-## Phase 5 — Verify the journeys
-
-- Sportsbook: discover fixture → select odds → slip → stake → place → settle → winnings in wallet and ledger.
-- Casino: round opens → bet → cash out (and auto cash-out) → ledger entry → balance.
-- Check both against real database rows and the running preview, including a live-updating fixture, before reporting done.
+- Wallet-first home header: balance, one-tap Deposit, open bets count.
+- M-Pesa-style deposit sheet: preset amounts, saved phone, single confirm.
+- Bet slip: multi-bet by default, possible-win always visible, share slip code.
+- Jackpot-style highlight rail for the day's top fixtures.
+- Responsible-gaming footer, 18+ notice, and self-set deposit limit.
 
 ## Technical notes
 
-- Every money movement stays in security-definer functions with idempotency keys; no client balance writes.
-- Realtime channels use dynamic unique names and clean up on unmount.
-- Odds accepted at placement are stored on the leg and never recomputed at settlement.
-- Legacy prediction tables stay archived and untouched.
+- New/changed edge functions: `pesapal-deposit` (intent + cached IPN id), `pesapal-callback` (verify + idempotent ledger credit + failure logging), new `pesapal-status` (client polling + reconciliation job), `pesapal-withdraw` (writes `withdrawal_requests`).
+- All credits/debits route through `fn_post_double_entry` with deterministic idempotency keys (`pesapal:<order_tracking_id>`), never direct wallet updates.
+- Migration: add a unique index on `transactions.reference`, store `pesapal_ipn_id` in `app_settings`, register a `pesapal-status` job definition every 5 minutes, and a view for stuck deposits/unsettled slips.
+- Admin finance UI reads the withdrawal queue and calls `fn_admin_settle_withdrawal` / `fn_admin_reject_withdrawal`.
+- Client: Wallet gains a pending-payment state and realtime wallet/transaction subscriptions.
+
+Note: the Supabase security check currently lists 62 pre-existing warnings (protected tables without rules, leaked-password protection off). Not caused by this work; can be cleaned in a follow-up if you want.
