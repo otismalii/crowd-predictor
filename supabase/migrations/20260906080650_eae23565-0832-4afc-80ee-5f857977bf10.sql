@@ -1,0 +1,2 @@
+REVOKE ALL ON FUNCTION public.fn_seed_platform_funds(uuid, treasury_bucket, numeric, text, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.fn_seed_platform_funds(uuid, treasury_bucket, numeric, text, text) TO service_role;
