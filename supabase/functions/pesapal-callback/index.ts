@@ -1,137 +1,117 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+// Pesapal IPN + return-redirect handler.
+// Re-verifies with Pesapal, then credits through the ledger exactly once.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getPesaPalToken, getTransactionStatus, logPaymentFailure } from "../_shared/pesapal.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const PESAPAL_BASE = "https://pay.pesapal.com/v3/api";
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-async function getPesaPalToken(): Promise<string> {
-  const res = await fetch(`${PESAPAL_BASE}/Auth/RequestToken`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({
-      consumer_key: Deno.env.get("PESAPAL_CONSUMER_KEY"),
-      consumer_secret: Deno.env.get("PESAPAL_CONSUMER_SECRET"),
-    }),
-  });
-  const data = await res.json();
-  if (!data.token) throw new Error("PesaPal auth failed");
-  return data.token;
-}
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
   try {
     const url = new URL(req.url);
-    const orderTrackingId = url.searchParams.get("OrderTrackingId");
-    const orderMerchantRef = url.searchParams.get("OrderMerchantReference");
+    let orderTrackingId = url.searchParams.get("OrderTrackingId");
+    let merchantRef = url.searchParams.get("OrderMerchantReference");
 
-    if (!orderTrackingId) {
-      return new Response(JSON.stringify({ error: "Missing OrderTrackingId" }), { status: 400, headers: corsHeaders });
+    if (!orderTrackingId && req.method === "POST") {
+      const body = await req.json().catch(() => ({}));
+      orderTrackingId = body?.OrderTrackingId ?? body?.order_tracking_id ?? null;
+      merchantRef = body?.OrderMerchantReference ?? body?.merchant_reference ?? merchantRef;
     }
+    if (!orderTrackingId) return json({ error: "Missing OrderTrackingId" }, 400);
 
-    const db = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
-
-    // Get transaction status from PesaPal
     const token = await getPesaPalToken();
-    const statusRes = await fetch(
-      `${PESAPAL_BASE}/Transactions/GetTransactionStatus?orderTrackingId=${orderTrackingId}`,
-      {
-        headers: {
-          Accept: "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-    const statusData = await statusRes.json();
-    console.log("PesaPal status response:", JSON.stringify(statusData));
+    const status = await getTransactionStatus(token, orderTrackingId);
 
-    // Find our transaction by reference
-    const merchantRef = orderMerchantRef || statusData.merchant_reference;
-    const { data: tx } = await db.from("transactions")
-      .select("*, wallets:wallet_id(id, balance, user_id)")
-      .eq("reference", merchantRef)
-      .single();
-
+    const reference = merchantRef || status.merchantReference;
+    let tx: any = null;
+    if (reference) {
+      const { data } = await db.from("transactions").select("*").eq("reference", reference).maybeSingle();
+      tx = data;
+    }
     if (!tx) {
-      console.error("Transaction not found for ref:", merchantRef);
-      return new Response(JSON.stringify({ status: "ok", message: "Transaction not found" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      const { data } = await db.from("transactions").select("*").eq("pesapal_tracking_id", orderTrackingId).maybeSingle();
+      tx = data;
+    }
+    if (!tx) {
+      await logPaymentFailure(db, {
+        operation: "ipn_orphan",
+        reference,
+        error: `No transaction for tracking id ${orderTrackingId}`,
+        payload: status.raw,
       });
+      return json({ status: "ok", message: "Transaction not found" });
     }
 
-    // Already processed
-    if (tx.status === "completed") {
-      return new Response(JSON.stringify({ status: "ok", message: "Already processed" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (tx.status === "completed") return json({ status: "ok", state: "completed", replayed: true });
 
-    const pesapalStatus = statusData.payment_status_description?.toLowerCase();
-
-    if (pesapalStatus === "completed" || statusData.status_code === 1) {
-      // Credit wallet
-      const wallet = (tx as any).wallets;
-      if (wallet) {
-        await db.from("wallets").update({
-          balance: Number(wallet.balance) + Number(tx.amount),
-          updated_at: new Date().toISOString(),
-        }).eq("id", wallet.id);
+    if (status.state === "completed") {
+      if (status.amount != null && Math.abs(status.amount - Number(tx.amount)) > 0.5) {
+        await logPaymentFailure(db, {
+          operation: "ipn_amount_mismatch",
+          reference: tx.reference,
+          userId: tx.user_id,
+          amount: Number(tx.amount),
+          error: `Provider amount ${status.amount} != intent ${tx.amount}`,
+          payload: status.raw,
+        });
+        return json({ status: "ok", state: "review" });
       }
 
-      // Update transaction
+      const { error: creditErr } = await db.rpc("fn_credit_deposit", {
+        p_transaction_id: tx.id,
+        p_provider_reference: orderTrackingId,
+        p_receipt: status.receipt ?? orderTrackingId,
+      });
+      if (creditErr) {
+        await logPaymentFailure(db, {
+          operation: "ipn_credit",
+          reference: tx.reference,
+          userId: tx.user_id,
+          amount: Number(tx.amount),
+          error: creditErr.message,
+          payload: status.raw,
+        });
+        return json({ error: creditErr.message }, 500);
+      }
+
       await db.from("transactions").update({
-        status: "completed",
-        mpesa_receipt: statusData.confirmation_code || orderTrackingId,
-        metadata: { ...((tx.metadata as any) || {}), pesapal_status: statusData },
+        metadata: { ...(tx.metadata ?? {}), pesapal_status: status.raw },
+        pesapal_tracking_id: orderTrackingId,
         updated_at: new Date().toISOString(),
       }).eq("id", tx.id);
 
-      // Create ledger entry
-      await db.from("ledger_entries").insert({
-        user_id: tx.user_id,
-        wallet_id: tx.wallet_id,
-        entry_type: "deposit",
-        amount: tx.amount,
-        balance_after: Number(wallet?.balance || 0) + Number(tx.amount),
-        reference_id: tx.id,
-        description: `PesaPal deposit completed`,
-      });
+      return json({ status: "ok", state: "completed" });
+    }
 
-      // Create notification
-      await db.from("notifications").insert({
-        user_id: tx.user_id,
-        type: "deposit",
-        title: "Deposit Successful",
-        message: `KES ${Number(tx.amount).toLocaleString()} has been added to your wallet`,
-        link: "/wallet",
-      });
-
-    } else if (pesapalStatus === "failed" || pesapalStatus === "invalid") {
+    if (status.state === "failed") {
       await db.from("transactions").update({
         status: "failed",
-        metadata: { ...((tx.metadata as any) || {}), pesapal_status: statusData },
+        metadata: { ...(tx.metadata ?? {}), pesapal_status: status.raw },
         updated_at: new Date().toISOString(),
       }).eq("id", tx.id);
+      await logPaymentFailure(db, {
+        operation: "deposit_failed",
+        reference: tx.reference,
+        userId: tx.user_id,
+        amount: Number(tx.amount),
+        error: String(status.raw?.payment_status_description ?? "payment failed"),
+        payload: status.raw,
+      });
+      return json({ status: "ok", state: "failed" });
     }
-    // For "pending" status, do nothing — wait for next callback
 
-    return new Response(
-      JSON.stringify({ status: "ok" }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return json({ status: "ok", state: "pending" });
   } catch (e) {
     console.error("pesapal-callback error:", e);
-    return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return json({ error: e instanceof Error ? e.message : "Unknown error" }, 500);
   }
 });
