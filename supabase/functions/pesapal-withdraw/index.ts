@@ -79,11 +79,11 @@ Deno.serve(async (req) => {
     }
 
     // Auto path: execute the payout now.
-    const { data: profile } = await db.from("profiles").select("username, full_name").eq("id", user.id).maybeSingle();
+    const { data: profile } = await db.from("profiles").select("username").eq("id", user.id).maybeSingle();
     const payout = await sendMpesaPayout({
       phone: req_.phone,
       amount,
-      name: (profile as any)?.full_name || profile?.username || "Pagaza Bet player",
+      name: profile?.username || "Pagaza Bet player",
       narrative: "Pagaza Bet withdrawal",
     });
 
