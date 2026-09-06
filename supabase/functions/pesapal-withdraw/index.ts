@@ -1,116 +1,146 @@
-// Withdrawal request (Phase 2: lock-based, risk-evaluated, ledger-backed).
-// Uses lock_for_withdrawal RPC to atomically move balance → locked_balance.
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+// Withdrawal request: holds funds atomically, records a reviewable request,
+// and pays out immediately for low-risk amounts.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendMpesaPayout } from "../_shared/payout.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+const friendly = (msg: string): string => {
+  if (msg.startsWith("BELOW_MINIMUM")) return `Minimum withdrawal is KES ${msg.split(":")[1] ?? "100"}`;
+  if (msg.includes("PHONE_NOT_VERIFIED")) return "Add a valid Kenyan phone number (2547…) to your profile first";
+  if (msg.includes("INSUFFICIENT_OR_CAPPED")) return "Not enough available balance, or you have hit the KES 50,000 daily limit";
+  if (msg.includes("WALLET_NOT_FOUND")) return "Wallet not found";
+  return msg;
+};
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+  const db = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
-    }
+    if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
 
-    const userSupabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
+    const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user }, error: userError } = await userClient.auth.getUser();
+    if (userError || !user) return json({ error: "Unauthorized" }, 401);
 
-    const { data: { user }, error: userError } = await userSupabase.auth.getUser();
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
-    }
+    const body = await req.json().catch(() => ({}));
+    const amount = Number(body?.amount);
+    if (!Number.isFinite(amount) || amount <= 0) return json({ error: "Enter a valid amount" }, 400);
 
-    const { amount } = await req.json();
-    if (!amount || amount < 10) {
-      return new Response(JSON.stringify({ error: "Minimum withdrawal is KES 10" }), { status: 400, headers: corsHeaders });
-    }
-
-    const db = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
-
-    const { data: profile } = await db.from("profiles").select("phone_number").eq("id", user.id).single();
-    if (!profile?.phone_number) {
-      return new Response(JSON.stringify({ error: "No phone number on profile. Add your phone number in profile settings first." }), { status: 400, headers: corsHeaders });
-    }
-    const phone_number = profile.phone_number;
-
-    // Risk evaluation
-    const riskRes = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/evaluate-risk`, {
+    // Risk gate before any money moves.
+    const riskRes = await fetch(`${SUPABASE_URL}/functions/v1/evaluate-risk`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}` },
       body: JSON.stringify({ user_id: user.id, action: "withdraw", amount }),
-    });
-    const riskJson = await riskRes.json().catch(() => ({}));
+    }).catch(() => null);
+    const riskJson = riskRes ? await riskRes.json().catch(() => ({})) : {};
     if (riskJson?.data?.action && riskJson.data.action !== "allow") {
-      return new Response(JSON.stringify({ error: riskJson.data.reason }), { status: 403, headers: corsHeaders });
+      return json({ error: riskJson.data.reason ?? "Withdrawal blocked for review" }, 403);
     }
 
-    const { data: wallet } = await db.from("wallets").select("id, balance, locked_balance").eq("user_id", user.id).single();
-    if (!wallet) {
-      return new Response(JSON.stringify({ error: "Wallet not found" }), { status: 404, headers: corsHeaders });
+    const { data: request, error: reqErr } = await db.rpc("fn_request_withdrawal", {
+      p_user_id: user.id,
+      p_amount: amount,
+      p_phone: null,
+    });
+    if (reqErr) return json({ error: friendly(reqErr.message) }, 400);
+
+    const req_ = request as any;
+
+    await db.from("event_log").insert({
+      event_type: "withdrawal.requested",
+      aggregate_type: "withdrawal_request",
+      aggregate_id: req_.request_id,
+      actor_id: user.id,
+      idempotency_key: `withdraw_req_${req_.request_id}`,
+      payload: { amount, phone: req_.phone, auto_approved: req_.auto_approved },
+    }).select("id").maybeSingle();
+
+    if (!req_.auto_approved) {
+      return json({
+        success: true,
+        status: "under_review",
+        request_id: req_.request_id,
+        message: "Withdrawal submitted for review",
+      });
     }
 
-    // Atomic lock via RPC (enforces 50k/day cap)
-    const { data: locked, error: lockErr } = await db.rpc("lock_for_withdrawal", {
-      p_user_id: user.id, p_amount: amount,
+    // Auto path: execute the payout now.
+    const { data: profile } = await db.from("profiles").select("username, full_name").eq("id", user.id).maybeSingle();
+    const payout = await sendMpesaPayout({
+      phone: req_.phone,
+      amount,
+      name: (profile as any)?.full_name || profile?.username || "Pagaza Bet player",
+      narrative: "Pagaza Bet withdrawal",
     });
-    if (lockErr || !locked) {
-      return new Response(JSON.stringify({ error: "Insufficient balance or daily withdrawal cap reached" }), { status: 400, headers: corsHeaders });
+
+    if (!payout.ok) {
+      // Keep the funds held and hand the request to an admin.
+      await db.from("withdrawal_requests").update({
+        auto_approved: false,
+        failure_reason: payout.error.slice(0, 500),
+      }).eq("id", req_.request_id);
+      await db.from("payment_failures").insert({
+        provider: "intasend",
+        operation: "withdrawal_payout",
+        reference: req_.reference,
+        user_id: user.id,
+        amount,
+        error_message: payout.error.slice(0, 1000),
+        payload: { request_id: req_.request_id },
+        status: "pending",
+      });
+      return json({
+        success: true,
+        status: "under_review",
+        request_id: req_.request_id,
+        message: "Withdrawal submitted for review",
+      });
     }
 
-    const correlationId = crypto.randomUUID();
-    const reference = `WDR-${Date.now()}-${user.id.slice(0, 8)}`;
-    const idempotencyKey = `${user.id}:withdraw:${reference}`;
-
-    // Event envelope
-    const { data: ev } = await db.from("event_log").insert({
-      event_type: "withdrawal.requested", aggregate_type: "transaction",
-      actor_id: user.id, idempotency_key: idempotencyKey,
-      payload: { amount, phone_number, reference, correlation_id: correlationId },
-    }).select("id").single();
-
-    const { data: tx } = await db.from("transactions").insert({
-      user_id: user.id, wallet_id: wallet.id, type: "withdrawal", amount,
-      status: "pending", phone_number, reference,
-      description: `Withdrawal request of KES ${amount} to ${phone_number}`,
-    }).select("id").single();
-
-    // Re-read balance after lock
-    const { data: walletAfter } = await db.from("wallets").select("balance").eq("id", wallet.id).single();
-
-    await db.from("ledger_entries").insert({
-      user_id: user.id, wallet_id: wallet.id, entry_type: "withdrawal_lock",
-      amount: -amount, balance_after: Number(walletAfter?.balance ?? 0),
-      reference_id: tx?.id, idempotency_key: `${idempotencyKey}:ledger`, event_id: ev?.id,
-      description: `Withdrawal hold — pending admin approval`,
+    const { error: settleErr } = await db.rpc("fn_admin_settle_withdrawal", {
+      p_request_id: req_.request_id,
+      p_admin_id: user.id,
+      p_reference: payout.reference,
     });
+    if (settleErr) {
+      await db.from("payment_failures").insert({
+        provider: "intasend",
+        operation: "withdrawal_settle",
+        reference: payout.reference,
+        user_id: user.id,
+        amount,
+        error_message: settleErr.message.slice(0, 1000),
+        payload: { request_id: req_.request_id },
+        status: "pending",
+      });
+      return json({ error: "Payout sent but bookkeeping failed — support has been alerted" }, 500);
+    }
 
-    await db.from("notifications").insert({
-      user_id: user.id, type: "withdrawal",
-      title: "🦅 Withdrawal Submitted",
-      message: `Your withdrawal of KES ${amount.toLocaleString()} is pending approval. Landing confirmed soon.`,
-      link: "/wallet",
+    await db.from("withdrawal_requests").update({ auto_approved: true, provider: "intasend" }).eq("id", req_.request_id);
+
+    return json({
+      success: true,
+      status: "paid",
+      request_id: req_.request_id,
+      payout_reference: payout.reference,
+      message: `KES ${amount.toLocaleString()} sent to ${req_.phone}`,
     });
-
-    return new Response(
-      JSON.stringify({ success: true, message: "Withdrawal submitted for admin approval", transaction_id: tx?.id, correlation_id: correlationId }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
   } catch (e) {
     console.error("pesapal-withdraw error:", e);
-    return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return json({ error: e instanceof Error ? e.message : "Unknown error" }, 500);
   }
 });
