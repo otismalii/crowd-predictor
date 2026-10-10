@@ -1,16 +1,16 @@
-# Roadmap
+# Roadmap — Betwise overhaul
 
-## In progress
-- [x] Lock casino money functions to service_role only
-- [x] Fix system_jobs status constraint (root cause: no jobs ever enqueued)
-- [ ] Verify real job runs (sync-live, generate-odds, sync-content)
-- [ ] Clear stuck live fixtures + settle pending matches
-- [ ] Betting harmonisation: server-authoritative odds, slip UX, settlement, My Bets
-- [ ] Realtime on Sportsbook / MatchDetail / MyBets
-- [ ] Pop It casino: crash-game edge function + UI + /casino route + admin
-- [ ] Verify end-to-end journeys (bet → settle → wallet; casino round → cashout)
+## Done (Sprint 1)
+- [x] Rebrand to Betwise (page title, nav, footer, admin sidebar)
+- [x] Pop It page at /crash (live multiplier, bet, cash-out, round feed)
+- [x] Bottom nav: Home / My Bets / Pop It / Wallet / Profile
+- [x] Wallet limits: withdraw KES 100 min, deposit KES 10–150,000
+- [x] Admin nav: removed prediction-market items
 
-## Later
-- Branding/marketing assets + Pagaza Bet rebrand sweep
-- Fee engine + Pesapal 3.0 IPN verification
-- LDX.md canon doc
+## Next
+- [ ] 14-day rolling fixture ingestion + odds seeding
+- [ ] Bettor profile hub (replace prediction stats)
+- [ ] Admin withdrawal queue + treasury seeding panel
+- [ ] Delete legacy prediction pages/files
+- [ ] Roulette page
+- [ ] End-to-end verification of bet → settle → wallet and Pop It cash-out
