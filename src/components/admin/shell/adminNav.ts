@@ -43,14 +43,10 @@ export const ADMIN_NAV: AdminNavGroup[] = [
   },
   {
     id: "markets",
-    label: "Markets",
+    label: "Sportsbook",
     items: [
-      { to: "/admin/markets/queue", label: "Creation Queue", icon: Inbox, section: "do" },
-      { to: "/admin/markets/oracle-suggestions", label: "Oracle Suggestions", icon: Sparkles, section: "do" },
-      { to: "/admin/markets/resolution", label: "Resolution", icon: Scale, section: "do" },
-      { to: "/admin/markets/import", label: "Import Markets", icon: Plus, roles: ["admin", "super_admin", "market_manager"], section: "do" },
-      { to: "/admin/markets", label: "Active Markets", icon: BarChart3, section: "monitor" },
-      { to: "/admin/markets/liquidity", label: "Liquidity", icon: Droplet, section: "monitor" },
+      { to: "/admin/markets/resolution", label: "Settlement", icon: Scale, section: "do" },
+      { to: "/admin/markets", label: "Fixtures & Odds", icon: BarChart3, section: "monitor" },
     ],
   },
   {
@@ -59,7 +55,6 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     items: [
       { to: "/admin/finance/settlements", label: "Settlements", icon: Workflow, roles: ["admin", "super_admin"], section: "do" },
       { to: "/admin/finance/reconciliation", label: "Reconciliation", icon: RefreshCw, roles: ["admin", "super_admin"], section: "do" },
-      { to: "/admin/finance/creator-payouts", label: "Creator Payouts", icon: Coins, roles: ["admin", "super_admin"], section: "do" },
       { to: "/admin/finance/treasury", label: "Treasury", icon: Landmark, roles: ["admin", "super_admin", "market_manager"], section: "monitor" },
     ],
   },
@@ -67,8 +62,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     id: "intelligence",
     label: "Intelligence",
     items: [
-      { to: "/admin/intelligence/insights", label: "LOGIK Insights", icon: Brain, section: "monitor" },
-      { to: "/admin/intelligence/predictions", label: "Prediction History", icon: History, section: "monitor" },
+      { to: "/admin/intelligence/insights", label: "Betting Intelligence", icon: Brain, section: "monitor" },
       { to: "/admin/intelligence/risk", label: "Risk Signals", icon: ShieldAlert, section: "monitor" },
       { to: "/admin/intelligence/sources", label: "Event Sources", icon: Radio, section: "configure" },
     ],
@@ -89,7 +83,6 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     items: [
       { to: "/admin/audit/logs", label: "Audit Logs", icon: FileText, roles: ["admin", "super_admin"], section: "monitor" },
       { to: "/admin/audit/system", label: "System Analytics", icon: LineChart, section: "monitor" },
-      { to: "/admin/audit/markets", label: "Market History", icon: History, section: "monitor" },
       { to: "/admin/audit/automation", label: "Automation", icon: Zap, roles: ["admin", "super_admin"], section: "monitor" },
       { to: "/admin/audit/settings", label: "Settings", icon: Settings, roles: ["super_admin"], section: "configure" },
     ],

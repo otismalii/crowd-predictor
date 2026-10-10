@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, BarChart3, Wallet, Briefcase, User } from "lucide-react";
+import { Home, Rocket, Wallet, Ticket, User } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -9,8 +9,8 @@ const MobileNav = () => {
 
   const tabs = [
     { to: "/", label: "Home", icon: Home },
-    { to: "/markets", label: "Markets", icon: BarChart3 },
-    { to: "/portfolio", label: "Portfolio", icon: Briefcase },
+    { to: "/my-bets", label: "My Bets", icon: Ticket },
+    { to: "/crash", label: "Pop It", icon: Rocket },
     { to: "/wallet", label: "Wallet", icon: Wallet },
     { to: user ? `/profile/${user.id}` : "/auth", label: user ? "Profile" : "Sign in", icon: User },
   ];

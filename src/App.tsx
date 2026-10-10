@@ -15,6 +15,7 @@ import { lazy, Suspense, forwardRef } from "react";
 import { Navigate, useParams } from "react-router-dom";
 import PageLoader from "@/components/PageLoader";
 import { PlayerRoute, AdminRoute } from "@/routes/route-guards";
+import PopIt from "./pages/casino/PopIt";
 import OfflineIndicator from "@/components/OfflineIndicator";
 import { BetSlipProvider } from "@/contexts/BetSlipContext";
 import BetSlipDrawer from "@/components/sportsbook/BetSlipDrawer";
@@ -137,6 +138,9 @@ const AnimatedRoutes = () => {
           <Route path="/sports" element={<AnimatedPage><Sportsbook /></AnimatedPage>} />
           <Route path="/sports/:competitionSlug" element={<AnimatedPage><Sportsbook /></AnimatedPage>} />
           <Route path="/match/:id" element={<AnimatedPage><MatchDetail /></AnimatedPage>} />
+          <Route path="/crash" element={<AnimatedPage><PopIt /></AnimatedPage>} />
+          <Route path="/casino" element={<Navigate to="/crash" replace />} />
+          <Route path="/live" element={<Navigate to="/sports?live=1" replace />} />
           <Route path="/my-bets" element={<AnimatedPage><PlayerRoute><MyBets /></PlayerRoute></AnimatedPage>} />
           <Route path="/leaderboard" element={<AnimatedPage><Leaderboard /></AnimatedPage>} />
           <Route path="/rules" element={<AnimatedPage><Rules /></AnimatedPage>} />
