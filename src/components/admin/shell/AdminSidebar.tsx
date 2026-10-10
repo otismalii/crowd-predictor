@@ -24,7 +24,7 @@ export const AdminSidebar = () => {
           </div>
           {!collapsed && (
             <div className="flex flex-col">
-              <span className="font-display text-sm font-bold tracking-wider">Pagaza</span>
+              <span className="font-display text-sm font-bold tracking-wider">Betwise</span>
               <span className="text-[10px] text-muted-foreground uppercase">Control Room</span>
             </div>
           )}

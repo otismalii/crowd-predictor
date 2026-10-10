@@ -21,9 +21,9 @@ import logoImg from "@/assets/logo.png";
 
 const navLinks = [
   { to: "/", label: "Home", icon: Home },
-  { to: "/markets", label: "Markets", icon: BarChart3 },
+  { to: "/crash", label: "Pop It", icon: BarChart3 },
   { to: "/leaderboard", label: "Leaderboard", icon: Trophy },
-  { to: "/dashboard", label: "Dashboard", icon: Wallet },
+  { to: "/my-bets", label: "My Bets", icon: Wallet },
 ];
 
 const Navbar = () => {
@@ -70,13 +70,13 @@ const Navbar = () => {
         <Link to="/" className="flex items-center gap-2 group">
           <motion.img
             src={logoImg}
-            alt="Pagaza"
+            alt="Betwise"
             className="h-7 w-7 object-contain"
             whileHover={{ rotate: 10, scale: 1.1 }}
             transition={{ type: "spring", stiffness: 300 }}
           />
           <span className="font-display text-lg font-bold tracking-wider text-foreground">
-            PAGAZA
+            BETWISE
           </span>
         </Link>
 

@@ -1,6 +1,6 @@
-export const SITE_NAME = "Pagaza";
+export const SITE_NAME = "Betwise";
 export const BASE_URL = "https://pagaza.vercel.app";
-export const DEFAULT_DESC = "Kenya's premier prediction market platform. Forecast outcomes across politics, economics, sports, and more with source-backed resolution.";
+export const DEFAULT_DESC = "Kenya's sportsbook. Live football odds, Pop It, M-Pesa deposits and instant payouts.";
 
 export const CATEGORIES = [
   { key: "all", label: "All", emoji: "🌍" },

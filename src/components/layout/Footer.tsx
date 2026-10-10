@@ -18,7 +18,7 @@ const Footer = () => (
       <div className="grid gap-8 sm:grid-cols-3 mb-8">
         <div>
           <div className="flex items-center gap-2.5 mb-3">
-            <img src={logoImg} alt="Pagaza" className="h-7 w-7 object-contain" />
+            <img src={logoImg} alt="Betwise" className="h-7 w-7 object-contain" />
             <span className="font-display text-lg font-bold tracking-wider text-primary">PAGAZA</span>
           </div>
           <p className="text-xs text-muted-foreground">
@@ -46,8 +46,8 @@ const Footer = () => (
       </div>
 
       <div className="border-t border-border/30 pt-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-muted-foreground/60">
-        <span>Pagaza · powered by <span className="text-accent font-semibold">LionByte</span></span>
-        <span>&copy; {new Date().getFullYear()} Pagaza. All rights reserved.</span>
+        <span>Betwise · powered by <span className="text-accent font-semibold">LionByte</span></span>
+        <span>&copy; {new Date().getFullYear()} Betwise. All rights reserved.</span>
       </div>
     </div>
   </footer>
