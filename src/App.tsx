@@ -42,21 +42,14 @@ const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const OAuthConsent = lazy(() => import("./pages/OAuthConsent"));
 
 // Lazy loads — player
-const PlayerDashboard = lazy(() => import("./pages/player/Dashboard"));
-const PlayerActivity = lazy(() => import("./pages/player/Activity"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Wallet = lazy(() => import("./pages/Wallet"));
-const Portfolio = lazy(() => import("./pages/Portfolio"));
-const Watchlist = lazy(() => import("./pages/Watchlist"));
 
 // Lazy loads — admin
 const AdminLayout = lazy(() => import("./components/admin/shell/AdminLayout"));
 const AdminOverviewPage = lazy(() => import("./pages/admin/AdminOverviewPage"));
-const AdminMarketsPage = lazy(() => import("./pages/admin/AdminMarketsPage"));
-const AdminMarketsImportPage = lazy(() => import("./pages/admin/AdminMarketsImportPage"));
 const AdminInboxPage = lazy(() => import("./pages/admin/AdminInboxPage"));
 const AdminTodayPage = lazy(() => import("./pages/admin/AdminTodayPage"));
-const AdminResolutionPage = lazy(() => import("./pages/admin/AdminResolutionPage"));
 const AdminAnalyticsPage = lazy(() => import("./pages/admin/AdminAnalyticsPage"));
 const AdminUsersPage = lazy(() => import("./pages/admin/AdminUsersPage"));
 const AdminTreasuryPage = lazy(() => import("./pages/admin/AdminTreasuryPage"));
@@ -64,21 +57,14 @@ const AdminFraudPage = lazy(() => import("./pages/admin/AdminFraudPage"));
 const AdminAuditPage = lazy(() => import("./pages/admin/AdminAuditPage"));
 const AdminReconciliationPage = lazy(() => import("./pages/admin/AdminReconciliationPage"));
 const AdminEventStreamPage = lazy(() => import("./pages/admin/AdminEventStreamPage"));
-const AdminLiquidityPage = lazy(() => import("./pages/admin/AdminLiquidityPage"));
 const AdminSourcesPage = lazy(() => import("./pages/admin/AdminSourcesPage"));
 const AdminDisputesPage = lazy(() => import("./pages/admin/AdminDisputesPage"));
 const AdminSettingsPage = lazy(() => import("./pages/admin/AdminSettingsPage"));
-const AdminCreationQueuePage = lazy(() => import("./pages/admin/AdminCreationQueuePage"));
-const AdminOracleSuggestionsPage = lazy(() => import("./pages/admin/AdminOracleSuggestionsPage"));
 const AdminSettlementsPage = lazy(() => import("./pages/admin/AdminSettlementsPage"));
 const AdminIntelligenceInsightsPage = lazy(() => import("./pages/admin/AdminIntelligenceInsightsPage"));
 const AdminRiskSignalsPage = lazy(() => import("./pages/admin/AdminRiskSignalsPage"));
-const AdminPredictionHistoryPage = lazy(() => import("./pages/admin/AdminPredictionHistoryPage"));
 const AdminPromotionsPage = lazy(() => import("./pages/admin/AdminPromotionsPage"));
-const AdminMarketHistoryPage = lazy(() => import("./pages/admin/AdminMarketHistoryPage"));
-const AdminCreatorPayoutsPage = lazy(() => import("./pages/admin/AdminCreatorPayoutsPage"));
 const AdminAutomationPage = lazy(() => import("./pages/admin/AdminAutomationPage"));
-const CreatorDashboard = lazy(() => import("./pages/CreatorDashboard"));
 
 // Lazy loads — misc
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -141,6 +127,8 @@ const AnimatedRoutes = () => {
           <Route path="/crash" element={<AnimatedPage><PopIt /></AnimatedPage>} />
           <Route path="/casino" element={<Navigate to="/crash" replace />} />
           <Route path="/live" element={<Navigate to="/sports?live=1" replace />} />
+          <Route path="/dashboard" element={<Navigate to="/my-bets" replace />} />
+          <Route path="/activity" element={<Navigate to="/my-bets" replace />} />
           <Route path="/my-bets" element={<AnimatedPage><PlayerRoute><MyBets /></PlayerRoute></AnimatedPage>} />
           <Route path="/leaderboard" element={<AnimatedPage><Leaderboard /></AnimatedPage>} />
           <Route path="/rules" element={<AnimatedPage><Rules /></AnimatedPage>} />
@@ -158,13 +146,8 @@ const AnimatedRoutes = () => {
           <Route path="/.lovable/oauth/consent" element={<AnimatedPage><OAuthConsent /></AnimatedPage>} />
 
           {/* ========== PLAYER ========== */}
-          <Route path="/dashboard" element={<AnimatedPage><PlayerRoute><PlayerDashboard /></PlayerRoute></AnimatedPage>} />
-          <Route path="/portfolio" element={<AnimatedPage><PlayerRoute><Portfolio /></PlayerRoute></AnimatedPage>} />
-          <Route path="/activity" element={<AnimatedPage><PlayerRoute><PlayerActivity /></PlayerRoute></AnimatedPage>} />
           <Route path="/profile/:id" element={<AnimatedPage><Profile /></AnimatedPage>} />
           <Route path="/wallet" element={<AnimatedPage><PlayerRoute><Wallet /></PlayerRoute></AnimatedPage>} />
-          <Route path="/watchlist" element={<AnimatedPage><PlayerRoute><Watchlist /></PlayerRoute></AnimatedPage>} />
-          <Route path="/creator" element={<AnimatedPage><PlayerRoute><CreatorDashboard /></PlayerRoute></AnimatedPage>} />
 
           {/* ========== ADMIN (v4 LDX: 6 domains) ========== */}
           <Route path="/admin" element={<AdminRoute><Suspense fallback={<PageLoader />}><AdminLayout /></Suspense></AdminRoute>}>
@@ -178,26 +161,19 @@ const AnimatedRoutes = () => {
             <Route path="operations/events" element={<Suspense fallback={<PageLoader />}><AdminEventStreamPage /></Suspense>} />
 
             {/* Markets */}
-            <Route path="markets" element={<Suspense fallback={<PageLoader />}><AdminMarketsPage /></Suspense>} />
-            <Route path="markets/queue" element={<Suspense fallback={<PageLoader />}><AdminCreationQueuePage /></Suspense>} />
-            <Route path="markets/oracle-suggestions" element={<Suspense fallback={<PageLoader />}><AdminOracleSuggestionsPage /></Suspense>} />
-            <Route path="markets/import" element={<Suspense fallback={<PageLoader />}><AdminMarketsImportPage /></Suspense>} />
-            <Route path="markets/new" element={<Navigate to="/admin/markets/import" replace />} />
-            <Route path="markets/resolution" element={<Suspense fallback={<PageLoader />}><AdminResolutionPage /></Suspense>} />
-            <Route path="markets/liquidity" element={<Suspense fallback={<PageLoader />}><AdminLiquidityPage /></Suspense>} />
+            <Route path="markets/*" element={<Navigate to="/admin/finance/settlements" replace />} />
+            <Route path="markets" element={<Navigate to="/admin/finance/settlements" replace />} />
             <Route path="markets/sources" element={<Suspense fallback={<PageLoader />}><AdminSourcesPage /></Suspense>} />
 
             {/* Finance */}
             <Route path="finance/treasury" element={<Suspense fallback={<PageLoader />}><AdminTreasuryPage /></Suspense>} />
             <Route path="finance/settlements" element={<Suspense fallback={<PageLoader />}><AdminSettlementsPage /></Suspense>} />
-            <Route path="finance/creator-payouts" element={<Suspense fallback={<PageLoader />}><AdminCreatorPayoutsPage /></Suspense>} />
             <Route path="finance/reconciliation" element={<Suspense fallback={<PageLoader />}><AdminReconciliationPage /></Suspense>} />
 
             {/* Intelligence */}
             <Route path="intelligence/insights" element={<Suspense fallback={<PageLoader />}><AdminIntelligenceInsightsPage /></Suspense>} />
             <Route path="intelligence/sources" element={<Suspense fallback={<PageLoader />}><AdminSourcesPage /></Suspense>} />
             <Route path="intelligence/risk" element={<Suspense fallback={<PageLoader />}><AdminRiskSignalsPage /></Suspense>} />
-            <Route path="intelligence/predictions" element={<Suspense fallback={<PageLoader />}><AdminPredictionHistoryPage /></Suspense>} />
 
             {/* Governance */}
             <Route path="governance/users" element={<Suspense fallback={<PageLoader />}><AdminUsersPage /></Suspense>} />
@@ -209,7 +185,6 @@ const AnimatedRoutes = () => {
             <Route path="audit/logs" element={<Suspense fallback={<PageLoader />}><AdminAuditPage /></Suspense>} />
             <Route path="audit/system" element={<Suspense fallback={<PageLoader />}><AdminAnalyticsPage /></Suspense>} />
             <Route path="audit/automation" element={<Suspense fallback={<PageLoader />}><AdminAutomationPage /></Suspense>} />
-            <Route path="audit/markets" element={<Suspense fallback={<PageLoader />}><AdminMarketHistoryPage /></Suspense>} />
             <Route path="audit/settings" element={<Suspense fallback={<PageLoader />}><AdminSettingsPage /></Suspense>} />
           </Route>
 
@@ -221,8 +196,8 @@ const AnimatedRoutes = () => {
           <Route path="/admin/risk/disputes" element={<Navigate to="/admin/governance/disputes" replace />} />
           <Route path="/admin/risk/users" element={<Navigate to="/admin/governance/users" replace />} />
           <Route path="/admin/users" element={<Navigate to="/admin/governance/users" replace />} />
-          <Route path="/admin/resolution" element={<Navigate to="/admin/markets/resolution" replace />} />
-          <Route path="/admin/liquidity" element={<Navigate to="/admin/markets/liquidity" replace />} />
+          <Route path="/admin/resolution" element={<Navigate to="/admin/finance/settlements" replace />} />
+          <Route path="/admin/liquidity" element={<Navigate to="/admin/finance/treasury" replace />} />
           <Route path="/admin/audit" element={<Navigate to="/admin/audit/logs" replace />} />
           <Route path="/admin/system/audit" element={<Navigate to="/admin/audit/logs" replace />} />
           <Route path="/admin/analytics" element={<Navigate to="/admin/audit/system" replace />} />

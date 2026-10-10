@@ -42,14 +42,6 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     ],
   },
   {
-    id: "markets",
-    label: "Sportsbook",
-    items: [
-      { to: "/admin/markets/resolution", label: "Settlement", icon: Scale, section: "do" },
-      { to: "/admin/markets", label: "Fixtures & Odds", icon: BarChart3, section: "monitor" },
-    ],
-  },
-  {
     id: "finance",
     label: "Finance",
     items: [
