@@ -41,8 +41,8 @@ const DepositWithdraw = ({ wallet, phoneNumber, onComplete }: DepositWithdrawPro
   const handleDeposit = async () => {
     if (!user || !wallet || !amount) return;
     const numAmount = parseFloat(amount);
-    if (isNaN(numAmount) || numAmount < 10) {
-      toast({ title: "Minimum deposit is KES 10", variant: "destructive" });
+    if (isNaN(numAmount) || numAmount < 10 || numAmount > 150000) {
+      toast({ title: "Deposits must be between KES 10 and KES 150,000", variant: "destructive" });
       return;
     }
     setProcessing(true);
@@ -52,7 +52,7 @@ const DepositWithdraw = ({ wallet, phoneNumber, onComplete }: DepositWithdrawPro
       });
       if (error) throw error;
       if (data?.redirect_url) {
-        toast({ title: "🔄 Redirecting to PesaPal...", description: "Complete your payment on PesaPal" });
+        toast({ title: "Opening secure checkout...", description: "Complete your payment on PesaPal" });
         window.location.href = data.redirect_url;
         return;
       }
@@ -72,8 +72,8 @@ const DepositWithdraw = ({ wallet, phoneNumber, onComplete }: DepositWithdrawPro
       return;
     }
     const numAmount = parseFloat(amount);
-    if (isNaN(numAmount) || numAmount < 10) {
-      toast({ title: "Minimum withdrawal is KES 10", variant: "destructive" });
+    if (isNaN(numAmount) || numAmount < 100) {
+      toast({ title: "Minimum withdrawal is KES 100", variant: "destructive" });
       return;
     }
     if (numAmount > wallet.balance) {
@@ -94,7 +94,7 @@ const DepositWithdraw = ({ wallet, phoneNumber, onComplete }: DepositWithdrawPro
         body: { amount: numAmount },
       });
       if (error) throw error;
-      toast({ title: "🦅 Landing confirmed!", description: "Withdrawal pending admin approval" });
+      toast({ title: "Withdrawal requested", description: "Sending to your M-Pesa. Track it in your history below." });
       setAmount("");
       onComplete();
     } catch (e: any) {
