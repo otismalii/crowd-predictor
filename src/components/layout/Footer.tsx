@@ -19,7 +19,7 @@ const Footer = () => (
         <div>
           <div className="flex items-center gap-2.5 mb-3">
             <img src={logoImg} alt="Betwise" className="h-7 w-7 object-contain" />
-            <span className="font-display text-lg font-bold tracking-wider text-primary">PAGAZA</span>
+            <span className="font-display text-lg font-bold tracking-wider text-primary">BETWISE</span>
           </div>
           <p className="text-xs text-muted-foreground">
             Kenya's prediction market exchange. Trade real-world outcomes with M-Pesa, source-backed resolution, and a transparent ledger.
