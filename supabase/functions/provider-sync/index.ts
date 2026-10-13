@@ -113,24 +113,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Keep the existing market lifecycle chain intact.
-    let marketsCreated = 0;
-    let marketsResolved = 0;
-    if (body.chain_markets !== false) {
-      try {
-        const res = await fetch(`${supabaseUrl}/functions/v1/manage-markets`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
-        });
-        if (res.ok) {
-          const payload = await res.json();
-          marketsCreated = payload.markets_created ?? 0;
-          marketsResolved = payload.markets_resolved ?? 0;
-        }
-      } catch (e) {
-        console.log("[provider-sync] manage-markets chain failed:", e);
-      }
-    }
+    const marketsCreated = 0;
+    const marketsResolved = 0;
 
     return new Response(
       JSON.stringify({ ok: true, data: { results, markets_created: marketsCreated, markets_resolved: marketsResolved } }),
