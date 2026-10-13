@@ -59,7 +59,7 @@ const InstallBanner = () => {
             <Download className="h-5 w-5 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold font-display">Install Pagaza</p>
+            <p className="text-xs font-bold font-display">Install Betwise</p>
             <p className="text-[10px] text-muted-foreground">Faster access, offline support</p>
           </div>
           <Button size="sm" onClick={handleInstall} className="neon-glow text-xs h-8">

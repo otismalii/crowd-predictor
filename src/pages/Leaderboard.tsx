@@ -115,7 +115,7 @@ const Leaderboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <SEOHead title="Leaderboard | Pagaza" path="/leaderboard" />
+      <SEOHead title="Leaderboard" path="/leaderboard" />
       <Navbar />
       <div className="container py-8 max-w-2xl">
         <h1 className="mb-2 font-display text-3xl sm:text-4xl font-bold tracking-wider">

@@ -48,7 +48,7 @@ const MatchDetail = () => {
   return (
     <div className="min-h-screen bg-background pb-28">
       <SEOHead
-        title={fixture ? `${home} v ${away} — Odds & Betting` : "Match — Pagaza Sportsbook"}
+        title={fixture ? `${home} v ${away} — Odds & Betting` : "Match — Betwise"}
         description={
           fixture
             ? `Bet on ${home} v ${away}: match result, double chance, total goals, both teams to score and correct score odds.`

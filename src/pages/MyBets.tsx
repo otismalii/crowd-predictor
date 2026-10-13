@@ -41,7 +41,7 @@ const MyBets = () => {
 
   return (
     <div className="min-h-screen bg-background pb-28">
-      <SEOHead title="My Bets — Pagaza Sportsbook" description="Track your open and settled football bets, selections and payouts." />
+      <SEOHead title="My Bets — Betwise" description="Track your open and settled football bets, selections and payouts." />
       <Navbar />
 
       <main className="container max-w-2xl space-y-4 py-4">

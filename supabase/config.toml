@@ -3,17 +3,9 @@ project_id = "nshxgolruvisdzptcxew"
 [functions.sync-matches]
 verify_jwt = false
 
-[functions.execute-trade]
-verify_jwt = false
 
-[functions.manage-markets]
-verify_jwt = false
 
-[functions.logik-oracle]
-verify_jwt = true
 
-[functions.creator-payouts]
-verify_jwt = true
 
 [functions.provider-sync]
 verify_jwt = false

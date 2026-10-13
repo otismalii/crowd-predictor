@@ -46,7 +46,7 @@ const AdminEventStreamPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Helmet><title>Event Stream · Pagaza Admin</title></Helmet>
+      <Helmet><title>Event Stream · Betwise Admin</title></Helmet>
       
       <main className="container py-8 pb-24 space-y-4">
         <header>

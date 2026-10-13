@@ -9,9 +9,9 @@ interface SEOHeadProps {
   jsonLd?: Record<string, any>;
 }
 
-const SITE_NAME = "Pagaza";
+const SITE_NAME = "Betwise";
 const BASE_URL = "https://pagaza.vercel.app";
-const DEFAULT_DESC = "Kenya's premier prediction market platform. Forecast outcomes across politics, economics, sports, and more with source-backed resolution.";
+const DEFAULT_DESC = "Kenya's sportsbook. Live football odds, Pop It, M-Pesa deposits and fast payouts.";
 const DEFAULT_IMAGE = `${BASE_URL}/og-image.jpg`;
 
 const SEOHead = ({
@@ -22,7 +22,7 @@ const SEOHead = ({
   type = "website",
   jsonLd,
 }: SEOHeadProps) => {
-  const fullTitle = title ? `${title} | ${SITE_NAME}` : `${SITE_NAME} — Prediction Markets for Kenya & Beyond`;
+  const fullTitle = title ? `${title} | ${SITE_NAME}` : `${SITE_NAME} — Kenya's Sportsbook & Pop It`;
   const fullUrl = `${BASE_URL}${path}`;
 
   return (

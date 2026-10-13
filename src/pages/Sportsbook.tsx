@@ -71,7 +71,7 @@ const Sportsbook = () => {
   return (
     <div className="min-h-screen bg-background pb-28">
       <SEOHead
-        title="Pagaza Sportsbook — Football Betting in Kenya"
+        title="Betwise — Football Betting in Kenya"
         description="Bet on football with fixed odds: match result, totals, both teams to score and accumulators. Live scores, instant settlement, M-Pesa deposits."
       />
       <Navbar />
