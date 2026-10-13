@@ -17,7 +17,7 @@ import NotificationBell from "@/components/NotificationBell";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import WalletBalance from "@/components/WalletBalance";
-import logoImg from "@/assets/logo.png";
+import logoImg from "@/assets/betwise-crest.png";
 
 const navLinks = [
   { to: "/", label: "Home", icon: Home },

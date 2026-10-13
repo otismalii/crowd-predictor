@@ -1,40 +1,58 @@
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import SEOHead from "@/components/SEOHead";
-import { Shield, CheckCircle2, AlertTriangle, Scale, Eye, HelpCircle, Info } from "lucide-react";
+import { Shield, CheckCircle2, AlertTriangle, Scale, Eye, HelpCircle, Info, Wallet } from "lucide-react";
+import {
+  BET_MIN_KES,
+  DEPOSIT_MAX_KES,
+  DEPOSIT_MIN_KES,
+  WITHDRAW_DAILY_CAP_KES,
+  WITHDRAW_MIN_KES,
+} from "@/lib/constants";
+
+const kes = (n: number) => `KES ${n.toLocaleString("en-KE")}`;
 
 const FAQS = [
   {
-    q: "What is Pagaza?",
-    a: "Pagaza is Kenya's prediction market exchange. You buy and sell shares in real-world outcomes — politics, sports, the economy — and prices reflect the crowd's probability estimate.",
+    q: "What is Betwise?",
+    a: "Betwise is a Kenyan sportsbook and casino. Bet on live and upcoming football and play Pop It, with M-Pesa deposits and withdrawals.",
   },
   {
-    q: "Is this gambling?",
-    a: "No. Pagaza is a forecasting platform that uses an LMSR (Logarithmic Market Scoring Rule) market maker. During beta, all trading uses virtual KES — no real-money payouts.",
+    q: "How are bets settled?",
+    a: "Results come from official football data feeds. When a match finishes, your slip is settled automatically and winnings go straight to your wallet.",
   },
   {
-    q: "How do markets resolve?",
-    a: "Each market has a written resolution rule and an evidence panel. Admins resolve markets only after attaching a verifiable source snapshot, and every resolution is logged in an immutable audit trail.",
+    q: "What happens if a match is postponed or cancelled?",
+    a: "Selections on postponed or cancelled matches are voided. A single bet is refunded; on an accumulator that leg counts at odds 1.00.",
   },
   {
     q: "Why do I need a +254 phone?",
-    a: "A verified Kenyan phone number is required to trade and to withdraw. This keeps the platform local-first and prevents abuse via duplicate accounts.",
+    a: "A verified Kenyan phone number is required to withdraw. It keeps accounts real and stops duplicate-account abuse.",
   },
   {
-    q: "How do I deposit and withdraw?",
-    a: "Deposits and withdrawals run through PesaPal / M-Pesa. Withdrawals are reviewed by an admin before payout to prevent fraud.",
+    q: "How fast are withdrawals?",
+    a: `Most withdrawals up to KES 5,000 are paid to M-Pesa automatically. Larger amounts are checked by our team first. Minimum ${kes(WITHDRAW_MIN_KES)}, daily limit ${kes(WITHDRAW_DAILY_CAP_KES)}.`,
   },
   {
-    q: "Who built Pagaza?",
-    a: "Pagaza is built by LionByte, a Kenyan team focused on transparent, source-backed prediction markets for East Africa.",
+    q: "Is Pop It fair?",
+    a: "Yes. Every round's crash point is fixed before it starts and locked with a SHA-256 fingerprint you can check after the round.",
   },
 ];
+
+const Section = ({ id, icon: Icon, title, children }: { id: string; icon: typeof Info; title: string; children: React.ReactNode }) => (
+  <section id={id}>
+    <h2 className="font-display text-xl font-semibold text-foreground mb-3 flex items-center gap-2">
+      <Icon className="h-5 w-5 text-primary" /> {title}
+    </h2>
+    {children}
+  </section>
+);
 
 const Rules = () => (
   <div className="min-h-screen bg-background">
     <SEOHead
       title="Rules & FAQ"
-      description="How Pagaza markets work: resolution rules, dispute process, trading guidelines, and frequently asked questions."
+      description="Betwise betting rules: settlement, voids, Pop It fairness, M-Pesa deposits and withdrawals, and responsible play."
       path="/rules"
       jsonLd={{
         "@context": "https://schema.org",
@@ -52,68 +70,58 @@ const Rules = () => (
       <h1 className="font-display text-3xl md:text-4xl font-bold mb-2">
         Rules & <span className="text-primary">FAQ</span>
       </h1>
-      <p className="text-muted-foreground mb-10">Everything you need to know about how Pagaza works.</p>
+      <p className="text-muted-foreground mb-10">How betting, payouts and Pop It work on Betwise.</p>
 
       <div className="space-y-10 text-sm text-muted-foreground">
-        <section id="about">
-          <h2 className="font-display text-xl font-semibold text-foreground mb-3 flex items-center gap-2">
-            <Info className="h-5 w-5 text-primary" /> About Pagaza
-          </h2>
-          <p>
-            Pagaza is a Kenya-first prediction market: a place to forecast outcomes of public events using a transparent
-            market-maker. Built by LionByte. Mobile-first. M-Pesa native. Source-backed.
-          </p>
-        </section>
+        <Section id="about" icon={Info} title="About Betwise">
+          <p>Betwise is a Kenya-first sportsbook and casino. Mobile-first, M-Pesa native, every shilling recorded in a ledger. Strictly 18+.</p>
+        </Section>
 
-        <section id="resolution">
-          <h2 className="font-display text-xl font-semibold text-foreground mb-3 flex items-center gap-2">
-            <CheckCircle2 className="h-5 w-5 text-primary" /> Market Resolution
-          </h2>
+        <Section id="betting" icon={Scale} title="Betting Rules">
           <ul className="space-y-2 list-disc list-inside">
-            <li>Every market has a clear resolution rule defined at creation time.</li>
-            <li>Markets are resolved using official sources first, then trusted public data.</li>
-            <li>Resolution sources are displayed on each market page for transparency.</li>
-            <li>Markets lock after resolution — no retroactive changes without a full audit trail.</li>
-            <li>If a market cannot be objectively resolved, it may be invalidated with full refunds.</li>
+            <li>Minimum stake is {kes(BET_MIN_KES)} per slip.</li>
+            <li>Singles and accumulators are supported. Accumulator odds multiply across legs.</li>
+            <li>Odds can change before you place a slip — you'll be asked to confirm new odds.</li>
+            <li>No bets are accepted on a selection after it is suspended or the match has started (unless live).</li>
           </ul>
-        </section>
+        </Section>
 
-        <section id="trading">
-          <h2 className="font-display text-xl font-semibold text-foreground mb-3 flex items-center gap-2">
-            <Scale className="h-5 w-5 text-accent" /> Trading Rules
-          </h2>
+        <Section id="settlement" icon={CheckCircle2} title="Settlement">
           <ul className="space-y-2 list-disc list-inside">
-            <li>All trading uses virtual currency (KES) during beta.</li>
-            <li>Prices are determined by the LMSR market-maker — share price = probability.</li>
-            <li>You buy shares in outcomes you expect. Winning shares pay 1 KES; losing shares pay 0.</li>
-            <li>No trading after market close time.</li>
-            <li>Trading and withdrawals require a verified +254 Kenyan phone number.</li>
+            <li>Results come from official data feeds, never typed in by hand.</li>
+            <li>Slips settle automatically within minutes of the final whistle.</li>
+            <li>Winnings are credited to your wallet instantly on settlement.</li>
+            <li>Postponed or cancelled matches are voided and stakes refunded.</li>
           </ul>
-        </section>
+        </Section>
 
-        <section id="disputes">
-          <h2 className="font-display text-xl font-semibold text-foreground mb-3 flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-accent" /> Disputes
-          </h2>
+        <Section id="money" icon={Wallet} title="Deposits & Withdrawals">
           <ul className="space-y-2 list-disc list-inside">
-            <li>You can dispute a market resolution within 48 hours of settlement.</li>
-            <li>Disputes require a reason and optional evidence.</li>
-            <li>Admin reviews all disputes and may confirm, revise, or invalidate.</li>
-            <li>All dispute decisions are logged in the audit trail.</li>
+            <li>Deposits via M-Pesa: {kes(DEPOSIT_MIN_KES)} – {kes(DEPOSIT_MAX_KES)}. Your wallet is credited once payment is confirmed.</li>
+            <li>Withdrawals: minimum {kes(WITHDRAW_MIN_KES)}, daily limit {kes(WITHDRAW_DAILY_CAP_KES)}, to a verified +254 number.</li>
+            <li>Small low-risk withdrawals are paid automatically; larger ones are reviewed first.</li>
           </ul>
-        </section>
+        </Section>
 
-        <section id="fair-play">
-          <h2 className="font-display text-xl font-semibold text-foreground mb-3 flex items-center gap-2">
-            <Eye className="h-5 w-5 text-primary" /> Fair Play
-          </h2>
+        <Section id="popit" icon={Shield} title="Pop It">
           <ul className="space-y-2 list-disc list-inside">
-            <li>Duplicate accounts and wallet manipulation are prohibited.</li>
-            <li>Spam predictions and rapid-fire submissions are rate-limited.</li>
-            <li>Guest sessions are limited to prevent abuse.</li>
+            <li>Place a stake before the round starts, then cash out before it pops.</li>
+            <li>Set an optional auto cash-out multiplier.</li>
+            <li>Crash points are committed in advance with a verifiable SHA-256 fingerprint.</li>
+          </ul>
+        </Section>
+
+        <Section id="fair-play" icon={Eye} title="Fair Play">
+          <ul className="space-y-2 list-disc list-inside">
+            <li>One account per person. Duplicate accounts are closed.</li>
+            <li>Repeated rapid submissions are blocked.</li>
             <li>All admin actions are logged and auditable.</li>
           </ul>
-        </section>
+        </Section>
+
+        <Section id="responsible" icon={AlertTriangle} title="Play Responsibly">
+          <p>Only bet what you can afford to lose. If betting stops being fun, take a break or contact support to limit your account.</p>
+        </Section>
 
         <section id="faq">
           <h2 className="font-display text-xl font-semibold text-foreground mb-4 flex items-center gap-2">

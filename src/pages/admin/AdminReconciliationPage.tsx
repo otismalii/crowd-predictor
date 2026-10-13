@@ -48,8 +48,8 @@ const AdminReconciliationPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Helmet><title>Reconciliation · Pagaza Admin</title></Helmet>
-      <SEOHead title="Reconciliation · Pagaza Admin" description="Ledger reconciliation dashboard" />
+      <Helmet><title>Reconciliation · Betwise Admin</title></Helmet>
+      <SEOHead title="Reconciliation · Betwise Admin" description="Ledger reconciliation dashboard" />
       
       <main className="container py-8 pb-24 space-y-6">
         <header className="flex items-center justify-between">

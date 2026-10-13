@@ -145,7 +145,7 @@ const Wallet = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <SEOHead title="Dashboard | Pagaza" path="/wallet" />
+      <SEOHead title="Wallet" path="/wallet" />
       <Navbar />
 
       {/* Hero header */}

@@ -124,7 +124,7 @@ export default function OAuthConsent() {
           </div>
           <CardTitle>Connect {clientName} to your account</CardTitle>
           <CardDescription>
-            This lets {clientName} use Pagaza tools as you. You can revoke access anytime from your account settings.
+            This lets {clientName} use Betwise tools as you. You can revoke access anytime from your account settings.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex gap-2">
