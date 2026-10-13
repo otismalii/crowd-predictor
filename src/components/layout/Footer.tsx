@@ -2,14 +2,15 @@ import { Link } from "react-router-dom";
 import logoImg from "@/assets/betwise-crest.png";
 
 const footerLinks = [
-  { label: "Markets", to: "/markets" },
+  { label: "Football", to: "/sports" },
+  { label: "Pop It", to: "/crash" },
   { label: "Leaderboard", to: "/leaderboard" },
   { label: "Wallet", to: "/wallet" },
 ];
 
 const infoLinks = [
   { label: "Rules", to: "/rules" },
-  { label: "Sources", to: "/sources" },
+  { label: "My Bets", to: "/my-bets" },
 ];
 
 const Footer = () => (
@@ -22,7 +23,7 @@ const Footer = () => (
             <span className="font-display text-lg font-bold tracking-wider text-primary">BETWISE</span>
           </div>
           <p className="text-xs text-muted-foreground">
-            Kenya's prediction market exchange. Trade real-world outcomes with M-Pesa, source-backed resolution, and a transparent ledger.
+            Kenya's sportsbook and Pop It. Live football odds, automatic settlement and M-Pesa payouts. 18+ only.
           </p>
         </div>
 
