@@ -11,6 +11,8 @@
 - [ ] 14-day rolling fixture ingestion + odds seeding
 - [ ] Bettor profile hub (replace prediction stats)
 - [ ] Admin withdrawal queue + treasury seeding panel
-- [ ] Delete legacy prediction pages/files
+- [x] Delete legacy prediction pages/files + 11 dead server functions (pass 1)
+- [x] Restore site settings, Betwise Rules page, crest logo + favicon, matchday banner (pass 1)
+- [ ] Drop archived prediction tables from the database (needs DB access — external Supabase)
 - [ ] Roulette page
 - [ ] End-to-end verification of bet → settle → wallet and Pop It cash-out

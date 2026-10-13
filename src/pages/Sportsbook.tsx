@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Radio } from "lucide-react";
 import { useLiveRefresh } from "@/hooks/useLiveRefresh";
+import promoMatchday from "@/assets/promo-matchday.jpg";
 
 import {
   fetchCompetitions,
@@ -77,6 +78,16 @@ const Sportsbook = () => {
       <Navbar />
 
       <main className="container max-w-3xl space-y-4 py-4">
+        {!activeCompetition && (
+          <section className="relative overflow-hidden rounded-2xl border border-border">
+            <img src={promoMatchday} alt="Matchday under the floodlights" width={1600} height={640} className="h-36 w-full object-cover sm:h-44" />
+            <div className="absolute inset-0 flex flex-col justify-center gap-1 bg-gradient-to-r from-background/95 via-background/60 to-transparent p-5">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-primary">Matchday</p>
+              <p className="font-display text-xl font-black leading-tight sm:text-2xl">Bet smart. Cash out on M-Pesa.</p>
+              <p className="text-xs text-muted-foreground">Live odds · Instant settlement · From KES 20</p>
+            </div>
+          </section>
+        )}
         <header className="space-y-1">
           <h1 className="font-display text-2xl font-bold tracking-tight">
             {activeCompetition ? activeCompetition.name : "Football"}
