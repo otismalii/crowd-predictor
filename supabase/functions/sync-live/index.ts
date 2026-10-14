@@ -50,7 +50,14 @@ Deno.serve(async (req) => {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${SERVICE_KEY}` },
         body: JSON.stringify({ window: "upcoming", days: 14, include_events: false, chain_markets: false }),
       });
-      upcomingResult = { status: r.status, upcoming_before: count };
+      await r.text();
+      const o = await fetch(`${SUPABASE_URL}/functions/v1/generate-odds`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${SERVICE_KEY}` },
+        body: JSON.stringify({ horizon_hours: 336, limit: 500 }),
+      });
+      await o.text();
+      upcomingResult = { sync_status: r.status, odds_status: o.status, upcoming_before: count };
     }
   } catch (e) {
     upcomingResult = { error: e instanceof Error ? e.message : String(e) };
@@ -117,6 +124,7 @@ Deno.serve(async (req) => {
       bets_lost: betsLost,
       bets_voided: betsVoided,
       provider: syncResult,
+      upcoming: upcomingResult,
     },
   });
 
@@ -125,6 +133,7 @@ Deno.serve(async (req) => {
     duration_ms: durationMs,
     provider_sync: syncResult,
     provider_error: syncError,
+    upcoming_refresh: upcomingResult,
     matches_with_open_bets: matchIds.length,
     matches_settled: settled.length,
     bets_paid: betsPaid,

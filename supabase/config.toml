@@ -1,7 +1,5 @@
 project_id = "nshxgolruvisdzptcxew"
 
-[functions.sync-matches]
-verify_jwt = false
 
 
 
