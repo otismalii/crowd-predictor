@@ -5,7 +5,7 @@
 // src/lib/mcp/index.ts
 import { auth, defineMcp } from "npm:@lovable.dev/mcp-js@0.20.0";
 
-// src/lib/mcp/tools/list-markets.ts
+// src/lib/mcp/tools/list-fixtures.ts
 import { defineTool } from "npm:@lovable.dev/mcp-js@0.20.0";
 import { z } from "npm:zod@^4.4.3";
 
@@ -23,57 +23,27 @@ function supabaseAnon() {
   });
 }
 
-// src/lib/mcp/tools/list-markets.ts
-var list_markets_default = defineTool({
-  name: "list_markets",
-  title: "List markets",
-  description: "List prediction markets on Pagaza, optionally filtered by status or category. Returns up to 25 markets.",
+// src/lib/mcp/tools/list-fixtures.ts
+var list_fixtures_default = defineTool({
+  name: "list_fixtures",
+  title: "List fixtures",
+  description: "List Betwise football fixtures by status (upcoming, live, finished). Returns up to 25.",
   inputSchema: {
-    status: z.enum(["open", "closed", "resolved", "draft"]).optional().describe("Filter by lifecycle status."),
-    category: z.string().optional().describe("Filter by category (e.g. sports, politics)."),
-    limit: z.number().int().min(1).max(25).optional().describe("Max rows to return (default 10).")
+    status: z.enum(["upcoming", "live", "finished"]).optional().describe("Fixture status (default upcoming)."),
+    limit: z.number().int().min(1).max(25).optional().describe("Max rows (default 10).")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
-  handler: async ({ status, category, limit }) => {
+  handler: async ({ status, limit }) => {
     const supabase = supabaseAnon();
-    let q = supabase.from("markets").select("id, title, category, status, total_volume, closes_at, mqi_score").is("deleted_at", null).order("total_volume", { ascending: false }).limit(limit ?? 10);
-    if (status) q = q.eq("status", status);
-    if (category) q = q.eq("category", category);
-    const { data, error } = await q;
+    const { data, error } = await supabase.from("platform_matches").select("id, kickoff_at, status, minute, home_score, away_score, home_team:teams!platform_matches_home_team_id_fkey(name), away_team:teams!platform_matches_away_team_id_fkey(name), match_odds(market_key, selection_key, odds)").eq("status", status ?? "upcoming").order("kickoff_at", { ascending: status !== "finished" }).limit(limit ?? 10);
     if (error) return { content: [{ type: "text", text: `Error: ${error.message}` }], isError: true };
-    return {
-      content: [{ type: "text", text: JSON.stringify(data ?? []) }],
-      structuredContent: { markets: data ?? [] }
-    };
-  }
-});
-
-// src/lib/mcp/tools/get-market.ts
-import { defineTool as defineTool2 } from "npm:@lovable.dev/mcp-js@0.20.0";
-import { z as z2 } from "npm:zod@^4.4.3";
-var get_market_default = defineTool2({
-  name: "get_market",
-  title: "Get market",
-  description: "Fetch a single Pagaza market with its outcomes and current odds.",
-  inputSchema: {
-    market_id: z2.string().uuid().describe("The market id.")
-  },
-  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
-  handler: async ({ market_id }) => {
-    const supabase = supabaseAnon();
-    const { data, error } = await supabase.from("markets").select("*, market_outcomes(*)").eq("id", market_id).maybeSingle();
-    if (error) return { content: [{ type: "text", text: `Error: ${error.message}` }], isError: true };
-    if (!data) return { content: [{ type: "text", text: "Market not found" }], isError: true };
-    return {
-      content: [{ type: "text", text: JSON.stringify(data) }],
-      structuredContent: { market: data }
-    };
+    return { content: [{ type: "text", text: JSON.stringify(data ?? []) }], structuredContent: { fixtures: data ?? [] } };
   }
 });
 
 // src/lib/mcp/tools/get-wallet.ts
-import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@0.20.0";
-var get_wallet_default = defineTool3({
+import { defineTool as defineTool2 } from "npm:@lovable.dev/mcp-js@0.20.0";
+var get_wallet_default = defineTool2({
   name: "get_wallet",
   title: "Get my wallet balance",
   description: "Get the signed-in user's Pagaza wallet balance in KES.",
@@ -94,14 +64,14 @@ var get_wallet_default = defineTool3({
 });
 
 // src/lib/mcp/tools/list-positions.ts
-import { defineTool as defineTool4 } from "npm:@lovable.dev/mcp-js@0.20.0";
-import { z as z3 } from "npm:zod@^4.4.3";
-var list_positions_default = defineTool4({
+import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@0.20.0";
+import { z as z2 } from "npm:zod@^4.4.3";
+var list_positions_default = defineTool3({
   name: "list_positions",
   title: "List my positions",
   description: "List the signed-in user's open positions across markets.",
   inputSchema: {
-    limit: z3.number().int().min(1).max(50).optional().describe("Max rows (default 20).")
+    limit: z2.number().int().min(1).max(50).optional().describe("Max rows (default 20).")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ limit }, ctx) => {
@@ -119,14 +89,14 @@ var list_positions_default = defineTool4({
 });
 
 // src/lib/mcp/tools/list-trades.ts
-import { defineTool as defineTool5 } from "npm:@lovable.dev/mcp-js@0.20.0";
-import { z as z4 } from "npm:zod@^4.4.3";
-var list_trades_default = defineTool5({
+import { defineTool as defineTool4 } from "npm:@lovable.dev/mcp-js@0.20.0";
+import { z as z3 } from "npm:zod@^4.4.3";
+var list_trades_default = defineTool4({
   name: "list_recent_trades",
   title: "List my recent trades",
   description: "List the signed-in user's most recent trades on Pagaza.",
   inputSchema: {
-    limit: z4.number().int().min(1).max(50).optional().describe("Max rows (default 20).")
+    limit: z3.number().int().min(1).max(50).optional().describe("Max rows (default 20).")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ limit }, ctx) => {
@@ -146,15 +116,15 @@ var list_trades_default = defineTool5({
 // src/lib/mcp/index.ts
 var projectRef = "nshxgolruvisdzptcxew";
 var mcp_default = defineMcp({
-  name: "pagaza-mcp",
-  title: "Pagaza Prediction Markets",
-  version: "0.1.0",
-  instructions: "Tools for the Pagaza Kenya prediction market app. Use `list_markets` and `get_market` to explore markets. `get_wallet`, `list_positions`, and `list_recent_trades` return the signed-in user's own data. This server never places trades or moves funds.",
+  name: "betwise-mcp",
+  title: "Betwise Sportsbook",
+  version: "0.2.0",
+  instructions: "Read-only tools for the Betwise Kenyan sportsbook. Use `list_fixtures` for football fixtures and odds. `get_wallet` and the other user tools return the signed-in user's own data. This server never places bets or moves funds.",
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated"
   }),
-  tools: [list_markets_default, get_market_default, get_wallet_default, list_positions_default, list_trades_default]
+  tools: [list_fixtures_default, get_wallet_default, list_positions_default, list_trades_default]
 });
 
 // lovable-mcp-supabase-entry.ts
