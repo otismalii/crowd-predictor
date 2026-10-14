@@ -8,6 +8,7 @@
 - [x] Admin nav: removed prediction-market items
 
 ## Next
+- [x] Wallet page: prediction stats → betting stats; agent tools rebranded to sportsbook
 - [ ] 14-day rolling fixture ingestion + odds seeding
 - [ ] Bettor profile hub (replace prediction stats)
 - [ ] Admin withdrawal queue + treasury seeding panel
