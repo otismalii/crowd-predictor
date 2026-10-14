@@ -4,6 +4,88 @@
 // Bundled from src/lib/mcp/index.ts by @lovable.dev/mcp-js.
 // src/lib/mcp/index.ts
 import { auth, defineMcp } from "npm:@lovable.dev/mcp-js@0.20.0";
+
+// src/lib/mcp/tools/list-fixtures.ts
+import { defineTool } from "npm:@lovable.dev/mcp-js@0.20.0";
+import { z } from "npm:zod@^4.4.3";
+
+// src/lib/mcp/supabase.ts
+import { createClient } from "npm:@supabase/supabase-js@^2.98.0";
+function supabaseForUser(ctx) {
+  return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_PUBLISHABLE_KEY, {
+    global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+}
+function supabaseAnon() {
+  return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_PUBLISHABLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+}
+
+// src/lib/mcp/tools/list-fixtures.ts
+var list_fixtures_default = defineTool({
+  name: "list_fixtures",
+  title: "List fixtures",
+  description: "List Betwise football fixtures by status (upcoming, live, finished). Returns up to 25.",
+  inputSchema: {
+    status: z.enum(["upcoming", "live", "finished"]).optional().describe("Fixture status (default upcoming)."),
+    limit: z.number().int().min(1).max(25).optional().describe("Max rows (default 10).")
+  },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async ({ status, limit }) => {
+    const supabase = supabaseAnon();
+    const { data, error } = await supabase.from("platform_matches").select("id, kickoff_at, status, minute, home_score, away_score, home_team:teams!platform_matches_home_team_id_fkey(name), away_team:teams!platform_matches_away_team_id_fkey(name), match_odds(market, selection, line, generated_odds, override_odds, is_suspended)").eq("status", status ?? "upcoming").order("kickoff_at", { ascending: status !== "finished" }).limit(limit ?? 10);
+    if (error) return { content: [{ type: "text", text: `Error: ${error.message}` }], isError: true };
+    return { content: [{ type: "text", text: JSON.stringify(data ?? []) }], structuredContent: { fixtures: data ?? [] } };
+  }
+});
+
+// src/lib/mcp/tools/get-wallet.ts
+import { defineTool as defineTool2 } from "npm:@lovable.dev/mcp-js@0.20.0";
+var get_wallet_default = defineTool2({
+  name: "get_wallet",
+  title: "Get my wallet balance",
+  description: "Get the signed-in user's Betwise wallet balance in KES.",
+  inputSchema: {},
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async (_input, ctx) => {
+    if (!ctx.isAuthenticated()) {
+      return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+    }
+    const supabase = supabaseForUser(ctx);
+    const { data, error } = await supabase.from("wallets").select("balance, locked_balance, bonus_balance, escrow_balance, updated_at").eq("user_id", ctx.getUserId()).maybeSingle();
+    if (error) return { content: [{ type: "text", text: `Error: ${error.message}` }], isError: true };
+    return {
+      content: [{ type: "text", text: JSON.stringify(data ?? {}) }],
+      structuredContent: { wallet: data ?? null }
+    };
+  }
+});
+
+// src/lib/mcp/tools/list-bet-slips.ts
+import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@0.20.0";
+import { z as z2 } from "npm:zod@^4.4.3";
+var list_bet_slips_default = defineTool3({
+  name: "list_my_bet_slips",
+  title: "List my bet slips",
+  description: "List the signed-in user's most recent Betwise bet slips.",
+  inputSchema: {
+    limit: z2.number().int().min(1).max(50).optional().describe("Max rows (default 20).")
+  },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async ({ limit }, ctx) => {
+    if (!ctx.isAuthenticated()) {
+      return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+    }
+    const supabase = supabaseForUser(ctx);
+    const { data, error } = await supabase.from("bet_slips").select("id, status, stake, potential_payout, created_at").eq("user_id", ctx.getUserId()).order("created_at", { ascending: false }).limit(limit ?? 20);
+    if (error) return { content: [{ type: "text", text: `Error: ${error.message}` }], isError: true };
+    return { content: [{ type: "text", text: JSON.stringify(data ?? []) }], structuredContent: { slips: data ?? [] } };
+  }
+});
+
+// src/lib/mcp/index.ts
 var projectRef = "nshxgolruvisdzptcxew";
 var mcp_default = defineMcp({
   name: "betwise-mcp",
@@ -13,7 +95,8 @@ var mcp_default = defineMcp({
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated"
-  })
+  }),
+  tools: [list_fixtures_default, get_wallet_default, list_bet_slips_default]
 });
 
 // lovable-mcp-supabase-entry.ts

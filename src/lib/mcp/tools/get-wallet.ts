@@ -4,7 +4,7 @@ import { supabaseForUser } from "../supabase";
 export default defineTool({
   name: "get_wallet",
   title: "Get my wallet balance",
-  description: "Get the signed-in user's Pagaza wallet balance in KES.",
+  description: "Get the signed-in user's Betwise wallet balance in KES.",
   inputSchema: {},
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async (_input, ctx) => {
