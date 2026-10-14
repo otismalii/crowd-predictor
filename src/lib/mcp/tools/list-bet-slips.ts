@@ -3,9 +3,9 @@ import { z } from "zod";
 import { supabaseForUser } from "../supabase";
 
 export default defineTool({
-  name: "list_positions",
-  title: "List my positions",
-  description: "List the signed-in user's open positions across markets.",
+  name: "list_my_bet_slips",
+  title: "List my bet slips",
+  description: "List the signed-in user's most recent Betwise bet slips.",
   inputSchema: {
     limit: z.number().int().min(1).max(50).optional().describe("Max rows (default 20)."),
   },
@@ -16,15 +16,12 @@ export default defineTool({
     }
     const supabase = supabaseForUser(ctx);
     const { data, error } = await supabase
-      .from("positions")
-      .select("market_id, outcome_id, shares, avg_price, total_cost, updated_at")
+      .from("bet_slips")
+      .select("id, status, stake, potential_payout, created_at")
       .eq("user_id", ctx.getUserId())
-      .order("updated_at", { ascending: false })
+      .order("created_at", { ascending: false })
       .limit(limit ?? 20);
     if (error) return { content: [{ type: "text", text: `Error: ${error.message}` }], isError: true };
-    return {
-      content: [{ type: "text", text: JSON.stringify(data ?? []) }],
-      structuredContent: { positions: data ?? [] },
-    };
+    return { content: [{ type: "text", text: JSON.stringify(data ?? []) }], structuredContent: { slips: data ?? [] } };
   },
 });

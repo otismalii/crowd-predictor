@@ -1,8 +1,7 @@
 import { auth, defineMcp } from "@lovable.dev/mcp-js";
 import listFixturesTool from "./tools/list-fixtures";
 import getWalletTool from "./tools/get-wallet";
-import listPositionsTool from "./tools/list-positions";
-import listTradesTool from "./tools/list-trades";
+import listBetSlipsTool from "./tools/list-bet-slips";
 
 // The OAuth issuer MUST be the direct Supabase host derived from the project
 // ref — never SUPABASE_URL (which may be a proxy).
@@ -18,5 +17,4 @@ export default defineMcp({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated",
   }),
-  tools: [listFixturesTool, getWalletTool, listPositionsTool, listTradesTool],
 });
