@@ -74,8 +74,7 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
         if (data.expired) {
           // Session expired, create new one
           const newId = generateGuestId();
-          localStorage.setItem("pagaza_guest_id", newId);
-          document.cookie = `pagaza_guest_id=${newId};path=/;max-age=${60 * 60 * 24 * 30}`;
+          persistGuestId(newId);
           setGuestId(newId);
           await supabase.from("guest_sessions").insert({ guest_id: newId });
           setGuestCredits(1000);
@@ -111,7 +110,8 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
       .from("guest_sessions")
       .update({ converted_user_id: user.id, expired: true })
       .eq("guest_id", guestId);
-    localStorage.removeItem("pagaza_guest_id");
+    localStorage.removeItem(GUEST_KEY);
+    localStorage.removeItem(LEGACY_GUEST_KEY);
     setGuestId(null);
   }, [guestId, user]);
 
