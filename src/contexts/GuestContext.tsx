@@ -16,6 +16,29 @@ function generateGuestId(): string {
   return "guest_" + crypto.randomUUID().replace(/-/g, "").slice(0, 16);
 }
 
+const GUEST_KEY = "betwise_guest_id";
+const LEGACY_GUEST_KEY = "pagaza_guest_id";
+const GUEST_COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
+
+/** Read the stored guest id, migrating the legacy Pagaza key once. */
+function readStoredGuestId(): string | null {
+  let stored = localStorage.getItem(GUEST_KEY);
+  if (!stored) {
+    stored = localStorage.getItem(LEGACY_GUEST_KEY);
+    if (stored) {
+      localStorage.setItem(GUEST_KEY, stored);
+      localStorage.removeItem(LEGACY_GUEST_KEY);
+    }
+  }
+  return stored;
+}
+
+function persistGuestId(id: string) {
+  localStorage.setItem(GUEST_KEY, id);
+  document.cookie = `${GUEST_KEY}=${id};path=/;max-age=${GUEST_COOKIE_MAX_AGE}`;
+  document.cookie = `${LEGACY_GUEST_KEY}=;path=/;max-age=0`;
+}
+
 export const GuestProvider = ({ children }: { children: ReactNode }) => {
   const { user, loading: authLoading } = useAuth();
   const [guestId, setGuestId] = useState<string | null>(null);
@@ -32,11 +55,10 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
     }
 
     // Check for existing guest_id
-    let stored = localStorage.getItem("pagaza_guest_id");
+    let stored = readStoredGuestId();
     if (!stored) {
       stored = generateGuestId();
-      localStorage.setItem("pagaza_guest_id", stored);
-      document.cookie = `pagaza_guest_id=${stored};path=/;max-age=${60 * 60 * 24 * 30}`;
+      persistGuestId(stored);
     }
     setGuestId(stored);
 
