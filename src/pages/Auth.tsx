@@ -93,7 +93,7 @@ const Auth = () => {
   };
 
   const descriptions = {
-    login: "Sign in to make your predictions",
+    login: "Sign in to place your bets",
     signup: "Create your account and start predicting",
     forgot: "We'll send you a reset link",
   };
@@ -170,7 +170,7 @@ const Auth = () => {
                 <Zap className="h-8 w-8 text-primary" />
               </motion.div>
               <GradientText className="font-display text-2xl font-bold tracking-wider" animationSpeed={4}>
-                PAGAZABETZ
+                BETWISE
               </GradientText>
             </Link>
 

@@ -1,7 +1,7 @@
 // Betwise site settings — single source for brand copy and money limits shown in the UI.
 // Server functions enforce the same limits; keep these in sync with finance settings.
 export const SITE_NAME = "Betwise";
-export const BASE_URL = "https://pagaza.vercel.app";
+export const BASE_URL = "https://betwiseke.vercel.app";
 export const DEFAULT_DESC =
   "Kenya's sportsbook. Live football odds, Pop It, M-Pesa deposits and fast payouts.";
 

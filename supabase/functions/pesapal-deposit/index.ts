@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
         id: reference,
         currency: "KES",
         amount,
-        description: `Pagaza Bet deposit KES ${amount}`,
+        description: `Betwise deposit KES ${amount}`,
         callback_url: callback_url || `${SUPABASE_URL}/functions/v1/pesapal-callback?source=redirect`,
         notification_id: ipnId,
         billing_address: { email_address: user.email || "", phone_number: phone_number || "" },

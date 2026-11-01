@@ -83,8 +83,8 @@ Deno.serve(async (req) => {
     const payout = await sendMpesaPayout({
       phone: req_.phone,
       amount,
-      name: profile?.username || "Pagaza Bet player",
-      narrative: "Pagaza Bet withdrawal",
+      name: profile?.username || "Betwise player",
+      narrative: "Betwise withdrawal",
     });
 
     if (!payout.ok) {

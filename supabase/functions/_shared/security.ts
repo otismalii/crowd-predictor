@@ -31,7 +31,7 @@ async function sha256Hex(value: string): Promise<string> {
 
 /** Identify the caller from either a Supabase JWT or a platform API key. Never throws. */
 export async function identify(req: Request, db: SupabaseClient): Promise<Caller> {
-  const product = req.headers.get("x-product") ?? "pagaza";
+  const product = req.headers.get("x-product") ?? "betwise";
   const apiKey = req.headers.get("x-api-key");
 
   if (apiKey) {
