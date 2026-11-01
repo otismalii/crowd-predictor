@@ -42,14 +42,7 @@ const keyOf = (matchId: string, market: string, selection: string, line: number 
   `${matchId}|${market}|${selection}|${line ?? ""}`;
 
 export const BetSlipProvider = ({ children }: { children: React.ReactNode }) => {
-  const [selections, setSelections] = useState<SlipSelection[]>(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? (JSON.parse(raw) as SlipSelection[]) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [selections, setSelections] = useState<SlipSelection[]>(() => readStoredSlip());
   const [stake, setStake] = useState(100);
   const [isOpen, setIsOpen] = useState(false);
 
