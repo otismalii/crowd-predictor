@@ -1,4 +1,4 @@
-const CACHE_NAME = "pagaza-v2";
+const CACHE_NAME = "betwise-v3";
 const PRECACHE_URLS = ["/", "/index.html"];
 const NAVIGATE_FALLBACK_DENYLIST = [/^\/~oauth/, /^\/api\//];
 
@@ -40,7 +40,7 @@ self.addEventListener("fetch", (event) => {
         .catch(() =>
           caches.match("/index.html").then((cached) =>
             cached || new Response(
-              '<!DOCTYPE html><html><body style="background:#0a0a12;color:#78ff78;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif"><div style="text-align:center"><h1>🦅 Pagaza</h1><p>You are offline. Please reconnect.</p></div></body></html>',
+              '<!DOCTYPE html><html><body style="background:#0a0a12;color:#78ff78;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif"><div style="text-align:center"><h1>🦅 Betwise</h1><p>You are offline. Please reconnect.</p></div></body></html>',
               { headers: { "Content-Type": "text/html" } }
             )
           )

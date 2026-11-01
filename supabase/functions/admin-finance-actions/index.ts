@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
       const payout = await sendMpesaPayout({
         phone: wr.phone_number ?? "",
         amount: Number(wr.amount),
-        narrative: "Pagaza Bet withdrawal",
+        narrative: "Betwise withdrawal",
       });
       if (!payout.ok) {
         await db.from("withdrawal_requests").update({ status: "pending", failure_reason: payout.error.slice(0, 500) }).eq("id", requestId);

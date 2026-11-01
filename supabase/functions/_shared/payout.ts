@@ -42,10 +42,10 @@ export async function sendMpesaPayout(args: {
         requires_approval: "NO",
         transactions: [
           {
-            name: args.name ?? "Pagaza Bet player",
+            name: args.name ?? "Betwise player",
             account: normalisePhone(args.phone),
             amount: Math.round(args.amount),
-            narrative: args.narrative ?? "Pagaza Bet withdrawal",
+            narrative: args.narrative ?? "Betwise withdrawal",
           },
         ],
       }),

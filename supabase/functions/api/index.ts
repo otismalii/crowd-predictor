@@ -1,4 +1,4 @@
-// Platform API gateway — the single versioned surface shared by Pagaza Markets and LOGIK Betwise.
+// Platform API gateway — the single versioned surface for Betwise.
 // Every handler delegates to a service in ../_shared/services/*. No business rules live here.
 import { apiErr, apiOk, cached } from "../_shared/api.ts";
 import { ADMIN_ROLES, apiCorsHeaders, Caller, hasAnyRole, identify, rateLimit, serviceClient } from "../_shared/security.ts";
