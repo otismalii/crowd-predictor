@@ -10,7 +10,7 @@ interface SEOHeadProps {
 }
 
 const SITE_NAME = "Betwise";
-const BASE_URL = "https://pagaza.vercel.app";
+const BASE_URL = "https://betwiseke.vercel.app";
 const DEFAULT_DESC = "Kenya's sportsbook. Live football odds, Pop It, M-Pesa deposits and fast payouts.";
 const DEFAULT_IMAGE = `${BASE_URL}/og-image.jpg`;
 
