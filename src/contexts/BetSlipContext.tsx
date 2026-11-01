@@ -6,12 +6,14 @@ const STORAGE_KEY = "betwise.betslip.v1";
 /** One-time migration: carry over selections saved under the legacy key. */
 const readStoredSlip = (): SlipSelection[] => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem("pagaza.betslip.v1");
-    if (raw && localStorage.getItem(STORAGE_KEY) === null) {
+    let raw = localStorage.getItem(STORAGE_KEY);
+    const legacy = localStorage.getItem("pagaza.betslip.v1");
+    if (legacy && (!raw || raw === "[]")) {
+      raw = legacy;
       localStorage.setItem(STORAGE_KEY, raw);
       localStorage.removeItem("pagaza.betslip.v1");
     }
-    return raw ? JSON.parse(raw) : [];
+    return raw ? (JSON.parse(raw) as SlipSelection[]) : [];
   } catch {
     return [];
   }
