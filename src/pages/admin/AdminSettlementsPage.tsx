@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { AdminPageHeader, AdminPageBody, AdminStatGrid, AdminSectionCard, AdminEmptyState } from "@/components/admin/primitives";
-import AdminConfirmDialog from "@/components/admin/primitives/AdminConfirmDialog";
+import { AdminPageHeader, AdminPageBody, AdminSectionCard, AdminEmptyState, AdminConfirmDialog } from "@/components/admin/primitives";
 import { adminAction, fetchMatchConsole, fetchMatchOdds, type ConsoleMatch, type ConsoleOdds } from "@/services/adminService";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
