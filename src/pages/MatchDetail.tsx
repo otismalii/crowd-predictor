@@ -4,6 +4,7 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import SEOHead from "@/components/SEOHead";
 import MarketBoard from "@/components/sportsbook/MarketBoard";
+import TeamCrest from "@/components/sportsbook/TeamCrest";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Radio } from "lucide-react";
@@ -86,8 +87,11 @@ const MatchDetail = () => {
                 )}
               </div>
               <div className="flex items-center justify-between gap-4">
-                <h1 className="font-display text-lg font-bold leading-tight">
-                  {home} <span className="text-muted-foreground">v</span> {away}
+                <h1 className="flex flex-wrap items-center gap-1.5 font-display text-lg font-bold leading-tight">
+                  <TeamCrest name={home} logoUrl={fixture.home_team?.logo_url} />
+                  {home} <span className="text-muted-foreground">v</span>
+                  <TeamCrest name={away} logoUrl={fixture.away_team?.logo_url} />
+                  {away}
                 </h1>
                 {(fixture.status === "live" || fixture.status === "finished") && (
                   <span className="font-display text-2xl font-bold tabular-nums">

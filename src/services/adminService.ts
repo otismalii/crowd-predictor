@@ -66,7 +66,7 @@ export async function fetchMatchConsole(statuses: string[], limit = 60) {
          away_team:teams!platform_matches_away_team_id_fkey(name, short_name, logo_url),
          competition:competitions(name)`
       )
-      .in("status", statuses)
+      .in("status", statuses as any)
       .order("kickoff_at", { ascending: true })
       .limit(limit) as any
   ) as Promise<{ data: ConsoleMatch[] | null; error: string | null }>;

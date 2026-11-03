@@ -11,6 +11,7 @@ import { useBetSlip } from "@/contexts/BetSlipContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { placeBet, repriceSelections } from "@/services/sportsbookService";
 import { formatKES } from "@/lib/format";
+import { computeWinningsTax } from "@/lib/kraTax";
 import { useToast } from "@/hooks/use-toast";
 
 const QUICK_STAKES = [50, 100, 250, 500, 1000];
@@ -203,12 +204,27 @@ const BetSlipDrawer = () => {
                   <span>Total odds</span>
                   <span className="font-semibold tabular-nums text-foreground">{combinedOdds.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Potential payout</span>
-                  <span className="font-display font-bold tabular-nums text-primary">
-                    KES {formatKES(potentialPayout)}
-                  </span>
-                </div>
+                {(() => {
+                  const t = computeWinningsTax(stake, potentialPayout);
+                  return (
+                    <>
+                      <div className="flex justify-between text-muted-foreground">
+                        <span>Gross payout</span>
+                        <span className="tabular-nums text-foreground">KES {formatKES(t.grossPayout)}</span>
+                      </div>
+                      <div className="flex justify-between text-muted-foreground">
+                        <span>KRA tax (20% of winnings)</span>
+                        <span className="tabular-nums text-destructive">− KES {formatKES(t.tax)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Net payout</span>
+                        <span className="font-display font-bold tabular-nums text-primary">
+                          KES {formatKES(t.netPayout)}
+                        </span>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
 
               <Button

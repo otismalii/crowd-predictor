@@ -3,7 +3,9 @@ import { Link, useParams } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import SEOHead from "@/components/SEOHead";
-import FixtureCard from "@/components/sportsbook/FixtureCard";
+import FixtureCard, { type QuickMarket } from "@/components/sportsbook/FixtureCard";
+import { Switch } from "@/components/ui/switch";
+import { useDataSaver } from "@/hooks/useDataSaver";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -27,6 +29,13 @@ const WINDOWS: { key: FixtureWindow; label: string }[] = [
   { key: "results", label: "Results" },
 ];
 
+const QUICK_MARKETS: { key: QuickMarket; label: string }[] = [
+  { key: "1x2", label: "1X2" },
+  { key: "over_under", label: "Over/Under" },
+  { key: "btts", label: "BTTS" },
+  { key: "double_chance", label: "Double Chance" },
+];
+
 const Sportsbook = () => {
   const { competitionSlug } = useParams();
   const [window, setWindow] = useState<FixtureWindow>("today");
@@ -35,6 +44,8 @@ const Sportsbook = () => {
   const [competitions, setCompetitions] = useState<{ slug: string; name: string; short_name: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [quickMarket, setQuickMarket] = useState<QuickMarket>("1x2");
+  const [dataSaver, setDataSaver] = useDataSaver();
 
   useEffect(() => {
     fetchCompetitions().then(({ data }) => setCompetitions(data as any[]));
@@ -108,6 +119,29 @@ const Sportsbook = () => {
           </TabsList>
         </Tabs>
 
+        <div className="flex items-center justify-between gap-2">
+          <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1" role="group" aria-label="Quick markets">
+            {QUICK_MARKETS.map((m) => (
+              <button
+                key={m.key}
+                onClick={() => setQuickMarket(m.key)}
+                aria-pressed={quickMarket === m.key}
+                className={`shrink-0 rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+                  quickMarket === m.key
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border/60 bg-muted/30 text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+          <label className="flex shrink-0 items-center gap-1.5 text-[11px] text-muted-foreground">
+            Data Saver
+            <Switch checked={dataSaver} onCheckedChange={setDataSaver} aria-label="Data Saver" />
+          </label>
+        </div>
+
         {competitions.length > 0 && (
           <nav className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
             <Button asChild size="sm" variant={competitionSlug ? "outline" : "secondary"} className="shrink-0 text-xs">
@@ -144,7 +178,7 @@ const Sportsbook = () => {
         ) : (
           <section className="space-y-2">
             {fixtures.map((f) => (
-              <FixtureCard key={f.id} fixture={f} odds={odds.filter((o) => o.match_id === f.id)} />
+              <FixtureCard key={f.id} market={quickMarket} fixture={f} odds={odds.filter((o) => o.match_id === f.id)} />
             ))}
           </section>
         )}
