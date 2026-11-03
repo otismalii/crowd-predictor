@@ -293,7 +293,7 @@ const AdminSettlementsPage = () => {
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center justify-center gap-1">
-                              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1 text-primary hover:bg-primary/10" onClick={() => openPending({ kind: "score", match: m })}>
+                              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1 text-primary hover:bg-primary/10" onClick={() => openPending({ kind: "score", match: m, home: String(m.home_score ?? 0), away: String(m.away_score ?? 0), status: m.status })}>
                                 <Pencil className="h-3 w-3" /> Score
                               </Button>
                               <Button
@@ -338,7 +338,7 @@ const AdminSettlementsPage = () => {
                                       {o.override_odds != null && <span className="text-[9px] px-1.5 py-0.5 rounded bg-accent/20 text-accent font-semibold">OVERRIDE</span>}
                                       {o.is_suspended && <span className="text-[9px] px-1.5 py-0.5 rounded bg-destructive/20 text-destructive font-semibold">SUSPENDED</span>}
                                       <span className="flex-1" />
-                                      <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px]" onClick={() => openPending({ kind: "override", odds: o })}>
+                                      <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px]" onClick={() => openPending({ kind: "override", odds: o, oddsValue: String(o.odds ?? "") })}>
                                         Override
                                       </Button>
                                       {o.override_odds != null && (
