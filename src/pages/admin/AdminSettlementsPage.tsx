@@ -338,7 +338,7 @@ const AdminSettlementsPage = () => {
                                       {o.override_odds != null && <span className="text-[9px] px-1.5 py-0.5 rounded bg-accent/20 text-accent font-semibold">OVERRIDE</span>}
                                       {o.is_suspended && <span className="text-[9px] px-1.5 py-0.5 rounded bg-destructive/20 text-destructive font-semibold">SUSPENDED</span>}
                                       <span className="flex-1" />
-                                      <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px]" onClick={() => openPending({ kind: "override", odds: o, oddsValue: String(o.odds ?? "") })}>
+                                      <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px]" onClick={() => openPending({ kind: "override", odds: o, oddsValue: String(o.override_odds ?? o.generated_odds) })}>
                                         Override
                                       </Button>
                                       {o.override_odds != null && (
