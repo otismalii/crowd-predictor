@@ -4,22 +4,38 @@ import { ChevronRight, Radio } from "lucide-react";
 import { formatDateTime } from "@/lib/format";
 import OddsButton from "./OddsButton";
 import { useBetSlip } from "@/contexts/BetSlipContext";
-import { effectiveOdds, selectionLabel, type Fixture, type MatchOdds } from "@/types/sportsbook";
+import { effectiveOdds, selectionLabel, MARKET_LABELS, type Fixture, type MatchOdds } from "@/types/sportsbook";
+import TeamCrest from "./TeamCrest";
+
+export type QuickMarket = "1x2" | "double_chance" | "over_under" | "btts";
+
+const QUICK_SELECTIONS: Record<QuickMarket, string[]> = {
+  "1x2": ["home", "draw", "away"],
+  double_chance: ["1x", "12", "x2"],
+  over_under: ["over", "under"],
+  btts: ["yes", "no"],
+};
 
 type Props = {
   fixture: Fixture;
   odds: MatchOdds[];
+  market?: QuickMarket;
 };
 
-const FixtureCard = ({ fixture, odds }: Props) => {
+const FixtureCard = ({ fixture, odds, market = "1x2" }: Props) => {
   const { toggleSelection, has } = useBetSlip();
   const home = fixture.home_team?.name ?? "Home";
   const away = fixture.away_team?.name ?? "Away";
   const isLive = fixture.status === "live";
   const isFinished = fixture.status === "finished";
 
-  const result = ["home", "draw", "away"].map((sel) =>
-    odds.find((o) => o.market === "1x2" && o.selection === sel) ?? null,
+  const ouLines = odds.filter((o) => o.market === "over_under").map((o) => o.line ?? 0);
+  const line = market === "over_under"
+    ? (ouLines.includes(2.5) ? 2.5 : ouLines.sort((a, b) => a - b)[0] ?? null)
+    : null;
+  const sels = QUICK_SELECTIONS[market];
+  const result = sels.map((sel) =>
+    odds.find((o) => o.market === market && o.selection === sel && (line === null || o.line === line)) ?? null,
   );
   const marketCount = new Set(odds.map((o) => `${o.market}${o.line ?? ""}`)).size;
 
@@ -42,8 +58,14 @@ const FixtureCard = ({ fixture, odds }: Props) => {
       <Link to={`/match/${fixture.id}`} className="group block">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 space-y-1">
-            <p className="truncate text-sm font-semibold group-hover:text-primary">{home}</p>
-            <p className="truncate text-sm font-semibold group-hover:text-primary">{away}</p>
+            <p className="flex items-center gap-2 truncate text-sm font-semibold group-hover:text-primary">
+              <TeamCrest name={home} logoUrl={fixture.home_team?.logo_url} />
+              <span className="truncate">{home}</span>
+            </p>
+            <p className="flex items-center gap-2 truncate text-sm font-semibold group-hover:text-primary">
+              <TeamCrest name={away} logoUrl={fixture.away_team?.logo_url} />
+              <span className="truncate">{away}</span>
+            </p>
           </div>
           <div className="flex items-center gap-2">
             {(isLive || isFinished) && (
@@ -60,25 +82,28 @@ const FixtureCard = ({ fixture, odds }: Props) => {
       {result.some(Boolean) && (
         <div className="mt-3 flex items-stretch gap-1.5">
           {result.map((o, i) => {
-            const sel = (["home", "draw", "away"] as const)[i];
+            const sel = sels[i];
+            const hs = fixture.home_team?.short_name ?? home;
+            const as = fixture.away_team?.short_name ?? away;
+            const shortLabel = market === "double_chance" ? sel.toUpperCase() : selectionLabel(market, sel, line, hs, as);
             return (
               <OddsButton
                 key={sel}
-                label={selectionLabel("1x2", sel, null, fixture.home_team?.short_name ?? home, fixture.away_team?.short_name ?? away)}
+                label={shortLabel}
                 odds={o ? effectiveOdds(o) : null}
                 suspended={o?.is_suspended || fixture.status !== "upcoming"}
-                active={has(fixture.id, "1x2", sel, null)}
+                active={has(fixture.id, market, sel, line)}
                 onClick={() =>
                   o &&
                   toggleSelection({
                     matchId: fixture.id,
-                    market: "1x2",
+                    market,
                     selection: sel,
-                    line: null,
+                    line,
                     odds: effectiveOdds(o),
                     matchLabel: `${home} v ${away}`,
-                    marketLabel: "Match Result",
-                    selectionLabel: selectionLabel("1x2", sel, null, home, away),
+                    marketLabel: MARKET_LABELS[market] ?? market,
+                    selectionLabel: selectionLabel(market, sel, line, home, away),
                     kickoffAt: fixture.kickoff_at,
                   })
                 }
