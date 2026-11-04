@@ -3844,6 +3844,10 @@ export type Database = {
         Returns: boolean
       }
       derived_balance: { Args: { p_user_id: string }; Returns: number }
+      fn_admin_claim_withdrawal: {
+        Args: { p_admin_id: string; p_reason: string; p_request_id: string }
+        Returns: Json
+      }
       fn_admin_reject_withdrawal: {
         Args: { p_admin_id: string; p_reason: string; p_request_id: string }
         Returns: Json
