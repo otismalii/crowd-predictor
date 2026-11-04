@@ -43,13 +43,22 @@ Deno.serve(async (req) => {
 
     if (action === "approve_withdrawal") {
       const requestId = String(body?.request_id ?? "");
-      const { data: wr } = await db.from("withdrawal_requests").select("*").eq("id", requestId).maybeSingle();
-      if (!wr) return json({ error: "Request not found" }, 404);
-      if (!["pending", "approved", "processing"].includes(wr.status)) {
-        return json({ error: "This request is no longer actionable" }, 400);
-      }
 
-      await db.from("withdrawal_requests").update({ status: "processing", reviewer_id: user.id, review_reason: reason }).eq("id", requestId);
+      // Atomic claim: only one concurrent admin can transition pending/approved -> processing.
+      const { data: claim, error: claimErr } = await db.rpc("fn_admin_claim_withdrawal", {
+        p_request_id: requestId,
+        p_admin_id: user.id,
+        p_reason: reason,
+      });
+      if (claimErr) return json({ error: claimErr.message }, 500);
+      if (!claim?.success) {
+        if (claim?.code === "ALREADY_CLAIMED") {
+          return json({ error: "Withdrawal is already being processed or handled" }, 409);
+        }
+        if (claim?.code === "NOT_FOUND") return json({ error: "Request not found" }, 404);
+        return json({ error: claim?.message ?? "Unable to claim withdrawal" }, 400);
+      }
+      const wr = claim.request;
 
       const payout = await sendMpesaPayout({
         phone: wr.phone_number ?? "",
@@ -57,7 +66,16 @@ Deno.serve(async (req) => {
         narrative: "Betwise withdrawal",
       });
       if (!payout.ok) {
+        // Roll back to pending and record the payout failure for the fraud/ops review.
         await db.from("withdrawal_requests").update({ status: "pending", failure_reason: payout.error.slice(0, 500) }).eq("id", requestId);
+        await db.from("payment_failures").insert({
+          user_id: wr.user_id,
+          request_id: requestId,
+          provider: "mpesa",
+          direction: "withdrawal",
+          failure_reason: payout.error.slice(0, 500),
+          amount: Number(wr.amount),
+        }).then(() => undefined, () => undefined);
         return json({ error: `Payout failed: ${payout.error}` }, 502);
       }
 

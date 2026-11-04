@@ -4,15 +4,26 @@
  */
 
 export const ENTRY_TYPES = [
+  // Banking / Cashier
   "deposit",
   "withdrawal",
+  // Sportsbook
+  "bet_stake",
+  "bet_win",
+  "bet_refund",
+  // Crash Casino (Pop It)
+  "crash_bet",
+  "crash_cashout",
+  "crash_refund",
+  // System & Adjustments
+  "refund",
+  "house_fee",
+  "credit_grant",
+  // Historical Prediction Market (preserved for immutable audit)
   "trade_buy",
   "trade_sell",
   "settlement_win",
   "settlement_loss",
-  "refund",
-  "house_fee",
-  "credit_grant",
 ] as const;
 
 export type EntryType = typeof ENTRY_TYPES[number];
