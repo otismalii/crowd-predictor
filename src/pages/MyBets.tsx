@@ -9,6 +9,7 @@ import { formatDateTime, formatKES } from "@/lib/format";
 import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 import { fetchMySlips, fetchSlipLegs } from "@/services/sportsbookService";
 import { selectionLabel, type BetSlip, type BetSlipLeg } from "@/types/sportsbook";
+import TeamCrest from "@/components/sportsbook/TeamCrest";
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   open: "secondary", won: "default", lost: "destructive", void: "outline", cancelled: "outline",
@@ -88,7 +89,12 @@ const MyBets = () => {
                           <p className="truncate text-sm">
                             {selectionLabel(leg.market, leg.selection, leg.line, home, away)}
                           </p>
-                          <p className="truncate text-[11px] text-muted-foreground">{home} v {away}</p>
+                          <p className="flex items-center gap-1 truncate text-[11px] text-muted-foreground">
+                            <TeamCrest name={home} logoUrl={leg.fixture?.home_team?.logo_url} size="xs" />
+                            {home} v
+                            <TeamCrest name={away} logoUrl={leg.fixture?.away_team?.logo_url} size="xs" />
+                            {away}
+                          </p>
                         </div>
                         <div className="text-right">
                           <p className="font-display text-sm font-bold tabular-nums">
