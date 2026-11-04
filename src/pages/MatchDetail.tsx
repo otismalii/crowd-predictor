@@ -86,18 +86,21 @@ const MatchDetail = () => {
                   <span className="tabular-nums">{formatDateTime(fixture.kickoff_at)}</span>
                 )}
               </div>
-              <div className="flex items-center justify-between gap-4">
-                <h1 className="flex flex-wrap items-center gap-1.5 font-display text-lg font-bold leading-tight">
-                  <TeamCrest name={home} logoUrl={fixture.home_team?.logo_url} />
-                  {home} <span className="text-muted-foreground">v</span>
-                  <TeamCrest name={away} logoUrl={fixture.away_team?.logo_url} />
-                  {away}
-                </h1>
-                {(fixture.status === "live" || fixture.status === "finished") && (
-                  <span className="font-display text-2xl font-bold tabular-nums">
-                    {fixture.home_score ?? 0}–{fixture.away_score ?? 0}
-                  </span>
-                )}
+              <h1 className="sr-only">{home} v {away}</h1>
+              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 py-2">
+                <div className="flex flex-col items-center gap-2 text-center">
+                  <TeamCrest name={home} logoUrl={fixture.home_team?.logo_url} size="lg" />
+                  <span className="font-display text-sm font-bold leading-tight">{home}</span>
+                </div>
+                <span className="font-display text-2xl font-bold tabular-nums">
+                  {fixture.status === "live" || fixture.status === "finished"
+                    ? `${fixture.home_score ?? 0}–${fixture.away_score ?? 0}`
+                    : <span className="text-base text-muted-foreground">vs</span>}
+                </span>
+                <div className="flex flex-col items-center gap-2 text-center">
+                  <TeamCrest name={away} logoUrl={fixture.away_team?.logo_url} size="lg" />
+                  <span className="font-display text-sm font-bold leading-tight">{away}</span>
+                </div>
               </div>
               {fixture.venue && <p className="mt-1 text-xs text-muted-foreground">{fixture.venue}</p>}
             </section>
