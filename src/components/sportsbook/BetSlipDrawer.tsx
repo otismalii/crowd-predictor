@@ -94,15 +94,29 @@ const BetSlipDrawer = () => {
       <AnimatePresence>
         {count > 0 && !isOpen && (
           <motion.button
-            initial={{ y: 40, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 40, opacity: 0 }}
+            initial={{ y: 60, opacity: 0, scale: 0.9, x: "-50%" }}
+            animate={{ y: 0, opacity: 1, scale: 1, x: "-50%" }}
+            exit={{ y: 60, opacity: 0, scale: 0.9, x: "-50%" }}
+            transition={{ type: "spring", stiffness: 420, damping: 30 }}
+            whileTap={{ scale: 0.94, x: "-50%" }}
             onClick={open}
-            className="fixed bottom-20 left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 rounded-full border border-primary/40 bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-lg md:bottom-6"
+            className="fixed bottom-20 left-1/2 z-40 flex items-center gap-2 rounded-full border border-primary/40 bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-lg md:bottom-6"
           >
-            <Ticket className="h-4 w-4" />
+            <motion.span key={count} initial={{ rotate: -20, scale: 0.6 }} animate={{ rotate: 0, scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 15 }}>
+              <Ticket className="h-4 w-4" />
+            </motion.span>
             Bet slip
-            <Badge variant="secondary" className="h-5 px-1.5 tabular-nums">{count}</Badge>
+            <AnimatePresence mode="popLayout" initial={false}>
+              <motion.span
+                key={count}
+                initial={{ y: -12, opacity: 0, scale: 1.4 }}
+                animate={{ y: 0, opacity: 1, scale: 1 }}
+                exit={{ y: 12, opacity: 0 }}
+                transition={{ type: "spring", stiffness: 500, damping: 22 }}
+              >
+                <Badge variant="secondary" className="h-5 px-1.5 tabular-nums">{count}</Badge>
+              </motion.span>
+            </AnimatePresence>
           </motion.button>
         )}
       </AnimatePresence>
@@ -127,11 +141,17 @@ const BetSlipDrawer = () => {
             </p>
           ) : (
             <div className="space-y-3">
-              <ul className="space-y-2">
+              <motion.ul layout className="space-y-2">
+                <AnimatePresence initial={false}>
                 {selections.map((s) => (
-                  <li
+                  <motion.li
+                    layout
                     key={`${s.matchId}-${s.market}-${s.selection}-${s.line ?? ""}`}
-                    className="flex items-start gap-2 rounded-lg border border-border/60 bg-muted/20 p-2.5"
+                    initial={{ opacity: 0, x: 24, height: 0 }}
+                    animate={{ opacity: 1, x: 0, height: "auto" }}
+                    exit={{ opacity: 0, x: -40, height: 0, marginTop: 0, paddingTop: 0, paddingBottom: 0 }}
+                    transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                    className="flex items-start gap-2 overflow-hidden rounded-lg border border-border/60 bg-muted/20 p-2.5"
                   >
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold">{s.selectionLabel}</p>
@@ -146,9 +166,10 @@ const BetSlipDrawer = () => {
                     >
                       <X className="h-4 w-4" />
                     </button>
-                  </li>
+                  </motion.li>
                 ))}
-              </ul>
+                </AnimatePresence>
+              </motion.ul>
 
               {dropped.length > 0 && (
                 <div className="space-y-1 rounded-lg border border-destructive/40 bg-destructive/10 p-2.5 text-xs">
