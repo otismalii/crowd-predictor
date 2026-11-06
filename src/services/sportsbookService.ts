@@ -11,6 +11,8 @@ import type {
 } from "@/types/sportsbook";
 
 
+import { dedupeFixtures } from "@/lib/fixtureDedup";
+
 const FIXTURE_SELECT = `
   id, kickoff_at, status, minute, home_score, away_score, venue, round,
   home_team:teams!platform_matches_home_team_id_fkey (id, name, short_name, logo_url),
@@ -54,8 +56,9 @@ export async function fetchFixtures(opts: {
     if (comp?.id) query = query.eq("competition_id", comp.id);
   }
 
-  const { data, error } = await safeFetch<any[]>(query.limit(limit));
-  return { data: (data ?? []) as Fixture[], error };
+  // Over-fetch so duplicates from the second feed don't eat into the visible limit.
+  const { data, error } = await safeFetch<any[]>(query.limit(limit * 2));
+  return { data: dedupeFixtures((data ?? []) as Fixture[]).slice(0, limit), error };
 }
 
 export async function fetchFixture(id: string) {
