@@ -28,6 +28,15 @@ Deno.serve(async (req) => {
     }
     if (!orderTrackingId) return json({ error: "Missing OrderTrackingId" }, 400);
 
+    // PesaPal v3 requires this acknowledgement body, otherwise it keeps retrying the IPN.
+    const ack = (extra: Record<string, unknown> = {}, status = 200) => json({
+      orderNotificationType: url.searchParams.get("OrderNotificationType") ?? "IPNCHANGE",
+      orderTrackingId,
+      orderMerchantReference: merchantRef ?? "",
+      status: status === 200 ? "200" : "500",
+      ...extra,
+    }, status);
+
     const token = await getPesaPalToken();
     const status = await getTransactionStatus(token, orderTrackingId);
 
@@ -48,10 +57,10 @@ Deno.serve(async (req) => {
         error: `No transaction for tracking id ${orderTrackingId}`,
         payload: status.raw,
       });
-      return json({ status: "ok", message: "Transaction not found" });
+      return ack({ message: "Transaction not found" });
     }
 
-    if (tx.status === "completed") return json({ status: "ok", state: "completed", replayed: true });
+    if (tx.status === "completed") return ack({ state: "completed", replayed: true });
 
     if (status.state === "completed") {
       if (status.amount != null && Math.abs(status.amount - Number(tx.amount)) > 0.5) {
@@ -63,7 +72,7 @@ Deno.serve(async (req) => {
           error: `Provider amount ${status.amount} != intent ${tx.amount}`,
           payload: status.raw,
         });
-        return json({ status: "ok", state: "review" });
+        return ack({ state: "review" });
       }
 
       const { error: creditErr } = await db.rpc("fn_credit_deposit", {
@@ -80,7 +89,7 @@ Deno.serve(async (req) => {
           error: creditErr.message,
           payload: status.raw,
         });
-        return json({ error: creditErr.message }, 500);
+        return ack({ error: creditErr.message }, 500);
       }
 
       await db.from("transactions").update({
@@ -89,7 +98,7 @@ Deno.serve(async (req) => {
         updated_at: new Date().toISOString(),
       }).eq("id", tx.id);
 
-      return json({ status: "ok", state: "completed" });
+      return ack({ state: "completed" });
     }
 
     if (status.state === "failed") {
@@ -106,10 +115,10 @@ Deno.serve(async (req) => {
         error: String(status.raw?.payment_status_description ?? "payment failed"),
         payload: status.raw,
       });
-      return json({ status: "ok", state: "failed" });
+      return ack({ state: "failed" });
     }
 
-    return json({ status: "ok", state: "pending" });
+    return ack({ state: "pending" });
   } catch (e) {
     console.error("pesapal-callback error:", e);
     return json({ error: e instanceof Error ? e.message : "Unknown error" }, 500);

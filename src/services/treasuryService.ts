@@ -95,127 +95,63 @@ export async function fetchLedgerEntries(limit = 100) {
   );
 }
 
-/**
- * Approve a pending transaction with mandatory reason + audit log.
- */
-export async function approveTransaction(tx: TransactionRow, reason?: string): Promise<{ error: string | null }> {
-  try {
-    const currentUser = (await supabase.auth.getUser()).data.user;
-
-    if (tx.type === "deposit") {
-      const { data: wallet } = await supabase.from("wallets").select("id, balance").eq("id", tx.wallet_id).single();
-      if (wallet) {
-        const newBalance = Number(wallet.balance) + Number(tx.amount);
-        await supabase.from("wallets").update({
-          balance: newBalance,
-          updated_at: new Date().toISOString(),
-        }).eq("id", wallet.id);
-
-        await supabase.from("ledger_entries").insert({
-          user_id: tx.user_id,
-          wallet_id: wallet.id,
-          entry_type: "deposit",
-          amount: Number(tx.amount),
-          balance_after: newBalance,
-          reference_id: tx.id,
-          description: `Deposit approved - KES ${Number(tx.amount).toLocaleString()}`,
-        });
-      }
-    }
-
-    await supabase.from("transactions").update({
-      status: "completed",
-      updated_at: new Date().toISOString(),
-    }).eq("id", tx.id);
-
-    // Audit log
-    if (currentUser) {
-      await supabase.from("market_audit_log").insert({
-        action: "transaction_approved",
-        performed_by: currentUser.id,
-        details: {
-          transaction_id: tx.id,
-          type: tx.type,
-          amount: tx.amount,
-          user_id: tx.user_id,
-          reason: reason || "No reason provided",
-        },
-      });
-    }
-
-    await supabase.from("notifications").insert({
-      user_id: tx.user_id,
-      type: tx.type,
-      title: tx.type === "deposit" ? "🦅 Deposit Approved" : "🦅 Landing Confirmed",
-      message: `Your ${tx.type} of KES ${Number(tx.amount).toLocaleString()} has been approved`,
-      link: "/wallet",
-    });
-
-    return { error: null };
-  } catch (e: any) {
-    return { error: e.message };
+async function invokeFn(fn: string, body: Record<string, unknown>): Promise<{ data: any; error: string | null }> {
+  const { data, error } = await supabase.functions.invoke(fn, { body });
+  if (error) {
+    let msg = error.message;
+    try { const ctx = await (error as any).context?.json?.(); if (ctx?.error) msg = ctx.error; } catch { /* ignore */ }
+    return { data: null, error: msg };
   }
+  if (data && typeof data === "object" && "error" in data) return { data: null, error: String(data.error) };
+  return { data, error: null };
+}
+
+async function findWithdrawalRequestId(tx: TransactionRow): Promise<string | null> {
+  const { data } = await supabase.from("withdrawal_requests").select("id").eq("transaction_id", tx.id).maybeSingle();
+  return (data as any)?.id ?? null;
 }
 
 /**
- * Reject a pending transaction with mandatory reason + audit log.
+ * Approve a pending transaction. All money movement runs server-side:
+ * - withdrawals: atomic claim + real M-Pesa payout + ledger settlement
+ * - deposits: re-verified with PesaPal and credited only if PesaPal confirms payment
+ */
+export async function approveTransaction(tx: TransactionRow, reason?: string): Promise<{ error: string | null }> {
+  if (!reason?.trim()) return { error: "A reason is required" };
+  if (tx.type === "withdrawal") {
+    const requestId = await findWithdrawalRequestId(tx);
+    if (!requestId) return { error: "No withdrawal request linked to this transaction" };
+    const { error } = await invokeFn("admin-finance-actions", { action: "approve_withdrawal", request_id: requestId, reason });
+    return { error };
+  }
+  if (tx.type === "deposit") {
+    const { error } = await invokeFn("pesapal-status", {});
+    if (error) return { error };
+    const { data } = await supabase.from("transactions").select("status").eq("id", tx.id).maybeSingle();
+    if ((data as any)?.status !== "completed") {
+      return { error: "PesaPal has not confirmed this payment yet — deposits are only credited once PesaPal confirms" };
+    }
+    return { error: null };
+  }
+  return { error: "This transaction type cannot be approved manually" };
+}
+
+/**
+ * Reject a pending transaction. Withdrawals release held funds through the ledger server-side.
  */
 export async function rejectTransaction(tx: TransactionRow, reason?: string): Promise<{ error: string | null }> {
-  try {
-    const currentUser = (await supabase.auth.getUser()).data.user;
-
-    if (tx.type === "withdrawal") {
-      const { data: wallet } = await supabase.from("wallets").select("id, balance").eq("id", tx.wallet_id).single();
-      if (wallet) {
-        const newBalance = Number(wallet.balance) + Number(tx.amount);
-        await supabase.from("wallets").update({
-          balance: newBalance,
-          updated_at: new Date().toISOString(),
-        }).eq("id", wallet.id);
-
-        await supabase.from("ledger_entries").insert({
-          user_id: tx.user_id,
-          wallet_id: wallet.id,
-          entry_type: "refund",
-          amount: Number(tx.amount),
-          balance_after: newBalance,
-          reference_id: tx.id,
-          description: `Withdrawal rejected - funds returned${reason ? `: ${reason}` : ""}`,
-        });
-      }
-    }
-
-    await supabase.from("transactions").update({
-      status: "failed",
-      description: (tx.description || "") + ` [REJECTED${reason ? `: ${reason}` : ""}]`,
-      updated_at: new Date().toISOString(),
-    }).eq("id", tx.id);
-
-    // Audit log
-    if (currentUser) {
-      await supabase.from("market_audit_log").insert({
-        action: "transaction_rejected",
-        performed_by: currentUser.id,
-        details: {
-          transaction_id: tx.id,
-          type: tx.type,
-          amount: tx.amount,
-          user_id: tx.user_id,
-          reason: reason || "No reason provided",
-        },
-      });
-    }
-
-    await supabase.from("notifications").insert({
-      user_id: tx.user_id,
-      type: tx.type,
-      title: "⚠️ Turbulence Detected",
-      message: `Your ${tx.type} of KES ${Number(tx.amount).toLocaleString()} was rejected${reason ? `: ${reason}` : ""}`,
-      link: "/wallet",
-    });
-
-    return { error: null };
-  } catch (e: any) {
-    return { error: e.message };
+  if (!reason?.trim()) return { error: "A reason is required" };
+  if (tx.type === "withdrawal") {
+    const requestId = await findWithdrawalRequestId(tx);
+    if (!requestId) return { error: "No withdrawal request linked to this transaction" };
+    const { error } = await invokeFn("admin-finance-actions", { action: "reject_withdrawal", request_id: requestId, reason });
+    return { error };
   }
+  // Deposits: no money moved yet, just mark the intent failed.
+  const { error } = await supabase.from("transactions").update({
+    status: "failed",
+    description: (tx.description || "") + ` [REJECTED: ${reason}]`,
+    updated_at: new Date().toISOString(),
+  }).eq("id", tx.id);
+  return { error: error?.message ?? null };
 }
