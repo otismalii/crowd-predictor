@@ -86,6 +86,41 @@ const Wallet = () => {
     setLoading(false);
   }, [user]);
 
+  // Returning from PesaPal checkout: confirm the deposit instead of waiting on the IPN.
+  useEffect(() => {
+    if (!user) return;
+    const params = new URLSearchParams(window.location.search);
+    const merchantRef = params.get("OrderMerchantReference");
+    const trackingId = params.get("OrderTrackingId");
+    if (!merchantRef && !trackingId) return;
+    window.history.replaceState({}, "", window.location.pathname);
+
+    let cancelled = false;
+    (async () => {
+      let q = supabase.from("transactions").select("id").eq("user_id", user.id);
+      q = merchantRef ? q.eq("reference", merchantRef) : q.eq("pesapal_tracking_id", trackingId!);
+      const { data: tx } = await q.maybeSingle();
+      if (!tx) return;
+      toast({ title: "Confirming your M-Pesa deposit…", description: "This usually takes a few seconds" });
+      for (let i = 0; i < 8 && !cancelled; i++) {
+        const { data } = await supabase.functions.invoke("pesapal-status", { body: { transaction_id: (tx as any).id } });
+        const state = (data as any)?.state;
+        if (state === "completed") {
+          toast({ title: "Deposit received", description: `KES ${Number((data as any).amount).toLocaleString()} is now in your wallet` });
+          fetchAll();
+          return;
+        }
+        if (state === "failed") {
+          toast({ title: "Deposit not completed", description: "PesaPal reported the payment failed", variant: "destructive" });
+          return;
+        }
+        await new Promise((r) => setTimeout(r, 4000));
+      }
+      if (!cancelled) toast({ title: "Deposit still processing", description: "We'll credit your wallet as soon as PesaPal confirms" });
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
+
   const totalPnl = slipStats.returned - slipStats.staked;
 
   if (!user) {
